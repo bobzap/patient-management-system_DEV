@@ -142,7 +142,7 @@ export const PatientForm = ({ onSubmit, onCancel }: PatientFormProps) => {
       if (name === 'dateNaissance') {
         newData.age = calculerAge(value);
       }
-      
+      //test
       // Calculer l'ancienneté si la date d'entrée change
       if (name === 'dateEntree') {
         newData.anciennete = calculerAnciennete(value);
