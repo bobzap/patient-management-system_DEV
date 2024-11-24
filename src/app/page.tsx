@@ -1,12 +1,13 @@
 'use client';
+
 import { useState, useCallback, useEffect } from 'react';
 import { Patient } from '@/types';
 import { Sidebar } from '@/components/layout/Sidebar';
-
 import { PatientList } from '@/components/patients/PatientList';
 import { PatientDetails } from '@/components/patients/PatientDetails';
 import { PatientForm } from '@/components/patients/PatientForm';
-import { Dashboard } from '@/components/dashboard/Dashbord';
+import { Dashboard } from '@/components/dashboard/Dashboard';
+import { toast } from '@/components/ui/use-toast';
 
 // Types
 type NavigationTab = 'dashboard' | 'patients' | 'newDossier';
@@ -24,10 +25,16 @@ export default function HomePage() {
     const fetchPatients = async () => {
       try {
         const response = await fetch('/api/patients');
-        const data = await response.json();
-        setPatients(data);
+        const result = await response.json();
+        // Mise à jour pour utiliser result.data qui contient le tableau de patients
+        setPatients(result.data || []);
       } catch (error) {
         console.error('Erreur lors du chargement des patients:', error);
+        toast({
+          title: "Erreur",
+          description: "Impossible de charger les patients",
+          variant: "destructive",
+        });
       } finally {
         setIsLoading(false);
       }
@@ -57,14 +64,27 @@ export default function HomePage() {
         body: JSON.stringify(patientData),
       });
 
-      if (!response.ok) throw new Error('Erreur lors de la création du patient');
+      const result = await response.json();
 
-      const newPatient = await response.json();
-      setPatients(prev => [...prev, newPatient]);
+      if (!response.ok) {
+        throw new Error(result.error || 'Erreur lors de la création du patient');
+      }
+
+      // Mise à jour pour utiliser result.data qui contient le nouveau patient
+      setPatients(prev => [...prev, result.data]);
       setActiveTab('patients');
+      
+      toast({
+        title: "Succès",
+        description: "Le dossier patient a été créé avec succès",
+      });
     } catch (error) {
       console.error('Erreur lors de la création du patient:', error);
-      alert('Une erreur est survenue lors de la création du dossier');
+      toast({
+        title: "Erreur",
+        description: error.message || "Une erreur est survenue lors de la création du dossier",
+        variant: "destructive",
+      });
     }
   }, []);
 
@@ -73,26 +93,28 @@ export default function HomePage() {
   }, []);
 
   if (isLoading) {
-    return <div className="flex justify-center items-center h-screen">Chargement...</div>;
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
   }
 
-  // Rendu principal
   return (
     <div className="flex h-screen bg-gray-100">
-      {/* Sidebar toujours visible */}
       <Sidebar 
         activeTab={activeTab}
         onTabChange={handleTabChange}
       />
 
-      {/* Contenu principal */}
       <main className="flex-1 overflow-auto">
         {selectedPatient ? (
           <div className="relative">
             <PatientDetails patient={selectedPatient} />
             <button
               onClick={() => setSelectedPatient(null)}
-              className="absolute top-6 right-6 px-4 py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200"
+              className="absolute top-6 right-6 px-4 py-2 bg-gray-100 text-gray-600 
+                       rounded-lg hover:bg-gray-200 transition-colors duration-200"
             >
               ← Retour à la liste
             </button>
@@ -100,7 +122,7 @@ export default function HomePage() {
         ) : (
           <>
             {activeTab === 'dashboard' && (
-              <Dashboard patients={patients} />
+              <Dashboard patients={{ data: patients }} />
             )}
             
             {activeTab === 'patients' && (
