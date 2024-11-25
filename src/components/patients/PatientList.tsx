@@ -93,13 +93,13 @@ export const PatientList = ({
                           </span>
                         </div>
                         <div className="ml-4">
-                          <div className="text-sm font-semibold text-gray-900">
-                            {patient.civilite} {patient.nom} {patient.prenom}
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            {patient.dateEntree}
-                          </div>
-                        </div>
+  <div className="text-sm font-semibold text-gray-900">
+    {`${patient.civilite} ${patient.nom} ${patient.prenom}`}
+  </div>
+  <div className="text-sm text-gray-500">
+    Entrée en fonction : {patient.dateEntree?.replace(/\//g, '.')}
+  </div>
+</div>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">

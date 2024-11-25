@@ -28,13 +28,15 @@ export const PatientDetails = ({ patient }: { patient: Patient }) => {
 
         {/* Quick Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+         <div className="bg-gray-50 rounded-lg p-4">
+          <p className="text-sm text-gray-600">Entré le</p>
+          <p className="text-lg font-semibold text-blue-900">
+             {patient.dateEntree?.replace(/\//g, '.')}
+          </p>
+          </div>
           <div className="bg-gray-50 rounded-lg p-4">
             <p className="text-sm text-gray-600">Ancienneté</p>
             <p className="text-lg font-semibold text-blue-900">{patient.anciennete}</p>
-          </div>
-          <div className="bg-gray-50 rounded-lg p-4">
-            <p className="text-sm text-gray-600">Entrée le</p>
-            <p className="text-lg font-semibold text-blue-900">{patient.dateEntree}</p>
           </div>
           <div className="bg-gray-50 rounded-lg p-4">
             <p className="text-sm text-gray-600">Dernier entretien</p>

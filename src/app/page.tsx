@@ -56,6 +56,9 @@ export default function HomePage() {
 
   const handlePatientSubmit = useCallback(async (patientData: Omit<Patient, 'id'>) => {
     try {
+      // Log détaillé des données envoyées
+      console.log('Données envoyées:', JSON.stringify(patientData, null, 2));
+      
       const response = await fetch('/api/patients', {
         method: 'POST',
         headers: {
@@ -63,11 +66,22 @@ export default function HomePage() {
         },
         body: JSON.stringify(patientData),
       });
-
-      const result = await response.json();
-
+  
+      // Log du statut de la réponse
+      console.log('Statut de la réponse:', response.status, response.statusText);
+      
+      const responseText = await response.text();
+      console.log('Réponse brute du serveur:', responseText);
+  
       if (!response.ok) {
-        throw new Error(result.error || 'Erreur lors de la création du patient');
+        throw new Error(`Erreur HTTP: ${response.status} - ${responseText}`);
+      }
+  
+      let result;
+      try {
+        result = JSON.parse(responseText);
+      } catch (e) {
+        throw new Error(`Réponse invalide: ${responseText}`);
       }
 
       // Mise à jour pour utiliser result.data qui contient le nouveau patient
@@ -78,8 +92,12 @@ export default function HomePage() {
         title: "Succès",
         description: "Le dossier patient a été créé avec succès",
       });
+      
     } catch (error) {
-      console.error('Erreur lors de la création du patient:', error);
+      console.error('Erreur complète:', {
+        message: error.message,
+        stack: error.stack
+      });
       toast({
         title: "Erreur",
         description: error.message || "Une erreur est survenue lors de la création du dossier",

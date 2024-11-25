@@ -1,32 +1,25 @@
 // app/api/patients/[id]/route.ts
 import { NextResponse } from 'next/server';
-import { prisma } from '../../../../../lib/prisma';
+import { prisma } from '../../../../lib/prisma';
+import { formatDate } from '@/lib/utils';
 
-export async function GET(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
+export async function GET() {
   try {
-    const patient = await prisma.patient.findUnique({
-      where: {
-        id: parseInt(params.id),
-      },
+    const patients = await prisma.patient.findMany({
+      orderBy: { createdAt: 'desc' },
     });
 
-    if (!patient) {
-      return NextResponse.json(
-        { error: 'Patient non trouvé' },
-        { status: 404 }
-      );
-    }
+    const formattedPatients = patients.map(patient => ({
+      ...patient,
+      dateNaissance: formatDate(patient.dateNaissance),
+      dateEntree: formatDate(patient.dateEntree),
+      dateEntretien: patient.dateEntretien ? formatDate(patient.dateEntretien) : '',
+      dateCreation: formatDate(patient.dateCreation)
+    }));
 
-    return NextResponse.json({ data: patient });
+    return NextResponse.json({ data: formattedPatients });
   } catch (error) {
-    console.error('Erreur lors de la récupération du patient:', error);
-    return NextResponse.json(
-      { error: 'Erreur serveur' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
   }
 }
 
@@ -36,7 +29,8 @@ export async function PUT(
 ) {
   try {
     const data = await request.json();
-    
+    console.log('Données de mise à jour reçues:', data);
+
     const patient = await prisma.patient.update({
       where: {
         id: parseInt(params.id),
@@ -75,6 +69,8 @@ export async function PUT(
         duree: data.duree,
         typeEntretien: data.typeEntretien,
         consentement: data.consentement,
+        dateCreation: data.dateCreation || new Date().toISOString().split('T')[0],
+        updatedAt: new Date(),
       },
     });
 
@@ -99,11 +95,12 @@ export async function DELETE(
       },
     });
 
-    return new NextResponse(null, { status: 204 });
+    console.log('Patient mis à jour:', patient);
+    return NextResponse.json({ data: patient });
   } catch (error) {
-    console.error('Erreur lors de la suppression du patient:', error);
+    console.error('Erreur lors de la mise à jour du patient:', error);
     return NextResponse.json(
-      { error: 'Erreur serveur' },
+      { error: error.message || 'Erreur serveur' },
       { status: 500 }
     );
   }
