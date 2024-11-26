@@ -7,10 +7,11 @@ import { PatientList } from '@/components/patients/PatientList';
 import { PatientDetails } from '@/components/patients/PatientDetails';
 import { PatientForm } from '@/components/patients/PatientForm';
 import { Dashboard } from '@/components/dashboard/Dashboard';
+import { ListManager } from '@/components/admin/ListManager';
 import { toast } from '@/components/ui/use-toast';
 
-// Types
-type NavigationTab = 'dashboard' | 'patients' | 'newDossier';
+// Types étendu pour inclure l'admin
+type NavigationTab = 'dashboard' | 'patients' | 'newDossier' | 'admin';
 
 export default function HomePage() {
   // États
@@ -26,7 +27,6 @@ export default function HomePage() {
       try {
         const response = await fetch('/api/patients');
         const result = await response.json();
-        // Mise à jour pour utiliser result.data qui contient le tableau de patients
         setPatients(result.data || []);
       } catch (error) {
         console.error('Erreur lors du chargement des patients:', error);
@@ -44,7 +44,7 @@ export default function HomePage() {
   }, []);
 
   const handleTabChange = useCallback((newTab: NavigationTab) => {
-    if (selectedPatient) {
+    if (selectedPatient && newTab !== 'admin') {
       if (window.confirm('Voulez-vous vraiment quitter la vue détaillée ?')) {
         setSelectedPatient(null);
         setActiveTab(newTab);
@@ -56,7 +56,6 @@ export default function HomePage() {
 
   const handlePatientSubmit = useCallback(async (patientData: Omit<Patient, 'id'>) => {
     try {
-      // Log détaillé des données envoyées
       console.log('Données envoyées:', JSON.stringify(patientData, null, 2));
       
       const response = await fetch('/api/patients', {
@@ -67,7 +66,6 @@ export default function HomePage() {
         body: JSON.stringify(patientData),
       });
   
-      // Log du statut de la réponse
       console.log('Statut de la réponse:', response.status, response.statusText);
       
       const responseText = await response.text();
@@ -84,7 +82,6 @@ export default function HomePage() {
         throw new Error(`Réponse invalide: ${responseText}`);
       }
 
-      // Mise à jour pour utiliser result.data qui contient le nouveau patient
       setPatients(prev => [...prev, result.data]);
       setActiveTab('patients');
       
@@ -118,49 +115,57 @@ export default function HomePage() {
     );
   }
 
+  const renderContent = () => {
+    if (selectedPatient) {
+      return (
+        <div className="relative">
+          <PatientDetails patient={selectedPatient} />
+          <button
+            onClick={() => setSelectedPatient(null)}
+            className="absolute top-6 right-6 px-4 py-2 bg-gray-100 text-gray-600 
+                     rounded-lg hover:bg-gray-200 transition-colors duration-200"
+          >
+            ← Retour à la liste
+          </button>
+        </div>
+      );
+    }
+
+    switch (activeTab) {
+      case 'dashboard':
+        return <Dashboard patients={{ data: patients }} />;
+      case 'patients':
+        return (
+          <PatientList
+            patients={patients}
+            searchTerm={searchTerm}
+            onSearchChange={setSearchTerm}
+            onSelectPatient={handlePatientSelect}
+            onNewDossier={() => handleTabChange('newDossier')}
+          />
+        );
+      case 'newDossier':
+        return (
+          <PatientForm
+            onSubmit={handlePatientSubmit}
+            onCancel={() => handleTabChange('patients')}
+          />
+        );
+      case 'admin':
+        return <ListManager />;
+      default:
+        return <Dashboard patients={{ data: patients }} />;
+    }
+  };
+
   return (
     <div className="flex h-screen bg-gray-100">
       <Sidebar 
         activeTab={activeTab}
         onTabChange={handleTabChange}
       />
-
       <main className="flex-1 overflow-auto">
-        {selectedPatient ? (
-          <div className="relative">
-            <PatientDetails patient={selectedPatient} />
-            <button
-              onClick={() => setSelectedPatient(null)}
-              className="absolute top-6 right-6 px-4 py-2 bg-gray-100 text-gray-600 
-                       rounded-lg hover:bg-gray-200 transition-colors duration-200"
-            >
-              ← Retour à la liste
-            </button>
-          </div>
-        ) : (
-          <>
-            {activeTab === 'dashboard' && (
-              <Dashboard patients={{ data: patients }} />
-            )}
-            
-            {activeTab === 'patients' && (
-              <PatientList
-                patients={patients}
-                searchTerm={searchTerm}
-                onSearchChange={setSearchTerm}
-                onSelectPatient={handlePatientSelect}
-                onNewDossier={() => handleTabChange('newDossier')}
-              />
-            )}
-            
-            {activeTab === 'newDossier' && (
-              <PatientForm
-                onSubmit={handlePatientSubmit}
-                onCancel={() => handleTabChange('patients')}
-              />
-            )}
-          </>
-        )}
+        {renderContent()}
       </main>
     </div>
   );

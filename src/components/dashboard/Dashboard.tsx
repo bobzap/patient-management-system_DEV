@@ -19,8 +19,8 @@ export const Dashboard = ({ patients }: DashboardProps) => {
 
   return (
     <div className="p-6">
-      <h2 className="text-2xl font-semibold text-gray-800 mb-6">Tableau de bord</h2>
-      
+      <h2 className="text-2xl font-bold text-blue-900 mb-6">Tableau de bord</h2>
+     
       {/* Statistiques */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
         {/* Nouveaux dossiers aujourd'hui */}
