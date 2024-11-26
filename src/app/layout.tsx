@@ -1,8 +1,11 @@
+// src/app/layout.tsx
 import type { Metadata } from "next";
 import localFont from "next/font/local";
+import { Nunito } from 'next/font/google';
 import "./globals.css";
 import { Toaster } from 'sonner';
 
+// Police existantes
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
   variable: "--font-geist-sans",
@@ -13,6 +16,13 @@ const geistMono = localFont({
   src: "./fonts/GeistMonoVF.woff",
   variable: "--font-geist-mono",
   weight: "100 900",
+});
+
+// Ajout de Nunito
+const nunito = Nunito({
+  subsets: ['latin'],
+  weight: ['300', '400', '600', '700'],
+  variable: '--font-nunito',
 });
 
 export const metadata: Metadata = {
@@ -27,7 +37,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+      <body 
+        className={`${geistSans.variable} ${geistMono.variable} ${nunito.variable} font-nunito antialiased`}
+      >
         {children}
         <Toaster />
       </body>
