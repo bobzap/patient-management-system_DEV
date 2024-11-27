@@ -224,7 +224,7 @@ export const PatientForm = ({ onSubmit, onCancel }: PatientFormProps) => {
                 options={ETATS_CIVILS}
               />
               <InputField
-                label="Nom"
+                label="NOM"
                 name="nom"
                 value={formData.nom}
                 onChange={handleChange}

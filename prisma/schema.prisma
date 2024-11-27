@@ -10,7 +10,7 @@ datasource db {
 
 model ListCategory {
   id        Int       @id @default(autoincrement())
-  listId    String    @unique // correspond à l'id de la liste (ex: 'horaires')
+  listId    String    @unique
   name      String
   items     ListItem[]
   createdAt DateTime  @default(now())
@@ -23,8 +23,8 @@ model ListItem {
   order        Int
   category     ListCategory @relation(fields: [categoryId], references: [id])
   categoryId   Int
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
 
   @@unique([categoryId, value])
 }
@@ -37,13 +37,13 @@ model Patient {
   prenom          String
   dateNaissance   String
   age             Int
-  etatCivil       String   // Nouveau champ
+  etatCivil       String
   
   // Informations professionnelles
   poste           String
   manager         String
   zone            String
-  horaire         String?  // Optionnel
+  horaire         String?
   contrat         String
   tauxActivite    String
   departement     String
@@ -51,22 +51,66 @@ model Patient {
   anciennete      String
 
   // Informations de transport
-  tempsTrajetAller String  // Nouveau champ
-  tempsTrajetRetour String // Nouveau champ
-  typeTransport    String  // Nouveau champ
+  tempsTrajetAller String
+  tempsTrajetRetour String
+  typeTransport    String
   
   // Informations d'entretien
-  numeroEntretien Int?     // Optionnel
-  nomEntretien    String?  // Optionnel
-  dateEntretien   String?  // Optionnel
-  heureDebut      String?  // Optionnel
-  heureFin        String?  // Optionnel
-  duree           String?  // Optionnel
-  typeEntretien   String?  // Optionnel
-  consentement    String?  // Optionnel
-  dateCreation    String?  // Optionnel
+  numeroEntretien Int?
+  nomEntretien    String?
+  dateEntretien   String?
+  heureDebut      String?
+  heureFin        String?
+  duree           String?
+  typeEntretien   String?
+  consentement    String?
+  dateCreation    String?
 
   // Timestamps
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+}
+
+// Nouveaux modèles pour la configuration des formulaires
+model FormConfiguration {
+  id        Int         @id @default(autoincrement())
+  pageId    String      @unique  // ex: 'patientForm', 'patientDetails'
+  name      String      // Nom du formulaire
+  sections  FormSection[]
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+}
+
+model FormSection {
+  id            Int               @id @default(autoincrement())
+  name          String           // ex: 'informations_personnelles'
+  label         String           // ex: 'Informations Personnelles'
+  order         Int              // Ordre d'affichage de la section
+  formId        Int
+  form          FormConfiguration @relation(fields: [formId], references: [id])
+  fields        FormField[]
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  @@unique([formId, name])
+}
+
+model FormField {
+  id            Int          @id @default(autoincrement())
+  sectionId     Int
+  section       FormSection  @relation(fields: [sectionId], references: [id])
+  name          String       // identifiant du champ (ex: 'nom', 'prenom')
+  label         String       // libellé affiché
+  type          String       // 'text', 'select', 'date', etc.
+  required      Boolean      @default(false)
+  order         Int          // ordre dans la section
+  listId        String?      // référence à une ListCategory si type='select'
+  defaultValue  String?
+  validation    String?      // règles de validation en JSON
+  positionX     Int         @default(0)
+  positionY     Int         @default(0)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@unique([sectionId, name])
 }

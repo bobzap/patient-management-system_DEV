@@ -1,7 +1,7 @@
 // src/components/admin/ListManager/ListEditor.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { toast } from 'sonner';
 
 interface ListEditorProps {
@@ -10,17 +10,12 @@ interface ListEditorProps {
     name: string;
     items: string[];
   };
-  onUpdate: (newItems: string[]) => void;
+  onUpdate: (items: string[]) => void;
 }
 
 export const ListEditor = ({ list, onUpdate }: ListEditorProps) => {
   const [items, setItems] = useState(list.items);
   const [newItem, setNewItem] = useState('');
-
-  // Important : mettre à jour les items quand la liste change
-  useEffect(() => {
-    setItems(list.items);
-  }, [list.id, list.items]);
 
   const handleAdd = () => {
     if (!newItem.trim()) {
@@ -37,14 +32,12 @@ export const ListEditor = ({ list, onUpdate }: ListEditorProps) => {
     setItems(updatedItems);
     onUpdate(updatedItems);
     setNewItem('');
-    toast.success('Élément ajouté');
   };
 
   const handleRemove = (index: number) => {
     const updatedItems = items.filter((_, i) => i !== index);
     setItems(updatedItems);
     onUpdate(updatedItems);
-    toast.success('Élément supprimé');
   };
 
   const handleMove = (index: number, direction: 'up' | 'down') => {
@@ -63,7 +56,6 @@ export const ListEditor = ({ list, onUpdate }: ListEditorProps) => {
 
   return (
     <div>
-      {/* Formulaire d'ajout */}
       <div className="flex gap-4 mb-6">
         <input
           type="text"
@@ -82,7 +74,6 @@ export const ListEditor = ({ list, onUpdate }: ListEditorProps) => {
         </button>
       </div>
 
-      {/* Liste des éléments */}
       <div className="space-y-2">
         {items.map((item, index) => (
           <div 
