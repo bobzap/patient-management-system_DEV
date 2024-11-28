@@ -1,16 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Patient } from '@/types';
 import { calculerAge, calculerAnciennete } from '@/utils/calculations';
-import { 
-  POSTES, 
-  MANAGERS, 
-  ZONES, 
-  CONTRATS, 
-  DEPARTEMENTS, 
-  TAUX_ACTIVITE,
-  ETATS_CIVILS,
-  TYPES_TRANSPORT 
-} from '@/constants';
+import { useLists } from '@/hooks/useLists';
 
 interface PatientFormProps {
   onSubmit: (patient: Patient) => void;
@@ -109,12 +100,13 @@ const InputField: React.FC<InputFieldProps> = ({
 };
 
 export const PatientForm = ({ onSubmit, onCancel }: PatientFormProps) => {
+  const { lists, isLoading: listsLoading, error: listsError } = useLists();
   const [currentStep, setCurrentStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     nom: '',
     prenom: '',
-    civilite: '',
+    civilites: '',
     dateNaissance: '',
     age: 0,
     etatCivil: '',
@@ -142,7 +134,7 @@ export const PatientForm = ({ onSubmit, onCancel }: PatientFormProps) => {
       if (name === 'dateNaissance') {
         newData.age = calculerAge(value);
       }
-      //test
+      
       // Calculer l'ancienneté si la date d'entrée change
       if (name === 'dateEntree') {
         newData.anciennete = calculerAnciennete(value);
@@ -155,6 +147,7 @@ export const PatientForm = ({ onSubmit, onCancel }: PatientFormProps) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+    console.log("Données envoyées:", formData);  // Nouvelle ligne
     try {
       await onSubmit(formData as Patient);
     } catch (error) {
@@ -207,12 +200,12 @@ export const PatientForm = ({ onSubmit, onCancel }: PatientFormProps) => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <InputField
                 label="Civilité"
-                name="civilite"
+                name="civilites"
                 type="select"
-                value={formData.civilite}
+                value={formData.civilites}
                 onChange={handleChange}
                 required
-                options={["M.", "Mme", "Autre"]}
+                options={lists['civilites'] || []}
               />
               <InputField
                 label="État civil"
@@ -221,7 +214,7 @@ export const PatientForm = ({ onSubmit, onCancel }: PatientFormProps) => {
                 value={formData.etatCivil}
                 onChange={handleChange}
                 required
-                options={ETATS_CIVILS}
+                options={lists['etatsCivils'] || []}
               />
               <InputField
                 label="NOM"
@@ -264,7 +257,7 @@ export const PatientForm = ({ onSubmit, onCancel }: PatientFormProps) => {
                 value={formData.poste}
                 onChange={handleChange}
                 required
-                options={POSTES}
+                options={lists['postes'] || []}
               />
               <InputField
                 label="Manager"
@@ -273,8 +266,9 @@ export const PatientForm = ({ onSubmit, onCancel }: PatientFormProps) => {
                 value={formData.manager}
                 onChange={handleChange}
                 required
-                options={MANAGERS}
+                options={lists['managers'] || []}
               />
+
               <InputField
                 label="Zone"
                 name="zone"
@@ -282,7 +276,7 @@ export const PatientForm = ({ onSubmit, onCancel }: PatientFormProps) => {
                 value={formData.zone}
                 onChange={handleChange}
                 required
-                options={ZONES}
+                options={lists['zones'] || []}
               />
               <InputField
                 label="Département"
@@ -291,7 +285,7 @@ export const PatientForm = ({ onSubmit, onCancel }: PatientFormProps) => {
                 value={formData.departement}
                 onChange={handleChange}
                 required
-                options={DEPARTEMENTS}
+                options={lists['dpt'] || []}
               />
               <InputField
                 label="Type de contrat"
@@ -300,7 +294,7 @@ export const PatientForm = ({ onSubmit, onCancel }: PatientFormProps) => {
                 value={formData.contrat}
                 onChange={handleChange}
                 required
-                options={CONTRATS}
+                options={lists['contrats'] || []}
               />
               <InputField
                 label="Taux d'activité"
@@ -309,7 +303,7 @@ export const PatientForm = ({ onSubmit, onCancel }: PatientFormProps) => {
                 value={formData.tauxActivite}
                 onChange={handleChange}
                 required
-                options={TAUX_ACTIVITE}
+                options={lists['tauxOccupation'] || []}
               />
               <InputField
                 label="Date d'entrée"
@@ -319,6 +313,16 @@ export const PatientForm = ({ onSubmit, onCancel }: PatientFormProps) => {
                 onChange={handleChange}
                 required
               />
+
+<InputField
+  label="Horaire"
+  name="horaire"
+  type="select"
+  value={formData.horaire}
+  onChange={handleChange}
+  required
+  options={lists['horaires'] || []}
+/>
               <InputField
                 label="Type de transport"
                 name="typeTransport"
@@ -326,7 +330,7 @@ export const PatientForm = ({ onSubmit, onCancel }: PatientFormProps) => {
                 value={formData.typeTransport}
                 onChange={handleChange}
                 required
-                options={TYPES_TRANSPORT}
+                options={lists['transport'] || []}
               />
               <div className="grid grid-cols-2 gap-4">
                 <InputField

@@ -34,7 +34,7 @@ interface FormField {
         order: 1,
         fields: [
           {
-            name: 'civilite',
+            name: 'civilites',
             label: 'Civilité',
             type: 'select',
             required: true,

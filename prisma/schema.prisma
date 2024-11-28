@@ -34,7 +34,7 @@ model ListItem {
 model Patient {
   id              Int      @id @default(autoincrement())
   // Informations personnelles
-  civilite        String
+  civilites       String
   nom             String
   prenom          String
   dateNaissance   String

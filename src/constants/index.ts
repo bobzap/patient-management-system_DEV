@@ -1,3 +1,5 @@
+// \src\constants\index.ts
+
 export const POSTES = ['Agent de production', 'Cariste', "Chef d'équipe", 'Administratif'];
 export const MANAGERS = ['Dupont Jean', 'Martin Sophie', 'Bernard Paul'];
 export const ZONES = ['Zone A', 'Zone B', 'Zone C', 'Administration'];

@@ -1,6 +1,21 @@
-// src/hooks/useLists.ts
 import { useState, useEffect } from 'react';
-import { ListCategory, FormattedLists } from '@/types';
+
+interface ListItem {
+  id: number;
+  value: string;
+  order: number;
+}
+
+interface ListCategory {
+  id: number;
+  listId: string;
+  name: string;
+  items: ListItem[];
+}
+
+export interface FormattedLists {
+  [key: string]: string[];
+}
 
 export function useLists() {
   const [lists, setLists] = useState<FormattedLists>({});
@@ -18,7 +33,7 @@ export function useLists() {
         if (result.data) {
           setRawLists(result.data);
           
-          // Transformer les données en un objet plus facile à utiliser
+          // Transform data into a more usable object
           const formattedLists = result.data.reduce((acc: FormattedLists, category: ListCategory) => {
             acc[category.listId] = category.items.map(item => item.value);
             return acc;

@@ -20,7 +20,7 @@ export interface FormattedLists {
 
 export interface Patient {
   id?: number;
-  civilite: string;
+  civilites: string;
   nom: string;
   prenom: string;
   dateNaissance: string;

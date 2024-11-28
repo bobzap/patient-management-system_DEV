@@ -1,4 +1,3 @@
-// app/api/patients/route.ts
 import { NextResponse } from 'next/server';
 import { prisma } from '../../../lib/prisma';
 import { formatDate } from '@/lib/utils';
@@ -10,11 +9,11 @@ export async function POST(req: Request) {
 
     const patient = await prisma.patient.create({
       data: {
-        civilite: data.civilite,
+        civilites: data.civilites,
         nom: data.nom,
         prenom: data.prenom,
         dateNaissance: data.dateNaissance,
-        age: parseInt(data.age),
+        age: data.age,
         etatCivil: data.etatCivil,
         poste: data.poste,
         manager: data.manager,
@@ -37,8 +36,8 @@ export async function POST(req: Request) {
         heureFin: '',
         duree: '',
         consentement: '',
-        typeEntretien: '',
-      },
+        typeEntretien: ''
+      }
     });
 
     console.log('Patient créé:', patient);
@@ -46,7 +45,7 @@ export async function POST(req: Request) {
   } catch (error) {
     console.error('Erreur serveur:', error);
     return NextResponse.json(
-      { error: error.message || 'Erreur lors de la création du patient' },
+      { error: error instanceof Error ? error.message : 'Erreur lors de la création du patient' },
       { status: 500 }
     );
   }
@@ -55,7 +54,7 @@ export async function POST(req: Request) {
 export async function GET() {
   try {
     const patients = await prisma.patient.findMany({
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: 'desc' }
     });
 
     const formattedPatients = patients.map(patient => ({
@@ -68,6 +67,9 @@ export async function GET() {
 
     return NextResponse.json({ data: formattedPatients });
   } catch (error) {
-    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Erreur lors de la récupération des patients' },
+      { status: 500 }
+    );
   }
 }

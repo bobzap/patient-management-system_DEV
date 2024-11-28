@@ -166,13 +166,26 @@ export const initialLists: ListCategory[] = [
     ]
   },
   {
-    listId: 'civilites',
+    listId: 'civilites', // changé de 'civilite' à 'civilites'
     name: 'Civilités',
     items: ['M.', 'Mme', 'Mlle']
   },
+  
   {
     listId: 'etatsCivils',
     name: 'États civils',
     items: ['Célibataire', 'Marié(e)', 'Divorcé(e)', 'Veuf/Veuve', 'Pacsé(e)']
+  },
+
+  {
+    listId: 'transport',
+    name: 'Type de transport',
+    items: ['Voiture', 'Transport en commun', 'Marche', 'Deux roues motorisé']
   }
+
+  
+  
+
+
+
 ];

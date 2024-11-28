@@ -8,6 +8,8 @@ import { PatientDetails } from '@/components/patients/PatientDetails';
 import { PatientForm } from '@/components/patients/PatientForm';
 import { Dashboard } from '@/components/dashboard/Dashboard';
 import { ListManager } from '@/components/admin/ListManager';
+import { FormBuilder } from '@/components/admin/FormBuilder';
+import { List, Settings } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 
 // Types étendu pour inclure l'admin
@@ -20,6 +22,7 @@ export default function HomePage() {
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [adminSection, setAdminSection] = useState<'lists' | 'forms'>('lists');
 
   // Charger les patients au montage du composant
   useEffect(() => {
@@ -152,7 +155,48 @@ export default function HomePage() {
           />
         );
       case 'admin':
-        return <ListManager />;
+        return (
+          <div className="p-6">
+            {/* Sous-navigation de l'admin */}
+            <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
+              <div className="flex gap-4">
+                <button
+                  onClick={() => setAdminSection('lists')}
+                  className={`flex items-center px-4 py-2 rounded-md transition-colors ${
+                    adminSection === 'lists'
+                      ? 'bg-blue-50 text-blue-700'
+                      : 'text-gray-600 hover:bg-gray-50'
+                  }`}
+                >
+                  <List className="w-5 h-5 mr-2" />
+                  Gestion des Listes
+                </button>
+                <button
+                  onClick={() => setAdminSection('forms')}
+                  className={`flex items-center px-4 py-2 rounded-md transition-colors ${
+                    adminSection === 'forms'
+                      ? 'bg-blue-50 text-blue-700'
+                      : 'text-gray-600 hover:bg-gray-50'
+                  }`}
+                >
+                  <Settings className="w-5 h-5 mr-2" />
+                  Configuration des Formulaires
+                </button>
+              </div>
+            </div>
+
+            {/* Contenu de l'admin */}
+            <div className="bg-white rounded-lg shadow-sm">
+              {adminSection === 'lists' ? (
+                <ListManager />
+              ) : (
+                <div className="p-6">
+                  <FormBuilder />
+                </div>
+              )}
+            </div>
+          </div>
+        );
       default:
         return <Dashboard patients={{ data: patients }} />;
     }

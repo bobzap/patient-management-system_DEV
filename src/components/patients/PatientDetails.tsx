@@ -1,40 +1,41 @@
-// src/components/patients/PatientDetails.tsx
 'use client';
 
 import { useState } from 'react';
 import { Patient } from '@/types';
-import { EntretienForm } from '../entretiens/EntretienForm';  // Correction du chemin d'importation
+import { EntretienForm } from '../entretiens/EntretienForm';
 
-export const PatientDetails = ({ patient }: { patient: Patient }) => {
+interface PatientDetailsProps {
+  patient: Patient;
+  onEdit: () => void;
+  onDelete: () => void;
+}
+
+export const PatientDetails = ({ patient, onEdit, onDelete }: PatientDetailsProps) => {
   const [showEntretien, setShowEntretien] = useState(false);
-
-  console.log('showEntretien:', showEntretien); // Pour debug
-
-  const handleNewEntretien = () => {
-    console.log('Bouton cliqué'); // Pour debug
-    setShowEntretien(true);
-  };
+  const [activeTab, setActiveTab] = useState<'general' | 'historique' | 'documents'>('general');
 
   if (showEntretien) {
-    console.log('Affichage EntretienForm'); // Pour debug
     return <EntretienForm 
       patient={patient} 
       onClose={() => setShowEntretien(false)}
     />;
   }
+
   return (
     <div className="p-6 max-w-7xl mx-auto">
       {/* En-tête du dossier */}
       <div className="bg-white rounded-xl shadow-lg mb-6 p-6">
+      <div className="flex justify-between items-start"> 
         <div className="flex items-center gap-4 mb-6">
           <div className="h-16 w-16 rounded-full bg-blue-100 flex items-center justify-center">
             <span className="text-xl font-bold text-blue-900">
               {`${patient.prenom[0]}${patient.nom[0]}`}
+              
             </span>
           </div>
           <div>
             <h2 className="text-2xl font-bold text-blue-900">
-              {`${patient.civilite} ${patient.nom} ${patient.prenom}`}
+              {`${patient.civilites} ${patient.nom} ${patient.prenom}`}
             </h2>
             <div className="flex items-center gap-4 mt-1">
               <span className="text-gray-600">
@@ -79,24 +80,98 @@ export const PatientDetails = ({ patient }: { patient: Patient }) => {
         </button>
       </div>
 
-      {/* Contenu du dossier */}
+      {/* Boutons d'action */}
+    <div className="flex gap-3">
+      <button
+        onClick={onEdit}
+        className="px-4 py-2 text-blue-600 border border-blue-600 rounded-lg 
+                 hover:bg-blue-50 transition-colors duration-200 
+                 flex items-center gap-2"
+      >
+        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" 
+                d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+        </svg>
+        Modifier
+      </button>
+
+      <button
+        onClick={() => {
+          if (window.confirm('Êtes-vous sûr de vouloir supprimer ce dossier ?')) {
+            onDelete();
+          }
+        }}
+        className="px-4 py-2 text-red-600 border border-red-600 rounded-lg 
+                 hover:bg-red-50 transition-colors duration-200 
+                 flex items-center gap-2"
+      >
+        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" 
+                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+        </svg>
+        Supprimer
+      </button>
+    </div>
+  </div>
+
+      {/* Navigation */}
       <div className="bg-white rounded-xl shadow-lg p-4 mb-6">
         <nav className="flex gap-4">
-          <button className="px-4 py-2 text-blue-900 font-semibold border-b-2 border-blue-900">
+          <button 
+            onClick={() => setActiveTab('general')}
+            className={`px-4 py-2 font-semibold transition-colors duration-200 ${
+              activeTab === 'general' 
+                ? 'text-blue-900 border-b-2 border-blue-900' 
+                : 'text-gray-500 hover:text-blue-900'
+            }`}
+          >
             Informations générales
           </button>
-          <button className="px-4 py-2 text-gray-500 hover:text-blue-900 font-medium">
+          <button 
+            onClick={() => setActiveTab('historique')}
+            className={`px-4 py-2 font-semibold transition-colors duration-200 ${
+              activeTab === 'historique' 
+                ? 'text-blue-900 border-b-2 border-blue-900' 
+                : 'text-gray-500 hover:text-blue-900'
+            }`}
+          >
             Historique des entretiens
           </button>
-          <button className="px-4 py-2 text-gray-500 hover:text-blue-900 font-medium">
+          <button 
+            onClick={() => setActiveTab('documents')}
+            className={`px-4 py-2 font-semibold transition-colors duration-200 ${
+              activeTab === 'documents' 
+                ? 'text-blue-900 border-b-2 border-blue-900' 
+                : 'text-gray-500 hover:text-blue-900'
+            }`}
+          >
             Documents
           </button>
         </nav>
       </div>
 
-      {/* Informations détaillées */}
+      {/* Contenu principal */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
+        {/* Colonne principale */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Informations personnelles */}
+          <div className="bg-white rounded-xl shadow-lg p-6">
+            <h3 className="text-lg font-semibold text-blue-900 mb-4">
+              Informations personnelles
+            </h3>
+            <div className="grid grid-cols-2 gap-6">
+              <div>
+                <p className="text-sm font-medium text-gray-600">État civil</p>
+                <p className="text-base font-semibold text-gray-900 mt-1">{patient.etatCivil}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-600">Date de naissance</p>
+                <p className="text-base font-semibold text-gray-900 mt-1">{patient.dateNaissance}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Informations professionnelles */}
           <div className="bg-white rounded-xl shadow-lg p-6">
             <h3 className="text-lg font-semibold text-blue-900 mb-4">
               Informations professionnelles
@@ -124,12 +199,32 @@ export const PatientDetails = ({ patient }: { patient: Patient }) => {
               </div>
               <div>
                 <p className="text-sm font-medium text-gray-600">Taux d'activité</p>
-                <p className="text-base font-semibold text-gray-900 mt-1">{patient.tauxActivite}</p>
+                <p className="text-base font-semibold text-gray-900 mt-1">{patient.tauxActivite}%</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Informations de transport */}
+          <div className="bg-white rounded-xl shadow-lg p-6">
+            <h3 className="text-lg font-semibold text-blue-900 mb-4">
+              Transport
+            </h3>
+            <div className="grid grid-cols-2 gap-6">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Type de transport</p>
+                <p className="text-base font-semibold text-gray-900 mt-1">{patient.typeTransport}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-600">Temps de trajet</p>
+                <p className="text-base font-semibold text-gray-900 mt-1">
+                  Aller : {patient.tempsTrajetAller} min / Retour : {patient.tempsTrajetRetour} min
+                </p>
               </div>
             </div>
           </div>
         </div>
 
+        {/* Colonne latérale */}
         <div className="lg:col-span-1">
           <div className="bg-white rounded-xl shadow-lg p-6">
             <div className="flex justify-between items-center mb-4">
