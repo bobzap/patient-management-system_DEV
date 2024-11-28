@@ -1,14 +1,10 @@
-// components/admin/FormBuilder/index.tsx
-'use client';
-
-import { useState, useEffect } from 'react';
-import { DndContext, closestCenter } from '@dnd-kit/core';
-import { arrayMove, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { SortableField } from './SortableField';
-import { FieldProperties } from './FieldProperties';
+import React, { useState, useEffect } from 'react';
+import { DndContext, closestCenter, DragEndEvent } from '@dnd-kit/core';
+import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { AvailableFields } from './AvailableFields';
-import { useLists } from '@/hooks/useLists';
-import { toast } from 'sonner';
+import { FieldProperties } from './FieldProperties';
+import { SortableField } from './SortableField';
+import type { FormattedLists } from '@/types';
 
 interface Field {
   id: number;
@@ -25,89 +21,104 @@ interface Field {
 export const FormBuilder = () => {
   const [fields, setFields] = useState<Field[]>([]);
   const [selectedField, setSelectedField] = useState<Field | null>(null);
-  const { lists } = useLists();
+  const [availableLists, setAvailableLists] = useState<FormattedLists>({});
 
-  // Charger la configuration du formulaire
+  // Charger les listes disponibles
   useEffect(() => {
-    const loadFormConfig = async () => {
+    const fetchLists = async () => {
       try {
-        const response = await fetch('/api/forms/patientForm');
+        const response = await fetch('/api/lists');
         const data = await response.json();
         if (data.success) {
-          setFields(data.fields);
+          setAvailableLists(data.data);
         }
       } catch (error) {
-        toast.error('Erreur lors du chargement de la configuration');
+        console.error('Erreur lors du chargement des listes:', error);
       }
     };
-    loadFormConfig();
+    fetchLists();
   }, []);
 
-  const handleDragEnd = (event) => {
+  // Gérer le drag and drop
+  const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-    
-    if (active.id !== over.id) {
-      setFields((items) => {
-        const oldIndex = items.findIndex(item => item.id === active.id);
-        const newIndex = items.findIndex(item => item.id === over.id);
-        
-        return arrayMove(items, oldIndex, newIndex);
-      });
+    if (over && active.id !== over.id) {
+      const oldIndex = fields.findIndex(f => f.id === active.id);
+      const newIndex = fields.findIndex(f => f.id === over.id);
+      
+      const newFields = [...fields];
+      const [movedField] = newFields.splice(oldIndex, 1);
+      newFields.splice(newIndex, 0, movedField);
+      
+      // Mettre à jour l'ordre
+      const updatedFields = newFields.map((field, index) => ({
+        ...field,
+        order: index
+      }));
+      
+      setFields(updatedFields);
+      // TODO: Sauvegarder l'ordre dans la base de données
     }
   };
 
-  const handleFieldUpdate = async (fieldId: number, updates: Partial<Field>) => {
-    const updatedFields = fields.map(field => 
-      field.id === fieldId ? { ...field, ...updates } : field
+  const handleFieldSelect = (field: Field) => {
+    setSelectedField(field);
+  };
+
+  const handleFieldUpdate = (updates: Partial<Field>) => {
+    if (!selectedField) return;
+
+    const updatedFields = fields.map(field =>
+      field.id === selectedField.id ? { ...field, ...updates } : field
     );
+
     setFields(updatedFields);
-    
-    try {
-      await fetch('/api/forms/patientForm/fields', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fields: updatedFields }),
-      });
-      toast.success('Champ mis à jour');
-    } catch (error) {
-      toast.error('Erreur lors de la mise à jour');
-    }
+    setSelectedField({ ...selectedField, ...updates });
+    // TODO: Sauvegarder les modifications dans la base de données
+  };
+
+  const handleAddField = (fieldType: string) => {
+    const newField: Field = {
+      id: Date.now(), // Temporaire, sera remplacé par l'ID de la BDD
+      name: `field_${Date.now()}`,
+      label: 'Nouveau champ',
+      type: fieldType,
+      required: false,
+      section: 'default',
+      order: fields.length
+    };
+
+    setFields([...fields, newField]);
+    setSelectedField(newField);
+    // TODO: Sauvegarder le nouveau champ dans la base de données
+  };
+
+  const handleDeleteField = () => {
+    if (!selectedField) return;
+
+    const updatedFields = fields.filter(field => field.id !== selectedField.id);
+    setFields(updatedFields);
+    setSelectedField(null);
+    // TODO: Supprimer le champ de la base de données
   };
 
   return (
-    <div className="grid grid-cols-12 gap-6 p-6">
-      {/* Panneau de gauche - Champs disponibles */}
-      <div className="col-span-3 bg-white rounded-lg shadow p-4">
-        <AvailableFields onAddField={(type) => {
-          const newField = {
-            id: Date.now(),
-            name: `field_${Date.now()}`,
-            label: 'Nouveau champ',
-            type,
-            required: false,
-            section: 'personal',
-            order: fields.length
-          };
-          setFields([...fields, newField]);
-        }} />
+    <div className="grid grid-cols-12 gap-6">
+      {/* Panel de gauche: Champs disponibles */}
+      <div className="col-span-3 bg-white shadow rounded-lg p-4">
+        <AvailableFields onAddField={handleAddField} />
       </div>
 
-      {/* Zone centrale - Preview du formulaire */}
-      <div className="col-span-6 bg-white rounded-lg shadow p-4">
-        <h3 className="font-semibold mb-4">Configuration du formulaire patient</h3>
-        <DndContext 
-          collisionDetection={closestCenter}
-          onDragEnd={handleDragEnd}
-        >
-          <SortableContext 
-            items={fields.map(f => f.id)}
-            strategy={verticalListSortingStrategy}
-          >
-            {fields.map((field) => (
+      {/* Zone centrale: Champs du formulaire */}
+      <div className="col-span-6 bg-white shadow rounded-lg p-4">
+        <h3 className="text-lg font-semibold mb-4">Structure du formulaire</h3>
+        <DndContext onDragEnd={handleDragEnd} collisionDetection={closestCenter}>
+          <SortableContext items={fields} strategy={verticalListSortingStrategy}>
+            {fields.map(field => (
               <SortableField
                 key={field.id}
                 field={field}
-                onSelect={() => setSelectedField(field)}
+                onSelect={() => handleFieldSelect(field)}
                 isSelected={selectedField?.id === field.id}
               />
             ))}
@@ -115,21 +126,18 @@ export const FormBuilder = () => {
         </DndContext>
       </div>
 
-      {/* Panneau de droite - Propriétés */}
-      <div className="col-span-3 bg-white rounded-lg shadow p-4">
+      {/* Panel de droite: Propriétés du champ */}
+      <div className="col-span-3 bg-white shadow rounded-lg p-4">
         {selectedField ? (
           <FieldProperties
             field={selectedField}
-            lists={lists}
-            onUpdate={(updates) => handleFieldUpdate(selectedField.id, updates)}
-            onDelete={() => {
-              setFields(fields.filter(f => f.id !== selectedField.id));
-              setSelectedField(null);
-            }}
+            lists={availableLists}
+            onUpdate={handleFieldUpdate}
+            onDelete={handleDeleteField}
           />
         ) : (
           <p className="text-gray-500 text-center">
-            Sélectionnez un champ pour modifier ses propriétés
+            Sélectionnez un champ pour voir ses propriétés
           </p>
         )}
       </div>

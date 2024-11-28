@@ -10,9 +10,10 @@ datasource db {
 
 model ListCategory {
   id        Int       @id @default(autoincrement())
-  listId    String    @unique
-  name      String
+  listId    String    @unique // Identifiant unique pour référencement facile
+  name      String    // Nom lisible de la liste
   items     ListItem[]
+  fields    FormField[] // Relation avec les champs qui utilisent cette liste
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 }
@@ -21,12 +22,13 @@ model ListItem {
   id           Int          @id @default(autoincrement())
   value        String
   order        Int
-  category     ListCategory @relation(fields: [categoryId], references: [id])
+  category     ListCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   categoryId   Int
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
 
   @@unique([categoryId, value])
+  @@index([categoryId, order])
 }
 
 model Patient {
@@ -71,40 +73,43 @@ model Patient {
   updatedAt       DateTime @updatedAt
 }
 
-// Nouveaux modèles pour la configuration des formulaires
 model FormConfiguration {
   id        Int         @id @default(autoincrement())
-  pageId    String      @unique  // ex: 'patientForm', 'patientDetails'
-  name      String      // Nom du formulaire
+  pageId    String      @unique  
+  name      String      
   sections  FormSection[]
   createdAt DateTime    @default(now())
   updatedAt DateTime    @updatedAt
+
+  @@index([pageId])
 }
 
 model FormSection {
   id            Int               @id @default(autoincrement())
-  name          String           // ex: 'informations_personnelles'
-  label         String           // ex: 'Informations Personnelles'
-  order         Int              // Ordre d'affichage de la section
+  name          String           
+  label         String           
+  order         Int              
   formId        Int
-  form          FormConfiguration @relation(fields: [formId], references: [id])
+  form          FormConfiguration @relation(fields: [formId], references: [id], onDelete: Cascade)
   fields        FormField[]
   createdAt     DateTime         @default(now())
   updatedAt     DateTime         @updatedAt
 
   @@unique([formId, name])
+  @@index([formId, order])
 }
 
 model FormField {
   id            Int          @id @default(autoincrement())
   sectionId     Int
-  section       FormSection  @relation(fields: [sectionId], references: [id])
-  name          String       // identifiant du champ (ex: 'nom', 'prenom')
-  label         String       // libellé affiché
-  type          String       // 'text', 'select', 'date', etc.
+  section       FormSection  @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  name          String       
+  label         String       
+  type          String       
   required      Boolean      @default(false)
-  order         Int          // ordre dans la section
-  listId        String?      // référence à une ListCategory si type='select'
+  order         Int          
+  listId        String?      
+  list          ListCategory? @relation(fields: [listId], references: [listId])
   defaultValue  String?
   validation    String?      // règles de validation en JSON
   positionX     Int         @default(0)
@@ -113,4 +118,6 @@ model FormField {
   updatedAt     DateTime    @updatedAt
 
   @@unique([sectionId, name])
+  @@index([sectionId, order])
+  @@index([listId])
 }

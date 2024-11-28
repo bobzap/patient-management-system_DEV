@@ -164,5 +164,15 @@ export const initialLists: ListCategory[] = [
       '21/9/2026',
       '25/12/2026'
     ]
+  },
+  {
+    listId: 'civilites',
+    name: 'Civilités',
+    items: ['M.', 'Mme', 'Mlle']
+  },
+  {
+    listId: 'etatsCivils',
+    name: 'États civils',
+    items: ['Célibataire', 'Marié(e)', 'Divorcé(e)', 'Veuf/Veuve', 'Pacsé(e)']
   }
 ];

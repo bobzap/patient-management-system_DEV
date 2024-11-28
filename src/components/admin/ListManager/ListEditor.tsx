@@ -1,7 +1,6 @@
-// src/components/admin/ListManager/ListEditor.tsx
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 
 interface ListEditorProps {
@@ -14,8 +13,14 @@ interface ListEditorProps {
 }
 
 export const ListEditor = ({ list, onUpdate }: ListEditorProps) => {
-  const [items, setItems] = useState(list.items);
+  const [items, setItems] = useState<string[]>([]);
   const [newItem, setNewItem] = useState('');
+
+  // Synchroniser les items quand la liste change
+  useEffect(() => {
+    console.log('📋 Mise à jour des items:', list.items);
+    setItems(list.items || []);
+  }, [list.id, list.items]); // Se met à jour quand l'ID de la liste ou ses items changent
 
   const handleAdd = () => {
     if (!newItem.trim()) {
@@ -29,12 +34,14 @@ export const ListEditor = ({ list, onUpdate }: ListEditorProps) => {
     }
 
     const updatedItems = [...items, newItem.trim()];
+    console.log('➕ Ajout d\'un nouvel item:', newItem.trim());
     setItems(updatedItems);
     onUpdate(updatedItems);
     setNewItem('');
   };
 
   const handleRemove = (index: number) => {
+    console.log('❌ Suppression de l\'item à l\'index:', index);
     const updatedItems = items.filter((_, i) => i !== index);
     setItems(updatedItems);
     onUpdate(updatedItems);
@@ -50,9 +57,16 @@ export const ListEditor = ({ list, onUpdate }: ListEditorProps) => {
     const newIndex = direction === 'up' ? index - 1 : index + 1;
     [newItems[index], newItems[newIndex]] = [newItems[newIndex], newItems[index]];
     
+    console.log(`🔄 Déplacement de l'item ${direction === 'up' ? 'vers le haut' : 'vers le bas'}:`, index);
     setItems(newItems);
     onUpdate(newItems);
   };
+
+  console.log('🖼️ Rendu de ListEditor:', {
+    listId: list.id,
+    listName: list.name,
+    itemCount: items.length
+  });
 
   return (
     <div>
@@ -75,43 +89,43 @@ export const ListEditor = ({ list, onUpdate }: ListEditorProps) => {
       </div>
 
       <div className="space-y-2">
-        {items.map((item, index) => (
-          <div 
-            key={index}
-            className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg 
-                     hover:bg-gray-100 group transition-colors duration-200"
-          >
-            <span className="flex-grow">{item}</span>
-            
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => handleMove(index, 'up')}
-                disabled={index === 0}
-                className={`p-2 rounded hover:bg-gray-200 transition-colors
-                  ${index === 0 ? 'text-gray-300' : 'text-gray-500 hover:text-gray-700'}`}
-              >
-                ↑
-              </button>
-              <button
-                onClick={() => handleMove(index, 'down')}
-                disabled={index === items.length - 1}
-                className={`p-2 rounded hover:bg-gray-200 transition-colors
-                  ${index === items.length - 1 ? 'text-gray-300' : 'text-gray-500 hover:text-gray-700'}`}
-              >
-                ↓
-              </button>
-              <button
-                onClick={() => handleRemove(index)}
-                className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded
-                         transition-colors duration-200"
-              >
-                ×
-              </button>
+        {items.length > 0 ? (
+          items.map((item, index) => (
+            <div 
+              key={`${list.id}-${index}-${item}`}
+              className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg 
+                       hover:bg-gray-100 group transition-colors duration-200"
+            >
+              <span className="flex-grow">{item}</span>
+              
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => handleMove(index, 'up')}
+                  disabled={index === 0}
+                  className={`p-2 rounded hover:bg-gray-200 transition-colors
+                    ${index === 0 ? 'text-gray-300' : 'text-gray-500 hover:text-gray-700'}`}
+                >
+                  ↑
+                </button>
+                <button
+                  onClick={() => handleMove(index, 'down')}
+                  disabled={index === items.length - 1}
+                  className={`p-2 rounded hover:bg-gray-200 transition-colors
+                    ${index === items.length - 1 ? 'text-gray-300' : 'text-gray-500 hover:text-gray-700'}`}
+                >
+                  ↓
+                </button>
+                <button
+                  onClick={() => handleRemove(index)}
+                  className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded
+                           transition-colors duration-200"
+                >
+                  ×
+                </button>
+              </div>
             </div>
-          </div>
-        ))}
-
-        {items.length === 0 && (
+          ))
+        ) : (
           <div className="text-center py-8 text-gray-500">
             Aucun élément dans cette liste
           </div>
