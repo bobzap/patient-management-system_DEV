@@ -4,6 +4,7 @@ import { calculerAge, calculerAnciennete } from '@/utils/calculations';
 import { useLists } from '@/hooks/useLists';
 
 interface PatientFormProps {
+  patient?: Patient; // Optionnel : présent en mode édition, absent en mode création
   onSubmit: (patient: Patient) => void;
   onCancel: () => void;
 }
@@ -62,6 +63,8 @@ const InputField: React.FC<InputFieldProps> = ({
     ? "bg-gray-100 border-gray-200 text-gray-700"
     : "bg-white border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none";
 
+
+    
   return (
     <div className="space-y-2">
       <label className="block text-sm font-semibold text-gray-800">
@@ -99,11 +102,17 @@ const InputField: React.FC<InputFieldProps> = ({
   );
 };
 
-export const PatientForm = ({ onSubmit, onCancel }: PatientFormProps) => {
+
+
+
+
+export const PatientForm = ({ patient, onSubmit, onCancel }: PatientFormProps) => {
   const { lists, isLoading: listsLoading, error: listsError } = useLists();
   const [currentStep, setCurrentStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [formData, setFormData] = useState({
+
+
+  const [formData, setFormData] = useState(patient || {
     nom: '',
     prenom: '',
     civilites: '',
@@ -123,6 +132,14 @@ export const PatientForm = ({ onSubmit, onCancel }: PatientFormProps) => {
     tempsTrajetRetour: '',
     typeTransport: ''
   });
+
+  if (listsLoading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -157,10 +174,15 @@ export const PatientForm = ({ onSubmit, onCancel }: PatientFormProps) => {
     }
   };
 
-  return (
-    <div className="max-w-6xl mx-auto p-6">
-      <div className="mb-8">
-        <h2 className="text-2xl font-bold text-blue-900">Nouveau Dossier Patient</h2>
+    // Modifier le titre selon le mode
+    const isEditMode = !!patient;
+
+    return (
+      <div className="max-w-6xl mx-auto p-6">
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold text-blue-900">
+            {isEditMode ? 'Modifier le Dossier Patient' : 'Nouveau Dossier Patient'}
+          </h2>
         <p className="mt-2 text-gray-600">Complétez les informations du patient</p>
       </div>
 
@@ -379,9 +401,11 @@ export const PatientForm = ({ onSubmit, onCancel }: PatientFormProps) => {
                      transition-colors duration-200 font-medium disabled:bg-blue-300"
             disabled={isSubmitting}
           >
-            {currentStep === STEPS.length - 1 
-              ? (isSubmitting ? 'Création...' : 'Créer le dossier')
-              : 'Suivant'}
+ 
+        {currentStep === STEPS.length - 1 
+          ? (isSubmitting ? (isEditMode ? 'Modification...' : 'Création...') 
+             : (isEditMode ? 'Enregistrer les modifications' : 'Créer le dossier'))
+          : 'Suivant'}
           </button>
         </div>
       </form>

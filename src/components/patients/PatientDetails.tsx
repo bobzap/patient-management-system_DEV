@@ -1,8 +1,11 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Patient } from '@/types';
 import { EntretienForm } from '../entretiens/EntretienForm';
+import { usePatients } from '@/hooks/usePatients'; // Nouveau import
+import { toast } from 'sonner';
 
 interface PatientDetailsProps {
   patient: Patient;
@@ -11,8 +14,38 @@ interface PatientDetailsProps {
 }
 
 export const PatientDetails = ({ patient, onEdit, onDelete }: PatientDetailsProps) => {
+  const router = useRouter(); // Nouveau
+  const { deletePatient } = usePatients(); // Nouveau
   const [showEntretien, setShowEntretien] = useState(false);
   const [activeTab, setActiveTab] = useState<'general' | 'historique' | 'documents'>('general');
+
+
+  const toastStyle = {
+    background: '#2DD4BF',
+    color: '#1A2E35', // Texte plus foncé pour meilleur contraste
+    duration: 3000 // 3 secondes
+  };
+
+
+  // Nouvelle fonction de suppression
+  const handleDelete = async () => {
+    if (window.confirm('Êtes-vous sûr de vouloir supprimer ce dossier ?')) {
+      try {
+        const success = await deletePatient(patient.id!);
+        if (success) {
+          toast.success(`Le dossier de ${patient.civilites} ${patient.nom} ${patient.prenom} a été supprimé`, {
+            ...toastStyle
+          });
+          window.location.href = '/';
+          setTimeout(() => {
+            document.querySelector<HTMLElement>('.patients-link')?.click();
+          }, 100);
+        }
+      } catch (error) {
+        toast.error("Erreur lors de la suppression");
+      }
+    }
+  };
 
   if (showEntretien) {
     return <EntretienForm 
@@ -23,31 +56,35 @@ export const PatientDetails = ({ patient, onEdit, onDelete }: PatientDetailsProp
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
-      {/* En-tête du dossier */}
-      <div className="bg-white rounded-xl shadow-lg mb-6 p-6">
-      <div className="flex justify-between items-start"> 
-        <div className="flex items-center gap-4 mb-6">
-          <div className="h-16 w-16 rounded-full bg-blue-100 flex items-center justify-center">
-            <span className="text-xl font-bold text-blue-900">
-              {`${patient.prenom[0]}${patient.nom[0]}`}
-              
+
+
+{/* En-tête du dossier */}
+<div className="bg-white rounded-xl shadow-lg mb-6">
+  {/* Section supérieure avec infos et boutons */}
+  <div className="p-6 border-b border-gray-100">
+    <div className="flex justify-between items-start">
+      {/* Info patient */}
+      <div className="flex items-center gap-4">
+        <div className="h-16 w-16 rounded-full bg-blue-100 flex items-center justify-center">
+          <span className="text-xl font-bold text-blue-900">
+            {`${patient.prenom[0]}${patient.nom[0]}`}
+          </span>
+        </div>
+        <div>
+          <h2 className="text-2xl font-bold text-blue-900">
+            {`${patient.civilites} ${patient.nom} ${patient.prenom}`}
+          </h2>
+          <div className="flex items-center gap-3 mt-1">
+            <span className="text-gray-600">{patient.age} ans</span>
+            <span className="text-gray-300">•</span>
+            <span className="px-2.5 py-1 rounded-full bg-blue-100 text-blue-800 text-sm font-medium">
+              {patient.departement}
             </span>
-          </div>
-          <div>
-            <h2 className="text-2xl font-bold text-blue-900">
-              {`${patient.civilites} ${patient.nom} ${patient.prenom}`}
-            </h2>
-            <div className="flex items-center gap-4 mt-1">
-              <span className="text-gray-600">
-                {patient.age} ans
-              </span>
-              <span className="text-gray-300">•</span>
-              <span className="px-3 py-1 rounded-full bg-blue-100 text-blue-800 text-sm font-semibold">
-                {patient.departement}
-              </span>
-            </div>
+            <span className="text-gray-300">•</span>
+            <span className="text-gray-600">{`Entré le ${patient.dateEntree}`}</span>
           </div>
         </div>
+      </div>
 
         {/* Quick Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -80,37 +117,35 @@ export const PatientDetails = ({ patient, onEdit, onDelete }: PatientDetailsProp
         </button>
       </div>
 
-      {/* Boutons d'action */}
-    <div className="flex gap-3">
-      <button
-        onClick={onEdit}
-        className="px-4 py-2 text-blue-600 border border-blue-600 rounded-lg 
-                 hover:bg-blue-50 transition-colors duration-200 
-                 flex items-center gap-2"
-      >
-        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" 
-                d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-        </svg>
-        Modifier
-      </button>
+ {/* Boutons d'action */}
+ <div className="flex gap-3">
+        <button
+          onClick={onEdit}
+          className="px-4 py-2 text-blue-600 bg-blue-50 border border-blue-200 rounded-lg 
+                   hover:bg-blue-100 transition-colors duration-200 
+                   flex items-center gap-2 font-medium"
+        >
+          <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" 
+                  d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+          </svg>
+          Modifier
+        </button>
 
-      <button
-        onClick={() => {
-          if (window.confirm('Êtes-vous sûr de vouloir supprimer ce dossier ?')) {
-            onDelete();
-          }
-        }}
-        className="px-4 py-2 text-red-600 border border-red-600 rounded-lg 
-                 hover:bg-red-50 transition-colors duration-200 
-                 flex items-center gap-2"
-      >
-        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" 
-                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-        </svg>
-        Supprimer
-      </button>
+        
+  <button
+    onClick={handleDelete} // Modification ici
+    className="px-4 py-2 text-red-600 bg-red-50 border border-red-200 rounded-lg 
+             hover:bg-red-100 transition-colors duration-200 
+             flex items-center gap-2 font-medium"
+  >
+    <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" 
+            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+    </svg>
+    Supprimer
+  </button>
+      </div>
     </div>
   </div>
 
@@ -152,7 +187,7 @@ export const PatientDetails = ({ patient, onEdit, onDelete }: PatientDetailsProp
 
       {/* Contenu principal */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Colonne principale */}
+        {/* Colonne principale - 2/3 */}
         <div className="lg:col-span-2 space-y-6">
           {/* Informations personnelles */}
           <div className="bg-white rounded-xl shadow-lg p-6">
@@ -203,29 +238,11 @@ export const PatientDetails = ({ patient, onEdit, onDelete }: PatientDetailsProp
               </div>
             </div>
           </div>
-
-          {/* Informations de transport */}
-          <div className="bg-white rounded-xl shadow-lg p-6">
-            <h3 className="text-lg font-semibold text-blue-900 mb-4">
-              Transport
-            </h3>
-            <div className="grid grid-cols-2 gap-6">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Type de transport</p>
-                <p className="text-base font-semibold text-gray-900 mt-1">{patient.typeTransport}</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-600">Temps de trajet</p>
-                <p className="text-base font-semibold text-gray-900 mt-1">
-                  Aller : {patient.tempsTrajetAller} min / Retour : {patient.tempsTrajetRetour} min
-                </p>
-              </div>
-            </div>
-          </div>
         </div>
 
-        {/* Colonne latérale */}
-        <div className="lg:col-span-1">
+        {/* Colonne latérale - 1/3 */}
+        <div className="lg:col-span-1 space-y-6">
+          {/* Dernier entretien */}
           <div className="bg-white rounded-xl shadow-lg p-6">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold text-blue-900">Dernier entretien</h3>
@@ -257,6 +274,25 @@ export const PatientDetails = ({ patient, onEdit, onDelete }: PatientDetailsProp
                   </p>
                 </div>
               )}
+            </div>
+          </div>
+
+          {/* Transport - Déplacé ici */}
+          <div className="bg-white rounded-xl shadow-lg p-6">
+            <h3 className="text-lg font-semibold text-blue-900 mb-4">
+              Transport
+            </h3>
+            <div className="space-y-4">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Type de transport</p>
+                <p className="text-base font-semibold text-gray-900 mt-1">{patient.typeTransport}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-600">Temps de trajet</p>
+                <p className="text-base font-semibold text-gray-900 mt-1">
+                  Aller : {patient.tempsTrajetAller} min / Retour : {patient.tempsTrajetRetour} min
+                </p>
+              </div>
             </div>
           </div>
         </div>

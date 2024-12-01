@@ -1,13 +1,24 @@
 'use client';
 // app/admin/page.tsx
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ListManager } from '@/components/admin/ListManager';
 import { FormBuilder } from '@/components/admin/FormBuilder';
 import { List, Settings } from 'lucide-react';
 
+console.log("Avant le composant AdminPage"); // Log avant le composant
+
 export default function AdminPage() {
+  console.log("Début du composant AdminPage"); // Log au début du composant
+  
   const [activeSection, setActiveSection] = useState<'lists' | 'forms'>('lists');
+  
+  useEffect(() => {
+    console.log("AdminPage: Section active:", activeSection);
+  }, [activeSection]);
+
+  console.log("Avant le return"); // Log avant le return
+  
 
   return (
     <div className="space-y-6">

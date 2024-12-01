@@ -1,5 +1,7 @@
 'use client';
 
+//patient-management-system\src\components\layout\Sidebar.tsx
+
 type NavigationTab = 'dashboard' | 'patients' | 'newDossier' | 'admin';
 
 interface SidebarProps {

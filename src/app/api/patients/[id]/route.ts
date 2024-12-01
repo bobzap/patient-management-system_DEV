@@ -1,43 +1,40 @@
 // app/api/patients/[id]/route.ts
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../../lib/prisma';
+import { headers } from 'next/headers';
 import { formatDate } from '@/lib/utils';
 
-export async function GET() {
+export async function GET(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
   try {
-    const patients = await prisma.patient.findMany({
-      orderBy: { createdAt: 'desc' },
+    const patient = await prisma.patient.findUnique({
+      where: { id: parseInt(params.id) }
     });
+    
+    if (!patient) {
+      return NextResponse.json({ error: 'Patient non trouvé' }, { status: 404 });
+    }
 
-    const formattedPatients = patients.map(patient => ({
-      ...patient,
-      dateNaissance: formatDate(patient.dateNaissance),
-      dateEntree: formatDate(patient.dateEntree),
-      dateEntretien: patient.dateEntretien ? formatDate(patient.dateEntretien) : '',
-      dateCreation: formatDate(patient.dateCreation)
-    }));
-
-    return NextResponse.json({ data: formattedPatients });
+    return NextResponse.json({ data: patient });
   } catch (error) {
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
   }
 }
 
+// UPDATE patient
 export async function PUT(
   request: Request,
   { params }: { params: { id: string } }
 ) {
   try {
     const data = await request.json();
-    console.log('Données de mise à jour reçues:', data);
-
     const patient = await prisma.patient.update({
-      where: {
-        id: parseInt(params.id),
-      },
+      where: { id: parseInt(params.id) },
       data: {
         // Informations personnelles
-        civilite: data.civilite,
+        civilites: data.civilites,
         nom: data.nom,
         prenom: data.prenom,
         dateNaissance: data.dateNaissance,
@@ -76,32 +73,30 @@ export async function PUT(
 
     return NextResponse.json({ data: patient });
   } catch (error) {
-    console.error('Erreur lors de la mise à jour du patient:', error);
     return NextResponse.json(
-      { error: 'Erreur serveur' },
+      { error: 'Erreur lors de la mise à jour du patient' },
       { status: 500 }
     );
   }
 }
+// DELETE patient
+// app/api/patients/[id]/route.ts
+// app/api/patients/[id]/route.ts
 
-export async function DELETE(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
+
+export async function DELETE(request: NextRequest) {
+  const id = request.url.split('/').pop();
+
+  if (!id) {
+    return NextResponse.json({ error: "ID non trouvé" }, { status: 400 });
+  }
+
   try {
     await prisma.patient.delete({
-      where: {
-        id: parseInt(params.id),
-      },
+      where: { id: Number(id) }
     });
-
-    console.log('Patient mis à jour:', patient);
-    return NextResponse.json({ data: patient });
+    return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Erreur lors de la mise à jour du patient:', error);
-    return NextResponse.json(
-      { error: error.message || 'Erreur serveur' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Erreur lors de la suppression" }, { status: 500 });
   }
 }
