@@ -112,25 +112,35 @@ export const PatientForm = ({ patient, onSubmit, onCancel }: PatientFormProps) =
   const [isSubmitting, setIsSubmitting] = useState(false);
 
 
-  const [formData, setFormData] = useState(patient || {
-    nom: '',
-    prenom: '',
-    civilites: '',
-    dateNaissance: '',
-    age: 0,
-    etatCivil: '',
-    poste: '',
-    manager: '',
-    zone: '',
-    horaire: '',
-    contrat: '',
-    tauxActivite: '',
-    departement: '',
-    dateEntree: '',
-    anciennete: '',
-    tempsTrajetAller: '',
-    tempsTrajetRetour: '',
-    typeTransport: ''
+  const [formData, setFormData] = useState(() => {
+    if (patient) {
+      return {
+        ...patient,
+        // Formater les dates au format YYYY-MM-DD
+        dateNaissance: patient.dateNaissance.split('.').reverse().join('-'),
+        dateEntree: patient.dateEntree.split('.').reverse().join('-'),
+      };
+    }
+    return {
+      nom: '',
+      prenom: '',
+      civilites: '',
+      dateNaissance: '',
+      age: 0,
+      etatCivil: '',
+      poste: '',
+      manager: '',
+      zone: '',
+      horaire: '',
+      contrat: '',
+      tauxActivite: '',
+      departement: '',
+      dateEntree: '',
+      anciennete: '',
+      tempsTrajetAller: '',
+      tempsTrajetRetour: '',
+      typeTransport: ''
+    };
   });
 
   if (listsLoading) {
@@ -163,28 +173,39 @@ export const PatientForm = ({ patient, onSubmit, onCancel }: PatientFormProps) =
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (currentStep !== STEPS.length - 1) {
+      setCurrentStep(prev => prev + 1);
+      return;
+    }
+    
     setIsSubmitting(true);
-    console.log("Données envoyées:", formData);  // Nouvelle ligne
     try {
+      console.log("Début de la soumission");
       await onSubmit(formData as Patient);
+      // Ne pas mettre setIsSubmitting(false) ici pour éviter le flash
     } catch (error) {
       console.error('Erreur lors de la soumission:', error);
-    } finally {
-      setIsSubmitting(false);
+      setIsSubmitting(false); // Remettre à false uniquement en cas d'erreur
+      toast.error("Erreur lors de la mise à jour");
     }
   };
-
     // Modifier le titre selon le mode
     const isEditMode = !!patient;
 
     return (
       <div className="max-w-6xl mx-auto p-6">
-        <div className="mb-8">
-          <h2 className="text-2xl font-bold text-blue-900">
-            {isEditMode ? 'Modifier le Dossier Patient' : 'Nouveau Dossier Patient'}
-          </h2>
-        <p className="mt-2 text-gray-600">Complétez les informations du patient</p>
-      </div>
+<div className="mb-8">
+  <h2 className="text-2xl font-bold text-blue-900">
+    {patient ? 'Modifier le Dossier Patient' : 'Nouveau Dossier Patient'}
+    {patient && (
+      <span className="text-gray-500 text-lg ml-2">
+        ({patient.civilites} {patient.nom} {patient.prenom})
+      </span>
+    )}
+  </h2>
+  <p className="mt-2 text-gray-600">Complétez les informations du patient</p>
+</div>
 
       <div className="mb-8">
         <div className="flex items-center justify-between">
@@ -384,30 +405,31 @@ export const PatientForm = ({ patient, onSubmit, onCancel }: PatientFormProps) =
         </div>
 
         <div className="bg-gray-50 px-6 py-4 rounded-b-xl flex justify-between">
-          <button
-            type="button"
-            onClick={currentStep === 0 ? onCancel : () => setCurrentStep(prev => prev - 1)}
-            className="px-6 py-2.5 border border-gray-300 rounded-lg text-gray-700 
-                     hover:bg-gray-100 transition-colors duration-200 font-medium"
-            disabled={isSubmitting}
-          >
-            {currentStep === 0 ? 'Annuler' : 'Précédent'}
-          </button>
-          
-          <button
-            type={currentStep === STEPS.length - 1 ? 'submit' : 'button'}
-            onClick={currentStep === STEPS.length - 1 ? undefined : () => setCurrentStep(prev => prev + 1)}
-            className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 
-                     transition-colors duration-200 font-medium disabled:bg-blue-300"
-            disabled={isSubmitting}
-          >
- 
-        {currentStep === STEPS.length - 1 
-          ? (isSubmitting ? (isEditMode ? 'Modification...' : 'Création...') 
-             : (isEditMode ? 'Enregistrer les modifications' : 'Créer le dossier'))
-          : 'Suivant'}
-          </button>
-        </div>
+{/* Premier bouton (gauche) devrait être Annuler/Précédent */}
+<button
+    type="button"
+    onClick={currentStep === 0 ? onCancel : () => setCurrentStep(prev => prev - 1)}
+    className="px-6 py-2.5 border border-gray-300 rounded-lg text-gray-700 
+              hover:bg-gray-100 transition-colors duration-200 font-medium"
+    disabled={isSubmitting}
+  >
+    {currentStep === 0 ? 'Annuler' : 'Précédent'}
+  </button>
+
+  {/* Deuxième bouton (droite) devrait être Suivant/Enregistrer */}
+  <button
+    type={currentStep === STEPS.length - 1 ? 'submit' : 'button'}
+    onClick={currentStep === STEPS.length - 1 ? undefined : () => setCurrentStep(prev => prev + 1)}
+    className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 
+              transition-colors duration-200 font-medium disabled:bg-blue-300"
+    disabled={isSubmitting}
+  >
+    {currentStep === STEPS.length - 1 
+      ? (isSubmitting ? (isEditMode ? 'Modification...' : 'Création...') 
+         : (isEditMode ? 'Enregistrer les modifications' : 'Créer le dossier'))
+      : 'Suivant'}
+  </button>
+</div>
       </form>
     </div>
   );

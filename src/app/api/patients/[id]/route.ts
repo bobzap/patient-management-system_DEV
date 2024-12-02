@@ -1,8 +1,6 @@
 // app/api/patients/[id]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../../lib/prisma';
-import { headers } from 'next/headers';
-import { formatDate } from '@/lib/utils';
 
 export async function GET(
   request: Request,
@@ -24,14 +22,19 @@ export async function GET(
 }
 
 // UPDATE patient
-export async function PUT(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
+export async function PUT(request: NextRequest) {
+  const id = request.url.split('/').pop();
+
+  if (!id) {
+    return NextResponse.json({ error: "ID non trouvé" }, { status: 400 });
+  }
+
   try {
     const data = await request.json();
+    console.log("6. API - données reçues:", { id, data });
+    
     const patient = await prisma.patient.update({
-      where: { id: parseInt(params.id) },
+      where: { id: Number(id) },
       data: {
         // Informations personnelles
         civilites: data.civilites,
@@ -71,19 +74,18 @@ export async function PUT(
       },
     });
 
+    console.log("7. API - patient mis à jour:", patient);
     return NextResponse.json({ data: patient });
   } catch (error) {
+    console.error("8. API - erreur:", error);
     return NextResponse.json(
       { error: 'Erreur lors de la mise à jour du patient' },
       { status: 500 }
     );
   }
 }
+
 // DELETE patient
-// app/api/patients/[id]/route.ts
-// app/api/patients/[id]/route.ts
-
-
 export async function DELETE(request: NextRequest) {
   const id = request.url.split('/').pop();
 

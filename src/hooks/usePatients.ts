@@ -24,13 +24,16 @@ export const usePatients = () => {
 
   const updatePatient = async (id: number, patientData: Partial<Patient>) => {
     setIsLoading(true);
+    console.log("3. usePatients - début updatePatient:", { id, patientData });
     try {
       const response = await fetch(`/api/patients/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(patientData),
       });
+      console.log("4. usePatients - réponse:", response.status)
       const data = await response.json();
+      console.log("5. usePatients - données:", data);
       if (!response.ok) throw new Error(data.error);
       return data.data;
     } catch (err) {

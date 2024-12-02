@@ -6,6 +6,7 @@ import { Patient } from '@/types';
 import { EntretienForm } from '../entretiens/EntretienForm';
 import { usePatients } from '@/hooks/usePatients'; // Nouveau import
 import { toast } from 'sonner';
+import { PatientForm } from './PatientForm';
 
 interface PatientDetailsProps {
   patient: Patient;
@@ -15,10 +16,12 @@ interface PatientDetailsProps {
 
 export const PatientDetails = ({ patient, onEdit, onDelete }: PatientDetailsProps) => {
   const router = useRouter(); // Nouveau
-  const { deletePatient } = usePatients(); // Nouveau
+  const { deletePatient, updatePatient } = usePatients(); // Nouveau
+  const [showEditForm, setShowEditForm] = useState(false);
   const [showEntretien, setShowEntretien] = useState(false);
   const [activeTab, setActiveTab] = useState<'general' | 'historique' | 'documents'>('general');
-
+  
+  
 
   const toastStyle = {
     background: '#2DD4BF',
@@ -46,6 +49,42 @@ export const PatientDetails = ({ patient, onEdit, onDelete }: PatientDetailsProp
       }
     }
   };
+
+    // Nouvelle fonction handleEdit à ajouter ici
+    const handleEdit = async (updatedPatient: Patient) => {
+      try {
+        const success = await updatePatient(patient.id!, updatedPatient);
+        console.log("Mise à jour réussie:", success);
+        if (success) {
+          toast.success(`Le dossier de ${patient.civilites} ${patient.nom} ${patient.prenom} a été mis à jour`, {
+            ...toastStyle
+          });
+          setShowEditForm(false);  // Ferme le formulaire
+          router.refresh();        // Rafraîchit les données
+          window.location.href = '/'; // Force le rechargement complet
+        }
+      } catch (error) {
+        console.error("Erreur de mise à jour:", error);
+        toast.error("Erreur lors de la mise à jour");
+      }
+    };
+
+  //if (showEntretien) {
+    //return <EntretienForm 
+      //patient={patient} 
+     // onClose={() => setShowEntretien(false)}
+    ///>;
+  //}
+
+
+
+  if (showEditForm) {
+    return <PatientForm 
+      patient={patient} 
+      onSubmit={handleEdit}
+      onCancel={() => setShowEditForm(false)}
+    />;
+  }
 
   if (showEntretien) {
     return <EntretienForm 
@@ -120,7 +159,7 @@ export const PatientDetails = ({ patient, onEdit, onDelete }: PatientDetailsProp
  {/* Boutons d'action */}
  <div className="flex gap-3">
         <button
-          onClick={onEdit}
+          onClick={() => setShowEditForm(true)}
           className="px-4 py-2 text-blue-600 bg-blue-50 border border-blue-200 rounded-lg 
                    hover:bg-blue-100 transition-colors duration-200 
                    flex items-center gap-2 font-medium"
