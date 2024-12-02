@@ -190,6 +190,9 @@ export const PatientForm = ({ patient, onSubmit, onCancel }: PatientFormProps) =
       toast.error("Erreur lors de la mise à jour");
     }
   };
+
+
+  
     // Modifier le titre selon le mode
     const isEditMode = !!patient;
 
@@ -405,8 +408,8 @@ export const PatientForm = ({ patient, onSubmit, onCancel }: PatientFormProps) =
         </div>
 
         <div className="bg-gray-50 px-6 py-4 rounded-b-xl flex justify-between">
-{/* Premier bouton (gauche) devrait être Annuler/Précédent */}
-<button
+  {/* Bouton Annuler/Précédent */}
+  <button
     type="button"
     onClick={currentStep === 0 ? onCancel : () => setCurrentStep(prev => prev - 1)}
     className="px-6 py-2.5 border border-gray-300 rounded-lg text-gray-700 
@@ -416,10 +419,16 @@ export const PatientForm = ({ patient, onSubmit, onCancel }: PatientFormProps) =
     {currentStep === 0 ? 'Annuler' : 'Précédent'}
   </button>
 
-  {/* Deuxième bouton (droite) devrait être Suivant/Enregistrer */}
+  {/* Bouton Suivant/Enregistrer */}
   <button
-    type={currentStep === STEPS.length - 1 ? 'submit' : 'button'}
-    onClick={currentStep === STEPS.length - 1 ? undefined : () => setCurrentStep(prev => prev + 1)}
+    type="button"
+    onClick={(e) => {
+      if (currentStep === STEPS.length - 1) {
+        handleSubmit(e);
+      } else {
+        setCurrentStep(prev => prev + 1);
+      }
+    }}
     className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 
               transition-colors duration-200 font-medium disabled:bg-blue-300"
     disabled={isSubmitting}

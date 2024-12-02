@@ -53,15 +53,17 @@ export const PatientDetails = ({ patient, onEdit, onDelete }: PatientDetailsProp
     // Nouvelle fonction handleEdit à ajouter ici
     const handleEdit = async (updatedPatient: Patient) => {
       try {
+        // Désactiver temporairement la redirection automatique
         const success = await updatePatient(patient.id!, updatedPatient);
-        console.log("Mise à jour réussie:", success);
         if (success) {
           toast.success(`Le dossier de ${patient.civilites} ${patient.nom} ${patient.prenom} a été mis à jour`, {
             ...toastStyle
           });
-          setShowEditForm(false);  // Ferme le formulaire
-          router.refresh();        // Rafraîchit les données
-          window.location.href = '/'; // Force le rechargement complet
+          // Ajouter un délai avant la redirection
+          setTimeout(() => {
+            setShowEditForm(false);
+            window.location.href = '/';
+          }, 1000); // 1 seconde de délai
         }
       } catch (error) {
         console.error("Erreur de mise à jour:", error);
