@@ -34,3 +34,43 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+
+
+## Version : 
+
+* Récapitulatif des modifications effectuées :
+
+- Implémentation complète CRUD des patients
+
+Création du hook usePatients
+Mise en place des routes API (GET, PUT, DELETE)
+Correction des problèmes de redirection et de gestion d'état
+
+
+- Améliorations de l'interface utilisateur
+
+Correction du PatientForm pour la gestion des étapes
+Ajout des notifications avec style personnalisé
+Amélioration de l'affichage des données patient
+Formatage des dates dans le formulaire
+
+
+
+* Points d'amélioration notés :
+
+- Gestion des redirections
+
+Retour à la page précédente après modification
+Persistance des données actualisées
+Éviter le retour systématique à l'accueil
+
+
+- Système de notifications
+
+Affichage au premier plan
+Persistance pendant les changements de page
+Durée d'affichage garantie
+
+
+
