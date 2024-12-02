@@ -73,4 +73,26 @@ Persistance pendant les changements de page
 Durée d'affichage garantie
 
 
+## NOTE IMPORTANTE : DEV ENTRETIEN ROAD MAP 
 
+Par relations avec les autres modèles, je faisais référence à comment un entretien est lié à un patient dans la base de données (un patient peut avoir plusieurs entretiens, un entretien appartient à un patient, etc.).
+Pour l'approche de développement, je suggère une stratégie progressive :
+Phase 1 - Base solide :
+
+Créer le modèle Entretien dans la BDD avec une structure flexible qui supportera le formbuilder plus tard
+Implémenter le CRUD basique pour les entretiens
+Mettre en place l'interface de base avec les sections fixes
+
+Phase 2 - Préparation FormBuilder :
+
+Utiliser les modèles FormConfiguration/FormSection/FormField existants
+Structurer le code de manière modulaire pour faciliter l'ajout du formbuilder
+
+Phase 3 - FormBuilder (plus tard) :
+
+Ajouter l'option "Paramétrer"
+Implémenter la personnalisation des champs
+Ajouter la fonction de drag & drop
+
+Commençons par créer le modèle Entretien. Je propose cette structure :
+prisma
