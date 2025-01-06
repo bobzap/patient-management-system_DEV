@@ -9,54 +9,54 @@ datasource db {
 }
 
 model ListCategory {
-  id        Int       @id @default(autoincrement())
-  listId    String    @unique // Identifiant unique pour référencement facile
-  name      String    // Nom lisible de la liste
+  id        Int         @id @default(autoincrement())
+  listId    String      @unique // Identifiant unique pour référencement facile
+  name      String // Nom lisible de la liste
   items     ListItem[]
   fields    FormField[] // Relation avec les champs qui utilisent cette liste
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
 }
 
 model ListItem {
-  id           Int          @id @default(autoincrement())
-  value        String
-  order        Int
-  category     ListCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  categoryId   Int
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
+  id         Int          @id @default(autoincrement())
+  value      String
+  order      Int
+  category   ListCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  categoryId Int
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
 
   @@unique([categoryId, value])
   @@index([categoryId, order])
 }
 
 model Patient {
-  id              Int      @id @default(autoincrement())
+  id            Int    @id @default(autoincrement())
   // Informations personnelles
-  civilites       String
-  nom             String
-  prenom          String
-  dateNaissance   String
-  age             Int
-  etatCivil       String
-  
+  civilites     String
+  nom           String
+  prenom        String
+  dateNaissance String
+  age           Int
+  etatCivil     String
+
   // Informations professionnelles
-  poste           String
-  manager         String
-  zone            String
-  horaire         String?
-  contrat         String
-  tauxActivite    String
-  departement     String
-  dateEntree      String
-  anciennete      String
+  poste        String
+  manager      String
+  zone         String
+  horaire      String?
+  contrat      String
+  tauxActivite String
+  departement  String
+  dateEntree   String
+  anciennete   String
 
   // Informations de transport
-  tempsTrajetAller String
+  tempsTrajetAller  String
   tempsTrajetRetour String
-  typeTransport    String
-  
+  typeTransport     String
+
   // Informations d'entretien
   numeroEntretien Int?
   nomEntretien    String?
@@ -69,55 +69,74 @@ model Patient {
   dateCreation    String?
 
   // Timestamps
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  entretiens Entretien[]
 }
 
 model FormConfiguration {
-  id        Int         @id @default(autoincrement())
-  pageId    String      @unique  
-  name      String      
+  id        Int           @id @default(autoincrement())
+  pageId    String        @unique
+  name      String
   sections  FormSection[]
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
 
   @@index([pageId])
 }
 
 model FormSection {
-  id            Int               @id @default(autoincrement())
-  name          String           
-  label         String           
-  order         Int              
-  formId        Int
-  form          FormConfiguration @relation(fields: [formId], references: [id], onDelete: Cascade)
-  fields        FormField[]
-  createdAt     DateTime         @default(now())
-  updatedAt     DateTime         @updatedAt
+  id        Int               @id @default(autoincrement())
+  name      String
+  label     String
+  order     Int
+  formId    Int
+  form      FormConfiguration @relation(fields: [formId], references: [id], onDelete: Cascade)
+  fields    FormField[]
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
 
   @@unique([formId, name])
   @@index([formId, order])
 }
 
 model FormField {
-  id            Int          @id @default(autoincrement())
-  sectionId     Int
-  section       FormSection  @relation(fields: [sectionId], references: [id], onDelete: Cascade)
-  name          String       
-  label         String       
-  type          String       
-  required      Boolean      @default(false)
-  order         Int          
-  listId        String?      
-  list          ListCategory? @relation(fields: [listId], references: [listId])
-  defaultValue  String?
-  validation    String?      // règles de validation en JSON
-  positionX     Int         @default(0)
-  positionY     Int         @default(0)
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  id           Int           @id @default(autoincrement())
+  sectionId    Int
+  section      FormSection   @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  name         String
+  label        String
+  type         String
+  required     Boolean       @default(false)
+  order        Int
+  listId       String?
+  list         ListCategory? @relation(fields: [listId], references: [listId])
+  defaultValue String?
+  validation   String? // règles de validation en JSON
+  positionX    Int           @default(0)
+  positionY    Int           @default(0)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
 
   @@unique([sectionId, name])
   @@index([sectionId, order])
   @@index([listId])
+}
+
+model Entretien {
+  id              Int     @id @default(autoincrement())
+  patient         Patient @relation(fields: [patientId], references: [id])
+  patientId       Int
+  numeroEntretien Int
+
+  // Structure commune
+  dateCreation     DateTime @default(now())
+  dateModification DateTime @updatedAt
+  status           String   @default("brouillon")
+  isTemplate       Boolean  @default(false)
+  baseEntretienId  Int?
+
+  // Données des sections
+  donneesEntretien String // Stocké comme TEXT mais contiendra du JSON
 }

@@ -1,3 +1,5 @@
+//src\app\api\patients\route.ts
+
 import { NextResponse } from 'next/server';
 import { prisma } from '../../../lib/prisma';
 import { formatDate } from '@/lib/utils';
