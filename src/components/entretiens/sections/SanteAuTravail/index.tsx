@@ -2,11 +2,102 @@
 'use client';
 
 import { useState } from 'react';
-import VecuTravail from './VecuTravail';
-import ModeVie from './ModeVie';
+import VecuTravail, { VecuTravailData } from './VecuTravail';
+import ModeVie, { ModeVieData } from './ModeVie';
 
-export const SanteTravail = () => {
+const initialVecuTravailData: VecuTravailData = {
+  motifVisite: {
+    motif: '',
+    commentaires: ''
+  },
+  postesOccupes: '',
+  posteDeTravail: {
+    descriptionTaches: '',
+    risquesProfessionnels: '',
+    installationMateriel: ''
+  },
+  ressentiTravail: {
+    relationCollegues: 5,
+    relationHierarchie: 5,
+    stress: 5,
+    satisfaction: 5,
+    commentaires: ''
+  },
+  plaintesTravail: {
+    existence: false,
+    commentaires: ''
+  }
+};
+
+const initialModeVieData: ModeVieData = {
+  loisirs: {
+    activitePhysique: false,
+    frequence: '',
+    commentaires: ''
+  },
+  addictions: {
+    tabac: {
+      consommation: false,
+      quantiteJour: '',
+      depuis: ''
+    },
+    medicaments: {
+      consommation: false,
+      depuis: '',
+      quantiteInfDix: false,
+      frequence: ''
+    },
+    alcool: {
+      consommation: false,
+      quantiteSupDix: false,
+      frequence: ''
+    },
+    cannabis: {
+      consommation: false,
+      depuis: '',
+      quantiteInfDix: false,
+      frequence: ''
+    },
+    droguesDures: {
+      consommation: false,
+      depuis: '',
+      frequence: ''
+    },
+    commentairesGeneraux: ''
+  }
+};
+
+interface SanteTravailProps {
+  onChange?: (data: {
+    vecuTravail: VecuTravailData;
+    modeVie: ModeVieData;
+  }) => void;
+}
+
+export const SanteTravail = ({ onChange }: SanteTravailProps) => {
   const [currentPage, setCurrentPage] = useState(1);
+  const [localData, setLocalData] = useState({
+    vecuTravail: initialVecuTravailData,
+    modeVie: initialModeVieData
+  });
+
+  const handleVecuTravailChange = (newVecuData: VecuTravailData) => {
+    const newData = {
+      ...localData,
+      vecuTravail: newVecuData
+    };
+    setLocalData(newData);
+    onChange?.(newData);
+  };
+
+  const handleModeVieChange = (newModeVieData: ModeVieData) => {
+    const newData = {
+      ...localData,
+      modeVie: newModeVieData
+    };
+    setLocalData(newData);
+    onChange?.(newData);
+  };
 
   return (
     <div className="h-full flex flex-col">
@@ -37,9 +128,15 @@ export const SanteTravail = () => {
       {/* Contenu */}
       <div className="flex-grow bg-white/50 rounded-lg p-4">
         {currentPage === 1 ? (
-          <VecuTravail />
+          <VecuTravail 
+            data={localData.vecuTravail}
+            onChange={handleVecuTravailChange}
+          />
         ) : (
-          <ModeVie />
+          <ModeVie 
+            data={localData.modeVie}
+            onChange={handleModeVieChange}
+          />
         )}
       </div>
 

@@ -2,14 +2,68 @@
 'use client';
 
 import React, { useState } from 'react';
+import { toast } from 'sonner';
 import { ResizableBox } from 'react-resizable';
 import { Patient } from '@/types';
 import { SanteTravail } from '@/components/entretiens/sections/SanteAuTravail';
+import { VecuTravailData } from '@/components/entretiens//sections/SanteAuTravail/VecuTravail';
+import { ModeVieData } from '@/components/entretiens/sections/SanteAuTravail/ModeVie';
+
+interface EntretienData {
+  numeroEntretien: number;
+  status: string;
+  santeTravail: {
+    vecuTravail: VecuTravailData;
+    modeVie: ModeVieData;
+  };
+  examenClinique: any;
+  imaa: any;
+  conclusion: any;
+}
+
+// Données initiales
+const initialVecuTravailData: VecuTravailData = {
+  motifVisite: { motif: '', commentaires: '' },
+  postesOccupes: '',
+  posteDeTravail: {
+    descriptionTaches: '',
+    risquesProfessionnels: '',
+    installationMateriel: ''
+  },
+  ressentiTravail: {
+    relationCollegues: 5,
+    relationHierarchie: 5,
+    stress: 5,
+    satisfaction: 5,
+    commentaires: ''
+  },
+  plaintesTravail: {
+    existence: false,
+    commentaires: ''
+  }
+};
+
+const initialModeVieData: ModeVieData = {
+  loisirs: {
+    activitePhysique: false,
+    frequence: '',
+    commentaires: ''
+  },
+  addictions: {
+    tabac: { consommation: false, quantiteJour: '', depuis: '' },
+    medicaments: { consommation: false, depuis: '', quantiteInfDix: false, frequence: '' },
+    alcool: { consommation: false, quantiteSupDix: false, frequence: '' },
+    cannabis: { consommation: false, depuis: '', quantiteInfDix: false, frequence: '' },
+    droguesDures: { consommation: false, depuis: '', frequence: '' },
+    commentairesGeneraux: ''
+  }
+};
 
 interface EntretienFormProps {
   patient: Patient;
   onClose?: () => void;
 }
+
 
 interface Section {
   id: string;
@@ -29,6 +83,17 @@ export const EntretienForm = ({ patient, onClose }: EntretienFormProps) => {
   ]);
 
   const [maxZIndex, setMaxZIndex] = useState(1);
+  const [entretienData, setEntretienData] = useState<EntretienData>({
+    numeroEntretien: 1,
+    status: 'brouillon',
+    santeTravail: {
+      vecuTravail: initialVecuTravailData,
+      modeVie: initialModeVieData
+    },
+    examenClinique: {},
+    imaa: {},
+    conclusion: {}
+  });
 
   const bringToFront = (id: string) => {
     const newZIndex = maxZIndex + 1;
@@ -58,11 +123,82 @@ export const EntretienForm = ({ patient, onClose }: EntretienFormProps) => {
     setMaxZIndex(1);
   };
 
-  // Fonction pour rendre le contenu de chaque section
+
+
+  const saveEntretien = async () => {
+    try {
+      // Structure des données à envoyer
+      const entretienToSave = {
+        patientId: patient.id,
+        numeroEntretien: entretienData.numeroEntretien,
+        status: "brouillon",
+        donneesEntretien: {
+          santeTravail: entretienData.santeTravail,
+          examenClinique: entretienData.examenClinique || {},
+          imaa: entretienData.imaa || {},
+          conclusion: entretienData.conclusion || {}
+        }
+      };
+  
+      // Log pour debug
+      console.log("Données envoyées:", entretienToSave);
+  
+      // Envoi de la requête
+      const response = await fetch('/api/entretiens', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(entretienToSave)
+      });
+  
+      // Log de la réponse brute
+      const responseText = await response.text();
+      console.log("Réponse brute:", responseText);
+  
+      // Si la réponse est vide, on lance une erreur
+      if (!responseText) {
+        throw new Error('Réponse vide du serveur');
+      }
+  
+      // Sinon on parse la réponse
+      const responseData = JSON.parse(responseText);
+  
+      if (!response.ok) {
+        throw new Error(responseData.error || `Erreur HTTP: ${response.status}`);
+      }
+  
+      toast.success('Entretien sauvegardé avec succès');
+      console.log('Entretien sauvegardé:', responseData);
+  
+      if (onClose) {
+        onClose();
+      }
+  
+    } catch (error: any) {
+      console.error('Erreur complète:', error);
+      const errorMessage = error.message || 'Erreur inconnue lors de la sauvegarde';
+      toast.error(`Erreur: ${errorMessage}`);
+    }
+  };
+
+const handleSanteTravailChange = (newData: any) => {
+  setEntretienData(prev => ({
+    ...prev,
+    santeTravail: newData
+  }));
+};
+
+
   const renderSectionContent = (sectionId: string) => {
     switch (sectionId) {
       case 'sante':
-        return <SanteTravail />;
+        return (
+          <SanteTravail 
+            data={entretienData.santeTravail}
+            onChange={handleSanteTravailChange}
+          />
+        );
       case 'examen':
         return <div className="text-gray-500">Section Examen Clinique en cours de développement...</div>;
       case 'imaa':
@@ -81,7 +217,7 @@ export const EntretienForm = ({ patient, onClose }: EntretienFormProps) => {
         <div className="flex justify-between items-start mb-4">
           <div className="flex-grow">
             <h2 className="text-xl font-bold text-blue-900">
-              Nouvel entretien - {patient.civilite} {patient.nom} {patient.prenom}
+              Nouvel entretien - {patient.civilites} {patient.nom} {patient.prenom}
             </h2>
             <div className="mt-2 text-gray-600">
               {patient.age} ans • {patient.poste} • {patient.departement}
@@ -101,6 +237,7 @@ export const EntretienForm = ({ patient, onClose }: EntretienFormProps) => {
             </button>
             
             <button 
+              onClick={saveEntretien}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 
                        transition-colors duration-200 shadow hover:shadow-md"
             >

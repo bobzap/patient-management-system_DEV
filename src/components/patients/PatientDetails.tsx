@@ -1,3 +1,5 @@
+//src\components\patients\PatientDetails.tsx
+
 'use client';
 
 import { useState } from 'react';
