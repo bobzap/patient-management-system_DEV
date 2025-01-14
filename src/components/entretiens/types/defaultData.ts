@@ -62,12 +62,130 @@ export const defaultVecuTravailData = {
     }
   };
   
+
+
+
+
+
+
+  export const defaultExamenCliniqueData = {
+    biometrie: {
+      taille: '',
+      poids: '',
+      tension: '',
+      pouls: '',
+      temperature: '',
+      glycemie: '',
+      saturation: '',
+      imc: ''
+    },
+    appareils: {
+      yeuxAnnexes: {
+        bilanOPH: false,
+        commentairesORL: '',
+        commentairesOPH: ''
+      },
+      cardioPulmonaire: {
+        bilanCardio: false,
+        commentaires: ''
+      },
+      appareilDigestif: {
+        commentaires: ''
+      },
+      uroGenital: {
+        suiviGyneco: false,
+        commentaires: ''
+      },
+      osteoArticulaire: {
+        plainteEvoquee: false,
+        commentairesDouleurs: ''
+      },
+      neuroPsy: {
+        sommeilBon: false,
+        commentaires: ''
+      },
+      endocrinoMetabolisme: {
+        dernierBilan: ''
+      }
+    },
+    antecedents: {
+      medicaux: {
+        existence: false,
+        description: '',
+        commentaires: ''
+      },
+      chirurgicaux: {
+        existence: false,
+        description: '',
+        commentaires: ''
+      }
+    },
+    traitements: {
+      medicaments: {
+        existence: false,
+        description: '',
+        commentaires: ''
+      },
+      vaccination: {
+        aJour: false,
+        commentaires: ''
+      }
+    }
+  };
+
+
+
+
+
+  export const defaultConclusionData = {
+    prevention: {
+      conseilsDonnes: '',
+      troublesLiesTravail: []
+    },
+    limitation: {
+      hasLimitation: false,
+      dureeType: 'temporaire' as const,
+      dureeJours: 0,
+      commentaire: ''
+    },
+    actions: {
+      orientation: {
+        selected: [],
+        commentaire: ''
+      },
+      etudePoste: {
+        aFaire: false,
+        commentaire: ''
+      },
+      manager: {
+        entretienNecessaire: false,
+        managerSelectionne: '',
+        commentaire: '',
+        dateRappel: ''
+      },
+      entretien: {
+        aPrevoir: false,
+        dateRappel: ''
+      },
+      medecin: {
+        echangeNecessaire: false,
+        commentaire: ''
+      },
+      visiteMedicale: {
+        aPlanifier: false,
+        dateRappel: '',
+        commentaire: ''
+      }
+    }
+  };
+  
+  // Mettre à jour defaultEntretienData pour inclure conclusion
   export const defaultEntretienData = {
     santeTravail: {
       vecuTravail: defaultVecuTravailData,
       modeVie: defaultModeVieData
     },
-    examenClinique: {},
+    examenClinique: defaultExamenCliniqueData,
     imaa: {},
-    conclusion: {}
+    conclusion: defaultConclusionData
   };

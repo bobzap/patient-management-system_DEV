@@ -1,0 +1,64 @@
+src/
+├── app/
+│   ├── admin/
+│   │   ├── page.tsx              # Page admin principale
+│   │   └── layout.tsx            # Layout admin avec navigation
+│   ├── api/
+│   │   ├── lists/               # API pour les listes
+│   │   │   ├── route.ts         # GET all lists
+│   │   │   └── [listId]/        # Opérations sur une liste spécifique
+│   │   │       └── route.ts     # GET/PUT/DELETE
+│   │   └── patients/            # API pour les patients
+│   │       ├── route.ts         # GET/POST patients
+│   │       └── [id]/            # Opérations sur un patient
+│   │           └── route.ts     # GET/PUT/DELETE
+│   └── layout.tsx               # Layout principal de l'app
+│
+├── components/
+│   ├── admin/
+│   │   ├── FormBuilder/         # Configuration des formulaires
+│   │   │   ├── AvailableFields.tsx
+│   │   │   ├── FieldProperties.tsx
+│   │   │   ├── SortableField.tsx
+│   │   │   └── index.tsx
+│   │   └── ListManager/         # Gestion des listes
+│   │       ├── index.tsx
+│   │       └── ListEditor.tsx
+│   │
+│   ├── patients/
+│   │   ├── PatientForm.tsx      # Formulaire patient
+│   │   ├── PatientList.tsx      # Liste des patients
+│   │   └── PatientDetails.tsx   # Détails d'un patient
+│   │
+│   └── layout/
+│       └── Sidebar.tsx          # Barre latérale de navigation
+│
+├── lib/
+│   └── prisma.ts               # Configuration Prisma
+│
+├── prisma/
+│   ├── schema.prisma           # Schéma de la base de données
+│   └── data/
+│       └── initial-lists.ts    # Données initiales des listes
+│
+└── types/
+    └── index.ts               # Types TypeScript (Patient, etc.)
+
+
+    
+Architecture du Projet : 
+
+src/
+├── app/               # Routes et API Next.js
+├── components/        # Composants React réutilisables
+├── lib/              # Configuration et utilitaires
+├── prisma/           # Base de données et seeds
+└── types/            # Définitions TypeScript
+
+Points clés techniques
+
+Next.js pour le framework
+Prisma pour la base de données
+TypeScript pour le typage
+TailwindCSS pour le style
+Architecture modulaire et évolutive

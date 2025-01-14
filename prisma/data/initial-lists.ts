@@ -181,6 +181,20 @@ export const initialLists: ListCategory[] = [
     listId: 'transport',
     name: 'Type de transport',
     items: ['Voiture', 'Transport en commun', 'Marche', 'Deux roues motorisé']
+  },
+
+  {
+    listId: 'troublesTravail',
+    name: 'Troubles liés au travail',
+    items: [
+      'TMS Membres supérieurs',
+      'TMS Dos',
+      'TMS Membres inférieurs',
+      'Troubles psychologiques',
+      'Troubles du sommeil',
+      'Troubles digestifs',
+      'Troubles cardiovasculaires'
+    ]
   }
 
   

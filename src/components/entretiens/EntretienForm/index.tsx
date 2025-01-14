@@ -9,6 +9,13 @@ import { SanteTravail } from '@/components/entretiens/sections/SanteAuTravail';
 import { VecuTravailData } from '@/components/entretiens//sections/SanteAuTravail/VecuTravail';
 import { ModeVieData } from '@/components/entretiens/sections/SanteAuTravail/ModeVie';
 
+import { ExamenClinique } from '@/components/entretiens/sections/ExamenClinique';
+import { defaultExamenCliniqueData } from '@/components/entretiens/types/defaultData';
+
+import { Prevention } from '../sections/Conclusion/Prevention';
+import { Limitation } from '../sections/Conclusion/Limitation';
+import { Actions } from '../sections/Conclusion/Actions';
+
 interface EntretienData {
   numeroEntretien: number;
   status: string;
@@ -59,6 +66,9 @@ const initialModeVieData: ModeVieData = {
   }
 };
 
+
+
+
 interface EntretienFormProps {
   patient: Patient;
   onClose?: () => void;
@@ -90,7 +100,7 @@ export const EntretienForm = ({ patient, onClose }: EntretienFormProps) => {
       vecuTravail: initialVecuTravailData,
       modeVie: initialModeVieData
     },
-    examenClinique: {},
+    examenClinique: defaultExamenCliniqueData,
     imaa: {},
     conclusion: {}
   });
@@ -190,8 +200,19 @@ const handleSanteTravailChange = (newData: any) => {
 };
 
 
+// Ajout du handler pour ExamenClinique
+const handleExamenCliniqueChange = (newData: any) => {
+  setEntretienData(prev => ({
+    ...prev,
+    examenClinique: newData
+  }));
+};
+
+
   const renderSectionContent = (sectionId: string) => {
     switch (sectionId) {
+
+
       case 'sante':
         return (
           <SanteTravail 
@@ -199,15 +220,64 @@ const handleSanteTravailChange = (newData: any) => {
             onChange={handleSanteTravailChange}
           />
         );
-      case 'examen':
-        return <div className="text-gray-500">Section Examen Clinique en cours de développement...</div>;
+        case 'examen':
+          return (
+            <ExamenClinique 
+              data={entretienData.examenClinique}
+              onChange={handleExamenCliniqueChange}
+            />
+          );
+
       case 'imaa':
         return <div className="text-gray-500">Section IMAA en cours de développement...</div>;
-      case 'conclusion':
-        return <div className="text-gray-500">Section Conclusion en cours de développement...</div>;
+
+
+        case 'conclusion':
+          return (
+            <div className="space-y-6">
+              <Prevention 
+                data={entretienData.conclusion.prevention}
+                onChange={(prevention) => {
+                  setEntretienData(prev => ({
+                    ...prev,
+                    conclusion: {
+                      ...prev.conclusion,
+                      prevention
+                    }
+                  }));
+                }}
+              />
+              <Limitation 
+                data={entretienData.conclusion.limitation}
+                onChange={(limitation) => {
+                  setEntretienData(prev => ({
+                    ...prev,
+                    conclusion: {
+                      ...prev.conclusion,
+                      limitation
+                    }
+                  }));
+                }}
+              />
+              <Actions 
+                data={entretienData.conclusion.actions}
+                onChange={(actions) => {
+                  setEntretienData(prev => ({
+                    ...prev,
+                    conclusion: {
+                      ...prev.conclusion,
+                      actions
+                    }
+                  }));
+                }}
+              />
+            </div>
+          );
+
       default:
         return null;
     }
+
   };
 
   return (
