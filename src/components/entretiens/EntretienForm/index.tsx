@@ -54,6 +54,8 @@ interface EntretienFormProps {
   onClose?: () => void;
 }
 
+
+
 // Après les interfaces et avant export const EntretienForm
 const initialVecuTravailData: VecuTravailData = {
   motifVisite: { motif: '', commentaires: '' },
@@ -109,7 +111,7 @@ export const EntretienForm = ({ patient, onClose }: EntretienFormProps) => {
       height: 400, 
       zIndex: 1, 
       position: 0,
-      isMinimized: false
+      isMinimized: true
     },
     { 
       id: 'examen', 
@@ -119,7 +121,7 @@ export const EntretienForm = ({ patient, onClose }: EntretienFormProps) => {
       height: 400, 
       zIndex: 1, 
       position: 1,
-      isMinimized: false
+      isMinimized: true
     },
     { 
       id: 'imaa', 
@@ -129,7 +131,7 @@ export const EntretienForm = ({ patient, onClose }: EntretienFormProps) => {
       height: 400, 
       zIndex: 1, 
       position: 2,
-      isMinimized: false
+      isMinimized: true
     },
     { 
       id: 'conclusion', 
@@ -139,7 +141,7 @@ export const EntretienForm = ({ patient, onClose }: EntretienFormProps) => {
       height: 400, 
       zIndex: 1, 
       position: 3,
-      isMinimized: false
+      isMinimized: true
     }
   ]);
 
@@ -189,7 +191,7 @@ export const EntretienForm = ({ patient, onClose }: EntretienFormProps) => {
         section.id === id ? { ...section, zIndex: newZIndex } : section
       )
     );
-  };
+  }
 
   const handleResize = (id: string) => (e: any, { size }: { size: { width: number; height: number } }) => {
     bringToFront(id);
@@ -202,18 +204,24 @@ export const EntretienForm = ({ patient, onClose }: EntretienFormProps) => {
     );
   };
 
-  // Nouveau gestionnaire pour l'expansion
+  // Ajoutez ce nouveau gestionnaire
   const handleExpand = (id: string) => {
-    setExpandedSection(expandedSection === id ? null : id);
-    // Si on expand une section, on sort du mode focus
-    if (focusedSection) {
-      setFocusedSection(null);
+    if (expandedSection === id) {
+      setExpandedSection(null);
+    } else {
+      setExpandedSection(id);
+      // Quand on expand une section, on la met au premier plan
+      bringToFront(id);
+      // Et on sort du mode focus si actif
+      if (focusedSection) {
+        setFocusedSection(null);
+      }
     }
   };
 
 
 
-   // Modifier le reset pour inclure l'expansion
+   // Ajustez le resetSizes pour inclure l'expanded state
    const resetSizes = () => {
     setSections(prev =>
       prev.map(section => ({
@@ -221,12 +229,12 @@ export const EntretienForm = ({ patient, onClose }: EntretienFormProps) => {
         width: 750,
         height: 400,
         zIndex: 1,
-        isMinimized: false
+        isMinimized: true
       }))
     );
     setMaxZIndex(1);
     setFocusedSection(null);
-    setExpandedSection(null);
+    setExpandedSection(null); // Réinitialise l'état d'expansion
   };
 
   const saveEntretien = async () => {
@@ -415,7 +423,7 @@ export const EntretienForm = ({ patient, onClose }: EntretienFormProps) => {
       className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 
                transition-colors duration-200 shadow hover:shadow-md"
     >
-      <span className="whitespace-nowrap">Réinitialiser</span>
+      <span className="whitespace-nowrap">Mise en page par défaut </span>
     </button>
     
     <button 
@@ -423,7 +431,7 @@ export const EntretienForm = ({ patient, onClose }: EntretienFormProps) => {
       className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 
                transition-colors duration-200 shadow hover:shadow-md"
     >
-      <span className="whitespace-nowrap">Sauvegarder</span>
+      <span className="whitespace-nowrap">Sauvegarder les données</span>
     </button>
     
     {onClose && (
@@ -453,78 +461,77 @@ export const EntretienForm = ({ patient, onClose }: EntretienFormProps) => {
 
       {/* Sections */}
       <DragDropContext onDragEnd={handleDragEnd}>
-        <Droppable droppableId="sections">
-          {(provided) => (
-            <div 
-              {...provided.droppableProps}
-              ref={provided.innerRef}
-              className={`grid ${
-                focusedSection ? 'grid-cols-1 max-w-3xl mx-auto' : 'grid-cols-2'
-              } gap-4 max-w-[98%] mx-auto`}
-            >
-              {sections
-                .filter(section => !section.isMinimized)
-                .filter(section => !focusedSection || section.id === focusedSection)
-                .sort((a, b) => a.position - b.position)
-                .map((section, index) => (
-                  <Draggable 
-                    key={section.id} 
-                    draggableId={section.id} 
-                    index={index}
-                    isDragDisabled={!!focusedSection}
+    <Droppable droppableId="sections">
+      {(provided) => (
+        <div 
+          {...provided.droppableProps}
+          ref={provided.innerRef}
+          className={`grid ${
+            focusedSection ? 'grid-cols-1 max-w-3xl mx-auto' : 'grid-cols-2'
+          } gap-4 max-w-[98%] mx-auto`}
+        >
+          {sections
+            .filter(section => !section.isMinimized)
+            .filter(section => !focusedSection || section.id === focusedSection)
+            .sort((a, b) => a.position - b.position)
+            .map((section, index) => (
+              <Draggable 
+                key={section.id} 
+                draggableId={section.id} 
+                index={index}
+                isDragDisabled={!!focusedSection || !!expandedSection} // Désactive le drag si focused ou expanded
+
+                
+              >
+                {(provided, snapshot) => (
+                  <div
+                    ref={provided.innerRef}
+                    {...provided.draggableProps}
+                    {...provided.dragHandleProps}
+                    className={`transition-all duration-200 ${
+                      snapshot.isDragging ? 'opacity-70' : ''
+                    }`}
                   >
-                    {(provided, snapshot) => (
-                      <div
-                      ref={provided.innerRef}
-                      {...provided.draggableProps}
-                      draggableProps={{
-                        ...provided.draggableProps,
-                        // Le drag handle sera uniquement sur l'en-tête
-                        handle: `.drag-handle-${section.id}`
-                      }}
-                      className={`transition-all duration-200 ${
-                        snapshot.isDragging ? 'opacity-70' : ''
-                      }`}
-                      style={{
-                        ...provided.draggableProps.style,
-                        // Empêcher le drag & drop sur la poignée de redimensionnement
-                        pointerEvents: 'auto'
-                      }}
+                    <ResizableSection
+                      {...section}
+                      isExpanded={expandedSection === section.id}
+                      isFocused={focusedSection === section.id}
+                      onMinimize={handleMinimize}
+                      onMaximize={handleMaximize}
+                      onToggleFocus={handleToggleFocus}
+                      onExpand={handleExpand}
+                      onResize={(id, size) => handleResize(id)({ target: null }, { size })}
+                      onBringToFront={bringToFront}
                     >
-                           <ResizableSection
-    {...section}
-    isExpanded={expandedSection === section.id}
-    isFocused={focusedSection === section.id}
-    onMinimize={handleMinimize}
-    onMaximize={handleMaximize}
-    onToggleFocus={handleToggleFocus}
-    onExpand={handleExpand}
-    onResize={(id, size) => handleResize(id)({ target: null }, { size })}
-    onBringToFront={bringToFront}
-  >
-    {renderSectionContent(section.id)}
-  </ResizableSection>
-  
-</div>
-                    )}
-                  </Draggable>
-                ))}
-              {provided.placeholder}
-            </div>
-          )}
-        </Droppable>
-      </DragDropContext>
+                      {renderSectionContent(section.id)}
+                    </ResizableSection>
+                  </div>
+                )}
+              </Draggable>
+            ))}
+          {provided.placeholder}
+        </div>
+      )}
+    </Droppable>
+  </DragDropContext>
 
       {/* Bouton quitter le mode focus */}
       {focusedSection && (
-        <button
-          onClick={() => setFocusedSection(null)}
-          className="fixed bottom-4 right-4 px-4 py-2 bg-blue-600 text-white 
-                    rounded-lg shadow-lg hover:bg-blue-700 transition-colors"
-        >
-          Quitter le mode focus
-        </button>
-      )}
+  <>
+    <div 
+      className="fixed inset-0 bg-black/50 backdrop-blur-sm transition-all duration-300"
+      style={{ zIndex: 40 }}
+    />
+    <button
+      onClick={() => setFocusedSection(null)}
+      className="fixed bottom-4 right-4 px-4 py-2 bg-blue-600 text-white 
+                rounded-lg shadow-lg hover:bg-blue-700 transition-colors"
+      style={{ zIndex: 60 }} // Au-dessus de tout
+    >
+      Quitter le mode focus
+    </button>
+  </>
+)}
     </div>
   );
 };
