@@ -2,19 +2,29 @@
 'use client';
 
 import React, { useState } from 'react';
+import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { toast } from 'sonner';
-import { ResizableBox } from 'react-resizable';
 import { Patient } from '@/types';
-import { SanteTravail } from '@/components/entretiens/sections/SanteAuTravail';
-import { VecuTravailData } from '@/components/entretiens//sections/SanteAuTravail/VecuTravail';
-import { ModeVieData } from '@/components/entretiens/sections/SanteAuTravail/ModeVie';
-
-import { ExamenClinique } from '@/components/entretiens/sections/ExamenClinique';
-import { defaultExamenCliniqueData } from '@/components/entretiens/types/defaultData';
-
+import { TabBar } from './TabBar';
+import { ResizableSection } from './ResizableSection';
+import { SanteTravail } from '../sections/SanteAuTravail';
+import { ExamenClinique } from '../sections/ExamenClinique';
 import { Prevention } from '../sections/Conclusion/Prevention';
 import { Limitation } from '../sections/Conclusion/Limitation';
 import { Actions } from '../sections/Conclusion/Actions';
+import { defaultExamenCliniqueData } from '../types/defaultData';
+import type { VecuTravailData } from '../sections/SanteAuTravail/VecuTravail';
+import type { ModeVieData } from '../sections/SanteAuTravail/ModeVie';
+
+// Types pour le drag & drop
+type DragResult = {
+  destination?: {
+    index: number;
+  };
+  source: {
+    index: number;
+  };
+};
 
 interface EntretienData {
   numeroEntretien: number;
@@ -28,7 +38,23 @@ interface EntretienData {
   conclusion: any;
 }
 
-// Données initiales
+interface Section {
+  id: string;
+  title: string;
+  color: string;
+  width: number;
+  height: number;
+  zIndex: number;
+  position: number;
+  isMinimized: boolean;
+}
+
+interface EntretienFormProps {
+  patient: Patient;
+  onClose?: () => void;
+}
+
+// Après les interfaces et avant export const EntretienForm
 const initialVecuTravailData: VecuTravailData = {
   motifVisite: { motif: '', commentaires: '' },
   postesOccupes: '',
@@ -69,30 +95,54 @@ const initialModeVieData: ModeVieData = {
 
 
 
-interface EntretienFormProps {
-  patient: Patient;
-  onClose?: () => void;
-}
-
-
-interface Section {
-  id: string;
-  title: string;
-  color: string;
-  width: number;
-  height: number;
-  zIndex: number;
-}
-
 export const EntretienForm = ({ patient, onClose }: EntretienFormProps) => {
+  // États
+  const [focusedSection, setFocusedSection] = useState<string | null>(null);
+  const [maxZIndex, setMaxZIndex] = useState(1);
+  const [expandedSection, setExpandedSection] = useState<string | null>(null);
   const [sections, setSections] = useState<Section[]>([
-    { id: 'sante', title: 'SANTÉ AU TRAVAIL', color: 'bg-amber-50', width: 750, height: 400, zIndex: 1 },
-    { id: 'examen', title: 'EXAMEN CLINIQUE', color: 'bg-purple-50', width: 750, height: 400, zIndex: 1 },
-    { id: 'imaa', title: 'IMAA', color: 'bg-green-50', width: 750, height: 400, zIndex: 1 },
-    { id: 'conclusion', title: 'CONCLUSION', color: 'bg-pink-50', width: 750, height: 400, zIndex: 1 }
+    { 
+      id: 'sante', 
+      title: 'SANTÉ AU TRAVAIL', 
+      color: 'bg-amber-50', 
+      width: 750, 
+      height: 400, 
+      zIndex: 1, 
+      position: 0,
+      isMinimized: false
+    },
+    { 
+      id: 'examen', 
+      title: 'EXAMEN CLINIQUE', 
+      color: 'bg-purple-50', 
+      width: 750, 
+      height: 400, 
+      zIndex: 1, 
+      position: 1,
+      isMinimized: false
+    },
+    { 
+      id: 'imaa', 
+      title: 'IMAA', 
+      color: 'bg-green-50', 
+      width: 750, 
+      height: 400, 
+      zIndex: 1, 
+      position: 2,
+      isMinimized: false
+    },
+    { 
+      id: 'conclusion', 
+      title: 'CONCLUSION', 
+      color: 'bg-pink-50', 
+      width: 750, 
+      height: 400, 
+      zIndex: 1, 
+      position: 3,
+      isMinimized: false
+    }
   ]);
 
-  const [maxZIndex, setMaxZIndex] = useState(1);
   const [entretienData, setEntretienData] = useState<EntretienData>({
     numeroEntretien: 1,
     status: 'brouillon',
@@ -104,6 +154,32 @@ export const EntretienForm = ({ patient, onClose }: EntretienFormProps) => {
     imaa: {},
     conclusion: {}
   });
+
+
+  
+
+  // Gestionnaires d'événements
+  const handleMinimize = (id: string) => {
+    setSections(prev => prev.map(section =>
+      section.id === id ? { ...section, isMinimized: true } : section
+    ));
+    if (focusedSection === id) {
+      setFocusedSection(null);
+    }
+  };
+
+  const handleMaximize = (id: string) => {
+    setSections(prev => prev.map(section =>
+      section.id === id ? { ...section, isMinimized: false } : section
+    ));
+  };
+
+
+ 
+
+  const handleToggleFocus = (id: string) => {
+    setFocusedSection(focusedSection === id ? null : id);
+  };
 
   const bringToFront = (id: string) => {
     const newZIndex = maxZIndex + 1;
@@ -126,14 +202,32 @@ export const EntretienForm = ({ patient, onClose }: EntretienFormProps) => {
     );
   };
 
-  const resetSizes = () => {
-    setSections(prev =>
-      prev.map(section => ({ ...section, width: 750, height: 400, zIndex: 1 }))
-    );
-    setMaxZIndex(1);
+  // Nouveau gestionnaire pour l'expansion
+  const handleExpand = (id: string) => {
+    setExpandedSection(expandedSection === id ? null : id);
+    // Si on expand une section, on sort du mode focus
+    if (focusedSection) {
+      setFocusedSection(null);
+    }
   };
 
 
+
+   // Modifier le reset pour inclure l'expansion
+   const resetSizes = () => {
+    setSections(prev =>
+      prev.map(section => ({
+        ...section,
+        width: 750,
+        height: 400,
+        zIndex: 1,
+        isMinimized: false
+      }))
+    );
+    setMaxZIndex(1);
+    setFocusedSection(null);
+    setExpandedSection(null);
+  };
 
   const saveEntretien = async () => {
     try {
@@ -192,22 +286,22 @@ export const EntretienForm = ({ patient, onClose }: EntretienFormProps) => {
     }
   };
 
-const handleSanteTravailChange = (newData: any) => {
-  setEntretienData(prev => ({
-    ...prev,
-    santeTravail: newData
-  }));
-};
 
-
-// Ajout du handler pour ExamenClinique
-const handleExamenCliniqueChange = (newData: any) => {
-  setEntretienData(prev => ({
-    ...prev,
-    examenClinique: newData
-  }));
-};
-
+  const handleSanteTravailChange = (newData: { vecuTravail: VecuTravailData; modeVie: ModeVieData }) => {
+    setEntretienData(prev => ({
+      ...prev,
+      santeTravail: newData
+    }));
+  };
+  
+  
+  // Ajout du handler pour ExamenClinique
+  const handleExamenCliniqueChange = (newData: any) => {
+    setEntretienData(prev => ({
+      ...prev,
+      examenClinique: newData
+    }));
+  };
 
   const renderSectionContent = (sectionId: string) => {
     switch (sectionId) {
@@ -280,90 +374,157 @@ const handleExamenCliniqueChange = (newData: any) => {
 
   };
 
+  const handleDragEnd = (result: DragResult) => {
+    if (!result.destination) return;
+  
+    const newSections = Array.from(sections);
+    const [reorderedItem] = newSections.splice(result.source.index, 1);
+    newSections.splice(result.destination.index, 0, reorderedItem);
+  
+    const updatedSections = newSections.map((section, index) => ({
+      ...section,
+      position: index
+    }));
+  
+    setSections(updatedSections);
+  };
+
+ 
+
+
   return (
     <div className="p-6">
-      {/* En-tête avec info patient et boutons */}
+      {/* En-tête */}
       <div className="max-w-[98%] mx-auto bg-white rounded-xl shadow-lg p-6 mb-6">
-        <div className="flex justify-between items-start mb-4">
-          <div className="flex-grow">
-            <h2 className="text-xl font-bold text-blue-900">
-              Nouvel entretien - {patient.civilites} {patient.nom} {patient.prenom}
-            </h2>
-            <div className="mt-2 text-gray-600">
-              {patient.age} ans • {patient.poste} • {patient.departement}
-            </div>
-            <div className="mt-1 text-gray-600">
-              Ancienneté : {patient.anciennete} • Horaire : {patient.horaire}
-            </div>
-          </div>
+      <div className="flex justify-between items-start mb-4">
+  <div className="flex-grow">
+    <h2 className="text-xl font-bold text-blue-900">
+      Nouvel entretien - {patient.civilites} {patient.nom} {patient.prenom}
+    </h2>
+    <div className="mt-2 text-gray-600">
+      {patient.age} ans • {patient.poste} • {patient.departement}
+    </div>
+    <div className="mt-1 text-gray-600">
+      Ancienneté : {patient.anciennete} • Horaire : {patient.horaire}
+    </div>
+  </div>
 
-          <div className="flex items-center gap-4 ml-4">
-            <button
-              onClick={resetSizes}
-              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 
-                       transition-colors duration-200 shadow hover:shadow-md"
-            >
-              <span className="whitespace-nowrap">Réinitialiser</span>
-            </button>
-            
-            <button 
-              onClick={saveEntretien}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 
-                       transition-colors duration-200 shadow hover:shadow-md"
-            >
-              <span className="whitespace-nowrap">Sauvegarder</span>
-            </button>
-            
-            {onClose && (
-              <button
-                onClick={onClose}
-                className="px-4 py-2 text-gray-600 hover:text-gray-800 
-                         flex items-center gap-2 rounded-lg hover:bg-gray-100
-                         transition-colors duration-200"
-              >
-                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                </svg>
-                <span className="whitespace-nowrap">Retour au dossier</span>
-              </button>
-            )}
-          </div>
-        </div>
-
-        <div className="w-full bg-gray-200 rounded-full h-2.5">
-          <div className="bg-blue-600 h-2.5 rounded-full w-0 transition-all duration-500"></div>
-        </div>
+  <div className="flex items-center gap-4 ml-4">
+    <button
+      onClick={resetSizes}
+      className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 
+               transition-colors duration-200 shadow hover:shadow-md"
+    >
+      <span className="whitespace-nowrap">Réinitialiser</span>
+    </button>
+    
+    <button 
+      onClick={saveEntretien}
+      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 
+               transition-colors duration-200 shadow hover:shadow-md"
+    >
+      <span className="whitespace-nowrap">Sauvegarder</span>
+    </button>
+    
+    {onClose && (
+      <button
+        onClick={onClose}
+        className="px-4 py-2 text-gray-600 hover:text-gray-800 
+                 flex items-center gap-2 rounded-lg hover:bg-gray-100
+                 transition-colors duration-200"
+      >
+        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+        </svg>
+        <span className="whitespace-nowrap">Retour au dossier</span>
+      </button>
+    )}
+  </div>
+</div>
       </div>
 
-      {/* Sections redimensionnables */}
-      <div className="grid grid-cols-2 gap-4 max-w-[98%] mx-auto">
-        {sections.map((section) => (
-          <ResizableBox
-            key={section.id}
-            width={section.width}
-            height={section.height}
-            minConstraints={[500, 300]}
-            maxConstraints={[1200, 800]}
-            onResizeStop={handleResize(section.id)}
-            resizeHandles={['se']}
-            className={`relative ${section.color} rounded-xl shadow-lg transition-shadow duration-200
-                      ${section.zIndex === maxZIndex ? 'shadow-xl' : 'hover:shadow-xl'}`}
-            style={{ 
-              zIndex: section.zIndex,
-              cursor: 'default'
-            }}
-            onClick={() => bringToFront(section.id)}
-          >
-            <div className="sticky top-0 bg-inherit px-6 py-4 border-b border-black/5 rounded-t-xl">
-              <h3 className="text-lg font-semibold">{section.title}</h3>
-            </div>
-
-            <div className="p-6 overflow-y-auto h-[calc(100%-4rem)]">
-              {renderSectionContent(section.id)}
-            </div>
-          </ResizableBox>
-        ))}
+      {/* TabBar */}
+      <div className="max-w-[98%] mx-auto mb-4">
+        <TabBar 
+          sections={sections}
+          onMaximize={handleMaximize}
+        />
       </div>
+
+      {/* Sections */}
+      <DragDropContext onDragEnd={handleDragEnd}>
+        <Droppable droppableId="sections">
+          {(provided) => (
+            <div 
+              {...provided.droppableProps}
+              ref={provided.innerRef}
+              className={`grid ${
+                focusedSection ? 'grid-cols-1 max-w-3xl mx-auto' : 'grid-cols-2'
+              } gap-4 max-w-[98%] mx-auto`}
+            >
+              {sections
+                .filter(section => !section.isMinimized)
+                .filter(section => !focusedSection || section.id === focusedSection)
+                .sort((a, b) => a.position - b.position)
+                .map((section, index) => (
+                  <Draggable 
+                    key={section.id} 
+                    draggableId={section.id} 
+                    index={index}
+                    isDragDisabled={!!focusedSection}
+                  >
+                    {(provided, snapshot) => (
+                      <div
+                      ref={provided.innerRef}
+                      {...provided.draggableProps}
+                      draggableProps={{
+                        ...provided.draggableProps,
+                        // Le drag handle sera uniquement sur l'en-tête
+                        handle: `.drag-handle-${section.id}`
+                      }}
+                      className={`transition-all duration-200 ${
+                        snapshot.isDragging ? 'opacity-70' : ''
+                      }`}
+                      style={{
+                        ...provided.draggableProps.style,
+                        // Empêcher le drag & drop sur la poignée de redimensionnement
+                        pointerEvents: 'auto'
+                      }}
+                    >
+                           <ResizableSection
+    {...section}
+    isExpanded={expandedSection === section.id}
+    isFocused={focusedSection === section.id}
+    onMinimize={handleMinimize}
+    onMaximize={handleMaximize}
+    onToggleFocus={handleToggleFocus}
+    onExpand={handleExpand}
+    onResize={(id, size) => handleResize(id)({ target: null }, { size })}
+    onBringToFront={bringToFront}
+  >
+    {renderSectionContent(section.id)}
+  </ResizableSection>
+  
+</div>
+                    )}
+                  </Draggable>
+                ))}
+              {provided.placeholder}
+            </div>
+          )}
+        </Droppable>
+      </DragDropContext>
+
+      {/* Bouton quitter le mode focus */}
+      {focusedSection && (
+        <button
+          onClick={() => setFocusedSection(null)}
+          className="fixed bottom-4 right-4 px-4 py-2 bg-blue-600 text-white 
+                    rounded-lg shadow-lg hover:bg-blue-700 transition-colors"
+        >
+          Quitter le mode focus
+        </button>
+      )}
     </div>
   );
 };
