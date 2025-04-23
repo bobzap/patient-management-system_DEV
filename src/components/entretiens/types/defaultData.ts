@@ -187,5 +187,5 @@ export const defaultVecuTravailData = {
     },
     examenClinique: defaultExamenCliniqueData,
     imaa: {},
-    conclusion: defaultConclusionData
+    conclusion: defaultConclusionData,
   };

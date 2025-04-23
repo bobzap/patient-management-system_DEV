@@ -9,10 +9,9 @@ import { TabBar } from './TabBar';
 import { ResizableSection } from './ResizableSection';
 import { SanteTravail } from '../sections/SanteAuTravail';
 import { ExamenClinique } from '../sections/ExamenClinique';
-import { Prevention } from '../sections/Conclusion/Prevention';
-import { Limitation } from '../sections/Conclusion/Limitation';
-import { Actions } from '../sections/Conclusion/Actions';
+import { Conclusion } from '../sections/Conclusion';
 import { defaultExamenCliniqueData } from '../types/defaultData';
+import { defaultConclusionData } from '../types/defaultData';
 import type { VecuTravailData } from '../sections/SanteAuTravail/VecuTravail';
 import type { ModeVieData } from '../sections/SanteAuTravail/ModeVie';
 
@@ -154,7 +153,7 @@ export const EntretienForm = ({ patient, onClose }: EntretienFormProps) => {
     },
     examenClinique: defaultExamenCliniqueData,
     imaa: {},
-    conclusion: {}
+    conclusion: defaultConclusionData
   });
 
 
@@ -311,6 +310,19 @@ export const EntretienForm = ({ patient, onClose }: EntretienFormProps) => {
     }));
   };
 
+   // Ajout du handler pour ExamenClinique
+   const handleSectionChange = (newData: any) => {
+    setEntretienData(prev => ({
+      ...prev,
+      consluion: newData
+    }));
+  };
+
+
+  
+
+
+
   const renderSectionContent = (sectionId: string) => {
     switch (sectionId) {
 
@@ -337,43 +349,15 @@ export const EntretienForm = ({ patient, onClose }: EntretienFormProps) => {
         case 'conclusion':
           return (
             <div className="space-y-6">
-              <Prevention 
-                data={entretienData.conclusion.prevention}
-                onChange={(prevention) => {
-                  setEntretienData(prev => ({
-                    ...prev,
-                    conclusion: {
-                      ...prev.conclusion,
-                      prevention
-                    }
-                  }));
-                }}
-              />
-              <Limitation 
-                data={entretienData.conclusion.limitation}
-                onChange={(limitation) => {
-                  setEntretienData(prev => ({
-                    ...prev,
-                    conclusion: {
-                      ...prev.conclusion,
-                      limitation
-                    }
-                  }));
-                }}
-              />
-              <Actions 
-                data={entretienData.conclusion.actions}
-                onChange={(actions) => {
-                  setEntretienData(prev => ({
-                    ...prev,
-                    conclusion: {
-                      ...prev.conclusion,
-                      actions
-                    }
-                  }));
-                }}
-              />
-            </div>
+              <Conclusion 
+        
+          data={entretienData.conclusion}
+            onChange={handleSectionChange}
+                />
+              
+
+
+            </div>  
           );
 
       default:

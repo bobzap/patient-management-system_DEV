@@ -32,15 +32,25 @@ export const ResizableSection = ({
   zIndex,
   isMinimized,
   isFocused,
+  isExpanded,
   onMinimize,
   onMaximize,
   onToggleFocus,
+  onExpand,
   onResize,
   onBringToFront,
-  children,
-  isExpanded,
-  onExpand
+  children
 }: ResizableSectionProps) => {
+  const SIDEBAR_WIDTH = 5;
+  const isLargeMode = isFocused || isExpanded;
+
+  // Définition de la fonction handleResize
+  const handleResize = (e: any, { size }: { size: { width: number; height: number } }) => {
+    e.stopPropagation();
+    onResize(id, size);
+  };
+
+
   if (isMinimized) {
     return (
       <div 
@@ -59,65 +69,80 @@ export const ResizableSection = ({
 
   return (
     <ResizableBox
-      width={isExpanded ? Math.min(window.innerWidth * 0.98, 1400) : width} // 98% de la largeur de l'écran, max 1400px
-      height={isExpanded ? window.innerHeight - 120 : height} // Plus de hauteur
+      width={isLargeMode ? Math.min(window.innerWidth - SIDEBAR_WIDTH - 32, 1400) : width}
+      height={isLargeMode ? window.innerHeight - 120 : height}
       minConstraints={[500, 300]}
-      maxConstraints={[Math.min(window.innerWidth * 0.98, 1400), window.innerHeight - 120]}
-      onResizeStop={(e, { size }) => onResize(id, size)}
+      maxConstraints={[
+        Math.min(window.innerWidth - SIDEBAR_WIDTH - 32, 1400),
+        window.innerHeight - 120
+      ]}
+      onResizeStop={(e, { size }) => {
+        e.stopPropagation();
+        onResize(id, size);
+      }}
       resizeHandles={['se']}
       className={`relative ${color} rounded-xl shadow-lg transition-all duration-300
-        ${isExpanded ? 'fixed top-24 left-1/2 -translate-x-1/2' : ''}
+        ${isLargeMode ? 'fixed top-24' : ''}
         hover:shadow-xl react-resizable`}
       style={{ 
-        zIndex: isExpanded ? 9999 : zIndex,
+        zIndex: isFocused ? 50 : isExpanded ? 40 : zIndex,
         cursor: 'default',
-        margin: isExpanded ? '0 auto' : undefined
+        left: isLargeMode ? `${SIDEBAR_WIDTH + 16}px` : 'auto', // Position fixe depuis la sidebar
+        transform: isLargeMode ? 'none' : undefined, // Supprimer la translation
+        width: isLargeMode ? `calc(100vw - ${SIDEBAR_WIDTH + 32}px)` : undefined // Largeur calculée depuis la sidebar
       }}
       onClick={() => onBringToFront(id)}
     >
       {/* En-tête avec boutons */}
-      <div className="sticky top-0 bg-inherit px-6 py-4 border-b border-black/5 rounded-t-xl 
-                flex justify-between items-center drag-handle-${id}">
-  <h3 className="font-medium">{title}</h3>
-  <div className="flex items-center gap-2">
-    <button
-      onClick={(e) => {
-        e.stopPropagation();
-        // TODO: Ajouter handler pour l'expansion
-        onExpand(id);
+    <div 
+      className={`sticky top-0 bg-inherit px-6 py-4 border-b border-black/5 rounded-t-xl 
+                flex justify-between items-center drag-handle-${id}`}
+      onMouseDown={(e) => {
+        if (!isExpanded) {
+          // Permettre le drag & drop seulement quand la section n'est pas en mode étendu
+          e.stopPropagation();
+        }
       }}
-      className="p-1.5 hover:bg-black/5 rounded-lg"
-      title="Agrandir"
     >
-      <Expand className="w-4 h-4" />
-    </button>
-    <button
-      onClick={(e) => {
-        e.stopPropagation();
-        onToggleFocus(id);
-      }}
-      className="p-1.5 hover:bg-black/5 rounded-lg"
-      title="Mode focus"
-    >
-      <Focus className="w-4 h-4" />
-    </button>
-    <button
-      onClick={(e) => {
-        e.stopPropagation();
-        onMinimize(id);
-      }}
-      className="p-1.5 hover:bg-black/5 rounded-lg"
-      title="Minimiser"
-    >
-      <Minus className="w-4 h-4" />
-    </button>
-  </div>
-</div>
-
-      {/* Contenu */}
-      <div className="p-6 overflow-y-auto h-[calc(100%-4rem)]">
-        {children}
+      <h3 className="font-medium">{title}</h3>
+      <div className="flex items-center gap-2">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onExpand(id);
+          }}
+          className="p-1.5 hover:bg-black/5 rounded-lg"
+          title={isExpanded ? "Réduire" : "Agrandir"}
+        >
+          <Expand className={`w-4 h-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+        </button>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleFocus(id);
+          }}
+          className="p-1.5 hover:bg-black/5 rounded-lg"
+          title="Mode focus"
+        >
+          <Focus className="w-4 h-4" />
+        </button>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onMinimize(id);
+          }}
+          className="p-1.5 hover:bg-black/5 rounded-lg"
+          title="Minimiser"
+        >
+          <Minus className="w-4 h-4" />
+        </button>
       </div>
+    </div>
+
+       {/* Contenu */}
+    <div className="p-6 overflow-y-auto h-[calc(100%-4rem)]">
+      {children}
+    </div>
 
       {/* Ajout des styles CSS pour la poignée de redimensionnement */}
       <style jsx>{`
@@ -148,3 +173,4 @@ export const ResizableSection = ({
     </ResizableBox>
   );
 };
+

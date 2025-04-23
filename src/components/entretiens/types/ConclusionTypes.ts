@@ -57,8 +57,8 @@ export interface PreventionData {
 
 // Type principal regroupant toutes les données de conclusion
 
-  export interface ConclusionData {
-    prevention: PreventionData;
-    limitation: LimitationData;
-    actions: ActionData;
-  }
+export interface ConclusionData {
+  prevention: Record<string, any>;
+  limitation: Record<string, any>;
+  actions: Record<string, any>;
+}
