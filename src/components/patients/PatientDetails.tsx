@@ -9,6 +9,7 @@ import { EntretienForm } from '../entretiens/EntretienForm';
 import { usePatients } from '@/hooks/usePatients'; // Nouveau import
 import { toast } from 'sonner';
 import { PatientForm } from './PatientForm';
+import { EntretienList } from '../entretiens/EntretienList';
 
 interface PatientDetailsProps {
   patient: Patient;
@@ -22,6 +23,9 @@ export const PatientDetails = ({ patient, onEdit, onDelete }: PatientDetailsProp
   const [showEditForm, setShowEditForm] = useState(false);
   const [showEntretien, setShowEntretien] = useState(false);
   const [activeTab, setActiveTab] = useState<'general' | 'historique' | 'documents'>('general');
+  // Dans PatientDetails.tsx, ajoutez un nouvel état:
+const [selectedEntretienId, setSelectedEntretienId] = useState<number | null>(null);
+const [refreshEntretiens, setRefreshEntretiens] = useState(0);
   
   
 
@@ -52,6 +56,13 @@ export const PatientDetails = ({ patient, onEdit, onDelete }: PatientDetailsProp
     }
   };
 
+  const handleCloseEntretien = () => {
+  setShowEntretien(false);
+  setSelectedEntretienId(null);
+  // Incrémenter pour déclencher un rafraîchissement
+  setRefreshEntretiens(prev => prev + 1);
+};
+
     // Nouvelle fonction handleEdit à ajouter ici
     const handleEdit = async (updatedPatient: Patient) => {
       try {
@@ -73,12 +84,7 @@ export const PatientDetails = ({ patient, onEdit, onDelete }: PatientDetailsProp
       }
     };
 
-  //if (showEntretien) {
-    //return <EntretienForm 
-      //patient={patient} 
-     // onClose={() => setShowEntretien(false)}
-    ///>;
-  //}
+
 
 
 
@@ -92,8 +98,9 @@ export const PatientDetails = ({ patient, onEdit, onDelete }: PatientDetailsProp
 
   if (showEntretien) {
     return <EntretienForm 
-      patient={patient} 
-      onClose={() => setShowEntretien(false)}
+      patient={patient}
+      entretienId={selectedEntretienId}
+      onClose={handleCloseEntretien}
     />;
   }
 
@@ -204,29 +211,47 @@ export const PatientDetails = ({ patient, onEdit, onDelete }: PatientDetailsProp
             }`}
           >
             Informations générales
-          </button>
-          <button 
-            onClick={() => setActiveTab('historique')}
-            className={`px-4 py-2 font-semibold transition-colors duration-200 ${
-              activeTab === 'historique' 
-                ? 'text-blue-900 border-b-2 border-blue-900' 
-                : 'text-gray-500 hover:text-blue-900'
-            }`}
-          >
-            Historique des entretiens
-          </button>
-          <button 
-            onClick={() => setActiveTab('documents')}
-            className={`px-4 py-2 font-semibold transition-colors duration-200 ${
-              activeTab === 'documents' 
-                ? 'text-blue-900 border-b-2 border-blue-900' 
-                : 'text-gray-500 hover:text-blue-900'
-            }`}
-          >
-            Documents
-          </button>
-        </nav>
-      </div>
+    </button>
+    <button 
+      onClick={() => setActiveTab('historique')}
+      className={`px-4 py-2 font-semibold transition-colors duration-200 ${
+        activeTab === 'historique' 
+          ? 'text-blue-900 border-b-2 border-blue-900' 
+          : 'text-gray-500 hover:text-blue-900'
+      }`}
+    >
+      Historique des entretiens
+    </button>
+    <button 
+      onClick={() => setActiveTab('documents')}
+      className={`px-4 py-2 font-semibold transition-colors duration-200 ${
+        activeTab === 'documents' 
+          ? 'text-blue-900 border-b-2 border-blue-900' 
+          : 'text-gray-500 hover:text-blue-900'
+      }`}
+    >
+      Documents
+    </button>
+  </nav>
+</div>
+
+{/* Contenu selon l'onglet actif */}
+{activeTab === 'historique' && (
+  <div className="mb-6">
+    <EntretienList
+      patientId={patient.id!}
+      refreshTrigger={refreshEntretiens}
+      onEntretienSelect={(entretienId) => {
+        setSelectedEntretienId(entretienId);
+        setShowEntretien(true);
+      }}
+      onNewEntretien={() => {
+        setSelectedEntretienId(null);
+        setShowEntretien(true);
+      }}
+    />
+  </div>
+)}
 
       {/* Contenu principal */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

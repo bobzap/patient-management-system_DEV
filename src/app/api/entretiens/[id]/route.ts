@@ -2,11 +2,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../../lib/prisma';
 
+// Modifiez src/app/api/entretiens/[id]/route.ts pour simplifier
 export async function GET(
   request: Request,
   { params }: { params: { id: string } }
 ) {
   try {
+    console.log(`API: Récupération de l'entretien ID: ${params.id}`);
+    
     const entretien = await prisma.entretien.findUnique({
       where: { id: parseInt(params.id) },
       include: {
@@ -15,12 +18,25 @@ export async function GET(
     });
     
     if (!entretien) {
-      return NextResponse.json({ error: 'Entretien non trouvé' }, { status: 404 });
+      return NextResponse.json({ 
+        success: false, 
+        error: 'Entretien non trouvé' 
+      }, { status: 404 });
     }
 
-    return NextResponse.json({ data: entretien });
+    console.log(`API: Entretien trouvé ID: ${entretien.id}`);
+
+    // On renvoie les données sans les transformer
+    return NextResponse.json({ 
+      success: true,
+      data: entretien
+    });
   } catch (error) {
-    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
+    console.error('API: Erreur:', error);
+    return NextResponse.json({ 
+      success: false, 
+      error: 'Erreur serveur' 
+    }, { status: 500 });
   }
 }
 

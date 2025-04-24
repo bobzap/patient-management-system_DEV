@@ -1,14 +1,21 @@
-// src/components/entretiens/EntretienList.tsx
-
 'use client';
+
+import { useState, useEffect } from 'react';
 
 interface EntretienListProps {
   patientId: number;
+  refreshTrigger?: number; // Nouveau prop
   onEntretienSelect: (entretienId: number) => void;
   onNewEntretien: () => void;
 }
 
-export const EntretienList = ({ patientId, onEntretienSelect, onNewEntretien }: EntretienListProps) => {
+export const EntretienList = ({ 
+  patientId, 
+  refreshTrigger = 0,  // Valeur par défaut 
+  onEntretienSelect, 
+  onNewEntretien 
+}: EntretienListProps) => {
+
   const [entretiens, setEntretiens] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -18,7 +25,7 @@ export const EntretienList = ({ patientId, onEntretienSelect, onNewEntretien }: 
       try {
         const response = await fetch(`/api/patients/${patientId}/entretiens`);
         const data = await response.json();
-        setEntretiens(data.data);
+        setEntretiens(data.data || []);
       } catch (error) {
         console.error('Erreur lors du chargement des entretiens:', error);
       } finally {
@@ -27,19 +34,13 @@ export const EntretienList = ({ patientId, onEntretienSelect, onNewEntretien }: 
     };
 
     fetchEntretiens();
-  }, [patientId]);
+  }, [patientId,refreshTrigger ]);
 
   return (
     <div className="bg-white rounded-lg shadow">
       <div className="p-4 flex justify-between items-center border-b">
         <h2 className="text-lg font-semibold text-gray-900">Historique des entretiens</h2>
-        <button
-          onClick={onNewEntretien}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 
-                   transition-colors duration-200 flex items-center gap-2"
-        >
-          <span>Nouvel Entretien</span>
-        </button>
+        
       </div>
 
       {isLoading ? (
@@ -82,15 +83,24 @@ export const EntretienList = ({ patientId, onEntretienSelect, onNewEntretien }: 
                     {entretien.numeroEntretien}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 py-1 text-xs font-medium rounded-full
-                      ${entretien.status === 'brouillon' 
-                        ? 'bg-yellow-100 text-yellow-800'
-                        : 'bg-green-100 text-green-800'
-                      }`}
-                    >
-                      {entretien.status}
-                    </span>
-                  </td>
+  <span className={`px-2 py-1 text-xs font-medium rounded-full
+    ${entretien.statusInfo ? entretien.statusInfo.className : (
+      entretien.status === 'brouillon' 
+        ? 'bg-yellow-100 text-yellow-800'
+        : entretien.status === 'finalise'
+          ? 'bg-green-100 text-green-800'
+          : 'bg-gray-100 text-gray-800'
+    )}`}
+  >
+    {entretien.statusInfo ? entretien.statusInfo.label : (
+      entretien.status === 'brouillon' 
+        ? 'Brouillon'
+        : entretien.status === 'finalise'
+          ? 'Finalisé'
+          : 'Archivé'
+    )}
+  </span>
+</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {new Date(entretien.dateModification).toLocaleString()}
                   </td>

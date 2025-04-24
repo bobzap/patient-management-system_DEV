@@ -1,7 +1,7 @@
 // src/components/entretiens/EntretienForm/index.tsx
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { toast } from 'sonner';
 import { Patient } from '@/types';
@@ -14,6 +14,7 @@ import { defaultExamenCliniqueData } from '../types/defaultData';
 import { defaultConclusionData } from '../types/defaultData';
 import type { VecuTravailData } from '../sections/SanteAuTravail/VecuTravail';
 import type { ModeVieData } from '../sections/SanteAuTravail/ModeVie';
+
 
 // Types pour le drag & drop
 type DragResult = {
@@ -48,11 +49,15 @@ interface Section {
   isMinimized: boolean;
 }
 
+
+
+
+
 interface EntretienFormProps {
   patient: Patient;
+  entretienId?: number | null; // Rendre cette prop optionnelle
   onClose?: () => void;
 }
-
 
 
 // Après les interfaces et avant export const EntretienForm
@@ -96,7 +101,7 @@ const initialModeVieData: ModeVieData = {
 
 
 
-export const EntretienForm = ({ patient, onClose }: EntretienFormProps) => {
+export const EntretienForm = ({ patient, entretienId, onClose }: EntretienFormProps) => {
   // États
   const [focusedSection, setFocusedSection] = useState<string | null>(null);
   const [maxZIndex, setMaxZIndex] = useState(1);
@@ -236,62 +241,68 @@ export const EntretienForm = ({ patient, onClose }: EntretienFormProps) => {
     setExpandedSection(null); // Réinitialise l'état d'expansion
   };
 
-  const saveEntretien = async () => {
-    try {
-      // Structure des données à envoyer
-      const entretienToSave = {
-        patientId: patient.id,
-        numeroEntretien: entretienData.numeroEntretien,
-        status: "brouillon",
-        donneesEntretien: {
-          santeTravail: entretienData.santeTravail,
-          examenClinique: entretienData.examenClinique || {},
-          imaa: entretienData.imaa || {},
-          conclusion: entretienData.conclusion || {}
-        }
-      };
+  // Modifiez la fonction saveEntretien dans src/components/entretiens/EntretienForm/index.tsx
+const saveEntretien = async () => {
+  try {
+    // Structure des données à envoyer
+    const entretienToSave = {
+      patientId: patient.id,
+      numeroEntretien: entretienData.numeroEntretien,
+      status: entretienData.status || "brouillon",
+      donneesEntretien: JSON.stringify({
+        santeTravail: entretienData.santeTravail,
+        examenClinique: entretienData.examenClinique || {},
+        imaa: entretienData.imaa || {},
+        conclusion: entretienData.conclusion || {}
+      })
+    };
   
-      // Log pour debug
-      console.log("Données envoyées:", entretienToSave);
+    // URL et méthode selon création ou modification
+    const url = entretienId ? 
+      `/api/entretiens/${entretienId}` : 
+      '/api/entretiens';
+    
+    const method = entretienId ? 'PUT' : 'POST';
   
-      // Envoi de la requête
-      const response = await fetch('/api/entretiens', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(entretienToSave)
-      });
+    // Envoi de la requête
+    const response = await fetch(url, {
+      method,
+      headers: { 
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(entretienToSave)
+    });
   
-      // Log de la réponse brute
-      const responseText = await response.text();
-      console.log("Réponse brute:", responseText);
+    // Log de la réponse brute
+    const responseText = await response.text();
+    console.log("Réponse brute:", responseText);
   
-      // Si la réponse est vide, on lance une erreur
-      if (!responseText) {
-        throw new Error('Réponse vide du serveur');
-      }
-  
-      // Sinon on parse la réponse
-      const responseData = JSON.parse(responseText);
-  
-      if (!response.ok) {
-        throw new Error(responseData.error || `Erreur HTTP: ${response.status}`);
-      }
-  
-      toast.success('Entretien sauvegardé avec succès');
-      console.log('Entretien sauvegardé:', responseData);
-  
-      if (onClose) {
-        onClose();
-      }
-  
-    } catch (error: any) {
-      console.error('Erreur complète:', error);
-      const errorMessage = error.message || 'Erreur inconnue lors de la sauvegarde';
-      toast.error(`Erreur: ${errorMessage}`);
+    // Si la réponse est vide, on lance une erreur
+    if (!responseText) {
+      throw new Error('Réponse vide du serveur');
     }
-  };
+  
+    // Sinon on parse la réponse
+    const responseData = JSON.parse(responseText);
+  
+    if (!response.ok) {
+      throw new Error(responseData.error || `Erreur HTTP: ${response.status}`);
+    }
+  
+    toast.success(entretienId ? 
+      'Entretien mis à jour avec succès' : 
+      'Entretien sauvegardé avec succès');
+    
+    if (onClose) {
+      onClose();
+    }
+  
+  } catch (error: any) {
+    console.error('Erreur complète:', error);
+    const errorMessage = error.message || 'Erreur inconnue lors de la sauvegarde';
+    toast.error(`Erreur: ${errorMessage}`);
+  }
+};
 
 
   const handleSanteTravailChange = (newData: { vecuTravail: VecuTravailData; modeVie: ModeVieData }) => {
@@ -310,11 +321,10 @@ export const EntretienForm = ({ patient, onClose }: EntretienFormProps) => {
     }));
   };
 
-   // Ajout du handler pour ExamenClinique
-   const handleSectionChange = (newData: any) => {
+  const handleSectionChange = (newData: any) => {
     setEntretienData(prev => ({
       ...prev,
-      consluion: newData
+      conclusion: newData // Corrigé de "consluion" à "conclusion"
     }));
   };
 
@@ -381,59 +391,133 @@ export const EntretienForm = ({ patient, onClose }: EntretienFormProps) => {
     setSections(updatedSections);
   };
 
- 
+// Dans src/components/entretiens/EntretienForm/index.tsx
+
+// Modifiez le useEffect qui charge les données d'un entretien
+// Dans EntretienForm/index.tsx
+useEffect(() => {
+  // Charger les données de l'entretien si un ID est fourni
+  if (entretienId) {
+    const fetchEntretien = async () => {
+      try {
+        console.log(`CLIENT: Chargement de l'entretien ID: ${entretienId}`);
+        const response = await fetch(`/api/entretiens/${entretienId}`);
+        
+        if (!response.ok) {
+          throw new Error(`Erreur ${response.status}`);
+        }
+        
+        const result = await response.json();
+        console.log('CLIENT: Résultat brut reçu:', result);
+        
+        if (!result.data) {
+          throw new Error('Données non trouvées dans la réponse');
+        }
+        
+        // Traitement des données d'entretien
+        let entretienData = result.data;
+        let parsedDonnees = {};
+        
+        // Si donneesEntretien est une chaîne, on la parse
+        if (typeof entretienData.donneesEntretien === 'string') {
+          try {
+            parsedDonnees = JSON.parse(entretienData.donneesEntretien);
+            console.log('CLIENT: Données JSON parsées:', parsedDonnees);
+          } catch (e) {
+            console.error('CLIENT: Erreur de parsing:', e);
+            parsedDonnees = {};
+          }
+        } else {
+          parsedDonnees = entretienData.donneesEntretien || {};
+        }
+        
+        // Construction des données complètes
+        const completeData = {
+          numeroEntretien: entretienData.numeroEntretien,
+          status: entretienData.status,
+          ...parsedDonnees
+        };
+        
+        console.log('CLIENT: Données finales pour setEntretienData:', completeData);
+        
+        // Mise à jour de l'état
+        setEntretienData(completeData);
+      } catch (error) {
+        console.error('CLIENT: Erreur de chargement:', error);
+        toast.error('Erreur lors du chargement des données');
+      }
+    };
+
+    fetchEntretien();
+  }
+}, [entretienId]);
 
 
   return (
     <div className="p-6">
       {/* En-tête */}
-      <div className="max-w-[98%] mx-auto bg-white rounded-xl shadow-lg p-6 mb-6">
-      <div className="flex justify-between items-start mb-4">
-  <div className="flex-grow">
-    <h2 className="text-xl font-bold text-blue-900">
-      Nouvel entretien - {patient.civilites} {patient.nom} {patient.prenom}
-    </h2>
-    <div className="mt-2 text-gray-600">
-      {patient.age} ans • {patient.poste} • {patient.departement}
+      {/* En-tête avec bouton de statut */}
+<div className="max-w-[98%] mx-auto bg-white rounded-xl shadow-lg p-6 mb-6">
+  <div className="flex justify-between items-start mb-4">
+    <div className="flex-grow">
+      <h2 className="text-xl font-bold text-blue-900">
+        {entretienId ? `Modification de l'entretien n°${entretienData.numeroEntretien}` : 'Nouvel entretien'} - {patient.civilites} {patient.nom} {patient.prenom}
+      </h2>
+      <div className="mt-2 text-gray-600">
+        {patient.age} ans • {patient.poste} • {patient.departement}
+      </div>
+      <div className="mt-1 text-gray-600">
+        Ancienneté : {patient.anciennete} • Horaire : {patient.horaire}
+      </div>
     </div>
-    <div className="mt-1 text-gray-600">
-      Ancienneté : {patient.anciennete} • Horaire : {patient.horaire}
-    </div>
-  </div>
 
-  <div className="flex items-center gap-4 ml-4">
-    <button
-      onClick={resetSizes}
-      className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 
-               transition-colors duration-200 shadow hover:shadow-md"
-    >
-      <span className="whitespace-nowrap">Mise en page par défaut </span>
-    </button>
-    
-    <button 
-      onClick={saveEntretien}
-      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 
-               transition-colors duration-200 shadow hover:shadow-md"
-    >
-      <span className="whitespace-nowrap">Sauvegarder les données</span>
-    </button>
-    
-    {onClose && (
+    <div className="flex items-center gap-4 ml-4">
+      {/* Sélecteur de statut */}
+      <div className="flex items-center gap-2">
+        <label className="text-sm font-medium text-gray-700">Statut :</label>
+        <select
+          value={entretienData.status}
+          onChange={(e) => setEntretienData(prev => ({ ...prev, status: e.target.value }))}
+          className="px-3 py-2 bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="brouillon">Brouillon</option>
+          <option value="finalise">Finalisé</option>
+          <option value="archive">Archivé</option>
+        </select>
+      </div>
+
       <button
-        onClick={onClose}
-        className="px-4 py-2 text-gray-600 hover:text-gray-800 
-                 flex items-center gap-2 rounded-lg hover:bg-gray-100
-                 transition-colors duration-200"
+        onClick={resetSizes}
+        className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 
+                 transition-colors duration-200 shadow hover:shadow-md"
       >
-        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-        </svg>
-        <span className="whitespace-nowrap">Retour au dossier</span>
+        <span className="whitespace-nowrap">Mise en page par défaut </span>
       </button>
-    )}
+      
+      <button 
+        onClick={saveEntretien}
+        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 
+                 transition-colors duration-200 shadow hover:shadow-md"
+      >
+        <span className="whitespace-nowrap">Sauvegarder les données</span>
+      </button>
+      
+      {onClose && (
+        <button
+          onClick={onClose}
+          className="px-4 py-2 text-gray-600 hover:text-gray-800 
+                   flex items-center gap-2 rounded-lg hover:bg-gray-100
+                   transition-colors duration-200"
+        >
+          <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+          <span className="whitespace-nowrap">Retour au dossier</span>
+        </button>
+      )}
+    </div>
   </div>
 </div>
-      </div>
 
       {/* TabBar */}
       <div className="max-w-[98%] mx-auto mb-4">
