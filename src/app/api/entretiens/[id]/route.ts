@@ -1,42 +1,40 @@
 // src/app/api/entretiens/[id]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../../lib/prisma';
+import { setTempData } from '@/lib/tempEntretienData';
 
-// Modifiez src/app/api/entretiens/[id]/route.ts pour simplifier
 export async function GET(
   request: Request,
   { params }: { params: { id: string } }
 ) {
   try {
-    console.log(`API: Récupération de l'entretien ID: ${params.id}`);
-    
     const entretien = await prisma.entretien.findUnique({
       where: { id: parseInt(params.id) },
-      include: {
-        patient: true
-      }
+      include: { patient: true }
     });
     
     if (!entretien) {
-      return NextResponse.json({ 
-        success: false, 
-        error: 'Entretien non trouvé' 
-      }, { status: 404 });
+      return NextResponse.json({ success: false, error: 'Entretien non trouvé' }, { status: 404 });
     }
 
-    console.log(`API: Entretien trouvé ID: ${entretien.id}`);
+    // Utilisez une méthode ultra-directe pour stocker/accéder aux données
+    if (typeof entretien.donneesEntretien === 'string') {
+      try {
+        // Parser les données
+        const parsedData = JSON.parse(entretien.donneesEntretien);
+        // Les stocker dans notre système temporaire
+        setTempData(entretien.id, parsedData);
+        // Ajouter un flag indiquant que nous avons des données
+        entretien._hasData = true;
+      } catch (error) {
+        console.error('Erreur parsing:', error);
+        entretien._hasData = false;
+      }
+    }
 
-    // On renvoie les données sans les transformer
-    return NextResponse.json({ 
-      success: true,
-      data: entretien
-    });
+    return NextResponse.json({ success: true, data: entretien });
   } catch (error) {
-    console.error('API: Erreur:', error);
-    return NextResponse.json({ 
-      success: false, 
-      error: 'Erreur serveur' 
-    }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Erreur serveur' }, { status: 500 });
   }
 }
 
@@ -51,10 +49,19 @@ export async function PUT(request: NextRequest) {
     const data = await request.json();
     console.log("API - données entretien reçues:", { id, data });
     
+    // Vérifier si donneesEntretien est déjà une chaîne
+    let donneesEntretien = data.donneesEntretien;
+    if (typeof donneesEntretien !== 'string') {
+      console.log("API - conversion des données en chaîne JSON");
+      donneesEntretien = JSON.stringify(donneesEntretien);
+    } else {
+      console.log("API - données déjà au format chaîne JSON");
+    }
+    
     const entretien = await prisma.entretien.update({
       where: { id: Number(id) },
       data: {
-        donneesEntretien: data.donneesEntretien,
+        donneesEntretien: donneesEntretien,
         status: data.status,
         dateModification: new Date()
       },
@@ -63,6 +70,7 @@ export async function PUT(request: NextRequest) {
       }
     });
 
+    console.log("API - entretien mis à jour avec succès:", entretien.id);
     return NextResponse.json({ data: entretien });
   } catch (error) {
     console.error("API - erreur:", error);

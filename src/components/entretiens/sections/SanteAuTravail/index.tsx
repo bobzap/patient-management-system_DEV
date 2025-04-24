@@ -5,6 +5,8 @@ import { useState } from 'react';
 import VecuTravail, { VecuTravailData } from './VecuTravail';
 import ModeVie, { ModeVieData } from './ModeVie';
 
+
+
 const initialVecuTravailData: VecuTravailData = {
   motifVisite: {
     motif: '',
@@ -68,18 +70,27 @@ const initialModeVieData: ModeVieData = {
 };
 
 interface SanteTravailProps {
+  data: {
+    vecuTravail: VecuTravailData;
+    modeVie: ModeVieData;
+  };
   onChange?: (data: {
     vecuTravail: VecuTravailData;
     modeVie: ModeVieData;
   }) => void;
 }
 
-export const SanteTravail = ({ onChange }: SanteTravailProps) => {
+export const SanteTravail = ({ data, onChange }: SanteTravailProps) => {
+  console.log('SANTÉ: Props reçues:', data);
+
+  // Vérification de sécurité
+  const safeData = {
+    vecuTravail: data?.vecuTravail || initialVecuTravailData,
+    modeVie: data?.modeVie || initialModeVieData
+  };
+
   const [currentPage, setCurrentPage] = useState(1);
-  const [localData, setLocalData] = useState({
-    vecuTravail: initialVecuTravailData,
-    modeVie: initialModeVieData
-  });
+  const [localData, setLocalData] = useState(safeData);
 
   const handleVecuTravailChange = (newVecuData: VecuTravailData) => {
     const newData = {
