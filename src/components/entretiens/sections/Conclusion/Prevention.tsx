@@ -26,9 +26,10 @@ import { Label } from "@/components/ui/label";
 interface PreventionProps {
   data: PreventionData;
   onChange: (data: PreventionData) => void;
+  isReadOnly?: boolean; // Ajout du prop isReadOnly
 }
 
-export const Prevention = ({ data = { conseilsDonnes: '', troublesLiesTravail: [] }, onChange }: PreventionProps) => {
+export const Prevention = ({ data = { conseilsDonnes: '', troublesLiesTravail: [] }, onChange, isReadOnly = false }: PreventionProps) => {
   const [troublesList, setTroublesList] = useState<string[]>([]);
 
   useEffect(() => {
@@ -36,6 +37,7 @@ export const Prevention = ({ data = { conseilsDonnes: '', troublesLiesTravail: [
       try {
         const response = await fetch('/api/lists');
         const result = await response.json();
+        // src/components/entretiens/sections/Conclusion/Prevention.tsx (suite)
         const troubles = result.data.find(
           (list: List) => list.listId === 'troublesTravail'
         );
@@ -51,6 +53,8 @@ export const Prevention = ({ data = { conseilsDonnes: '', troublesLiesTravail: [
   }, []);
 
   const handleAddTrouble = (trouble: string) => {
+    if (isReadOnly) return; // Ne pas ajouter si en mode lecture seule
+    
     if (!data.troublesLiesTravail.includes(trouble)) {
       onChange({
         ...data,
@@ -60,6 +64,8 @@ export const Prevention = ({ data = { conseilsDonnes: '', troublesLiesTravail: [
   };
 
   const handleRemoveTrouble = (trouble: string) => {
+    if (isReadOnly) return; // Ne pas supprimer si en mode lecture seule
+    
     onChange({
       ...data,
       troublesLiesTravail: data.troublesLiesTravail.filter(t => t !== trouble)
@@ -75,19 +81,23 @@ export const Prevention = ({ data = { conseilsDonnes: '', troublesLiesTravail: [
           <Label>Conseils donnés</Label>
           <Textarea
             value={data.conseilsDonnes || ''}
-            onChange={(e) => onChange({
+            onChange={(e) => !isReadOnly && onChange({
               ...data,
               conseilsDonnes: e.target.value
             })}
             placeholder="Saisir les conseils donnés..."
-            className="mt-1.5 min-h-[100px]"
+            className={`mt-1.5 min-h-[100px] ${isReadOnly ? 'bg-gray-100 text-gray-700 cursor-not-allowed' : ''}`}
+            readOnly={isReadOnly}
           />
         </div>
 
         <div className="space-y-2">
           <Label>Troubles liés au travail</Label>
-          <Select onValueChange={handleAddTrouble}>
-            <SelectTrigger>
+          <Select 
+            onValueChange={handleAddTrouble}
+            disabled={isReadOnly}
+          >
+            <SelectTrigger className={isReadOnly ? 'bg-gray-100 text-gray-700 cursor-not-allowed border-gray-200' : ''}>
               <SelectValue placeholder="Sélectionner un trouble..." />
             </SelectTrigger>
             <SelectContent>
@@ -107,12 +117,14 @@ export const Prevention = ({ data = { conseilsDonnes: '', troublesLiesTravail: [
                 className="px-2 py-1 flex items-center gap-1"
               >
                 {trouble}
-                <button
-                  onClick={() => handleRemoveTrouble(trouble)}
-                  className="ml-1 hover:text-red-500 transition-colors"
-                >
-                  ×
-                </button>
+                {!isReadOnly && (
+                  <button
+                    onClick={() => handleRemoveTrouble(trouble)}
+                    className="ml-1 hover:text-red-500 transition-colors"
+                  >
+                    ×
+                  </button>
+                )}
               </Badge>
             ))}
           </div>

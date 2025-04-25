@@ -28,6 +28,7 @@ export interface VecuTravailData {
 interface Props {
   data: VecuTravailData;
   onChange: (data: VecuTravailData) => void;
+  isReadOnly?: boolean; // Ajout du prop isReadOnly
 }
 
 // Composant pour les sliders de ressenti
@@ -35,10 +36,12 @@ function RessentiSlider({
   label,
   value,
   onChange,
+  isReadOnly = false, // Ajout du prop isReadOnly
 }: {
   label: string;
   value: number;
   onChange: (value: number) => void;
+  isReadOnly?: boolean;
 }) {
   return (
     <div className="space-y-2">
@@ -52,12 +55,12 @@ function RessentiSlider({
           max={10}
           value={value}
           onChange={(e) => onChange(parseInt(e.target.value))}
-          className="flex-grow h-2 bg-amber-200 rounded-lg appearance-none cursor-pointer
-                   [&::-webkit-slider-thumb]:appearance-none
-                   [&::-webkit-slider-thumb]:h-4
-                   [&::-webkit-slider-thumb]:w-4
-                   [&::-webkit-slider-thumb]:rounded-full
-                   [&::-webkit-slider-thumb]:bg-amber-500"
+          className={`flex-grow h-2 rounded-lg appearance-none 
+            ${isReadOnly 
+              ? 'bg-gray-200 cursor-not-allowed' 
+              : 'bg-amber-200 cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-amber-500'
+            }`}
+          disabled={isReadOnly}
         />
         <span className="w-8 text-center text-amber-900">{value}</span>
       </div>
@@ -65,8 +68,10 @@ function RessentiSlider({
   );
 }
 
-export default function VecuTravail({ data, onChange }: Props) {
+export default function VecuTravail({ data, onChange, isReadOnly = false }: Props) {
   const handleChange = (path: string, value: any) => {
+    if (isReadOnly) return; // Ne pas mettre à jour si on est en mode lecture seule
+    
     const newData = { ...data };
     path.split('.').reduce((obj: any, key: string, index: number, parts: string[]) => {
       if (index === parts.length - 1) {
@@ -100,8 +105,12 @@ export default function VecuTravail({ data, onChange }: Props) {
               type="text"
               value={data.motifVisite.motif}
               onChange={(e) => handleChange('motifVisite.motif', e.target.value)}
-              className="w-full px-3 py-2 rounded-md border border-amber-200 
-                       focus:outline-none focus:ring-2 focus:ring-amber-500"
+              className={`w-full px-3 py-2 rounded-md border
+                ${isReadOnly 
+                  ? 'bg-gray-100 border-gray-200 text-gray-700 cursor-not-allowed' 
+                  : 'border-amber-200 focus:outline-none focus:ring-2 focus:ring-amber-500'
+                }`}
+              readOnly={isReadOnly}
             />
           </div>
           <div>
@@ -111,9 +120,13 @@ export default function VecuTravail({ data, onChange }: Props) {
             <textarea
               value={data.motifVisite.commentaires}
               onChange={(e) => handleChange('motifVisite.commentaires', e.target.value)}
-              className="w-full px-3 py-2 rounded-md border border-amber-200 
-                       focus:outline-none focus:ring-2 focus:ring-amber-500"
+              className={`w-full px-3 py-2 rounded-md border
+                ${isReadOnly 
+                  ? 'bg-gray-100 border-gray-200 text-gray-700 cursor-not-allowed' 
+                  : 'border-amber-200 focus:outline-none focus:ring-2 focus:ring-amber-500'
+                }`}
               rows={3}
+              readOnly={isReadOnly}
             />
           </div>
         </div>
@@ -130,9 +143,13 @@ export default function VecuTravail({ data, onChange }: Props) {
             <textarea
               value={data.postesOccupes}
               onChange={(e) => handleChange('postesOccupes', e.target.value)}
-              className="w-full px-3 py-2 rounded-md border border-amber-200 
-                       focus:outline-none focus:ring-2 focus:ring-amber-500"
+              className={`w-full px-3 py-2 rounded-md border
+                ${isReadOnly 
+                  ? 'bg-gray-100 border-gray-200 text-gray-700 cursor-not-allowed' 
+                  : 'border-amber-200 focus:outline-none focus:ring-2 focus:ring-amber-500'
+                }`}
               rows={2}
+              readOnly={isReadOnly}
             />
           </div>
 
@@ -144,9 +161,13 @@ export default function VecuTravail({ data, onChange }: Props) {
               <textarea
                 value={data.posteDeTravail.descriptionTaches}
                 onChange={(e) => handleChange('posteDeTravail.descriptionTaches', e.target.value)}
-                className="w-full px-3 py-2 rounded-md border border-amber-200 
-                         focus:outline-none focus:ring-2 focus:ring-amber-500"
+                className={`w-full px-3 py-2 rounded-md border
+                  ${isReadOnly 
+                    ? 'bg-gray-100 border-gray-200 text-gray-700 cursor-not-allowed' 
+                    : 'border-amber-200 focus:outline-none focus:ring-2 focus:ring-amber-500'
+                  }`}
                 rows={3}
+                readOnly={isReadOnly}
               />
             </div>
             <div>
@@ -156,9 +177,13 @@ export default function VecuTravail({ data, onChange }: Props) {
               <textarea
                 value={data.posteDeTravail.risquesProfessionnels}
                 onChange={(e) => handleChange('posteDeTravail.risquesProfessionnels', e.target.value)}
-                className="w-full px-3 py-2 rounded-md border border-amber-200 
-                         focus:outline-none focus:ring-2 focus:ring-amber-500"
+                className={`w-full px-3 py-2 rounded-md border
+                  ${isReadOnly 
+                    ? 'bg-gray-100 border-gray-200 text-gray-700 cursor-not-allowed' 
+                    : 'border-amber-200 focus:outline-none focus:ring-2 focus:ring-amber-500'
+                  }`}
                 rows={3}
+                readOnly={isReadOnly}
               />
             </div>
 
@@ -169,9 +194,13 @@ export default function VecuTravail({ data, onChange }: Props) {
               <textarea
                 value={data.posteDeTravail.installationMateriel}
                 onChange={(e) => handleChange('posteDeTravail.installationMateriel', e.target.value)}
-                className="w-full px-3 py-2 rounded-md border border-amber-200 
-                         focus:outline-none focus:ring-2 focus:ring-amber-500"
+                className={`w-full px-3 py-2 rounded-md border
+                  ${isReadOnly 
+                    ? 'bg-gray-100 border-gray-200 text-gray-700 cursor-not-allowed' 
+                    : 'border-amber-200 focus:outline-none focus:ring-2 focus:ring-amber-500'
+                  }`}
                 rows={3}
+                readOnly={isReadOnly}
               />
             </div>
           </div>
@@ -189,6 +218,7 @@ export default function VecuTravail({ data, onChange }: Props) {
                 label={label}
                 value={data.ressentiTravail[key as keyof typeof data.ressentiTravail.relationCollegues]}
                 onChange={(value) => handleChange(`ressentiTravail.${key}`, value)}
+                isReadOnly={isReadOnly}
               />
             ))}
           </div>
@@ -199,9 +229,13 @@ export default function VecuTravail({ data, onChange }: Props) {
             <textarea
               value={data.ressentiTravail.commentaires}
               onChange={(e) => handleChange('ressentiTravail.commentaires', e.target.value)}
-              className="w-full px-3 py-2 rounded-md border border-amber-200 
-                       focus:outline-none focus:ring-2 focus:ring-amber-500"
+              className={`w-full px-3 py-2 rounded-md border
+                ${isReadOnly 
+                  ? 'bg-gray-100 border-gray-200 text-gray-700 cursor-not-allowed' 
+                  : 'border-amber-200 focus:outline-none focus:ring-2 focus:ring-amber-500'
+                }`}
               rows={3}
+              readOnly={isReadOnly}
             />
           </div>
         </div>
@@ -216,8 +250,12 @@ export default function VecuTravail({ data, onChange }: Props) {
               type="checkbox"
               checked={data.plaintesTravail.existence}
               onChange={(e) => handleChange('plaintesTravail.existence', e.target.checked)}
-              className="w-4 h-4 text-amber-600 border-amber-300 rounded 
-                       focus:ring-amber-500"
+              className={`w-4 h-4 rounded
+                ${isReadOnly 
+                  ? 'text-gray-400 border-gray-300 cursor-not-allowed' 
+                  : 'text-amber-600 border-amber-300 focus:ring-amber-500'
+                }`}
+              disabled={isReadOnly}
             />
             <label className="text-sm font-medium text-amber-900">
               Existence de plaintes
@@ -232,9 +270,13 @@ export default function VecuTravail({ data, onChange }: Props) {
               <textarea
                 value={data.plaintesTravail.commentaires}
                 onChange={(e) => handleChange('plaintesTravail.commentaires', e.target.value)}
-                className="w-full px-3 py-2 rounded-md border border-amber-200 
-                         focus:outline-none focus:ring-2 focus:ring-amber-500"
+                className={`w-full px-3 py-2 rounded-md border
+                  ${isReadOnly 
+                    ? 'bg-gray-100 border-gray-200 text-gray-700 cursor-not-allowed' 
+                    : 'border-amber-200 focus:outline-none focus:ring-2 focus:ring-amber-500'
+                  }`}
                 rows={3}
+                readOnly={isReadOnly}
               />
             </div>
           )}

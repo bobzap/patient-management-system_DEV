@@ -1,8 +1,9 @@
+// src/components/entretiens/EntretienList.tsx (modifications seulement)
 'use client';
 
 import { useState, useEffect } from 'react';
-import { toast } from 'sonner'; // Ajoutez cet import
-
+import { toast } from 'sonner';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'; // Importer le nouveau composant
 
 interface EntretienListProps {
   patientId: number;
@@ -14,13 +15,17 @@ interface EntretienListProps {
 
 export const EntretienList = ({ 
   patientId, 
-  refreshTrigger = 0,  // Valeur par défaut 
+  refreshTrigger = 0,
   onEntretienSelect, 
-  onNewEntretien 
+  onNewEntretien,
+  onDelete 
 }: EntretienListProps) => {
 
   const [entretiens, setEntretiens] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  // États pour la boîte de dialogue de confirmation
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [entretienToDelete, setEntretienToDelete] = useState<number | null>(null);
 
   useEffect(() => {
     // Charger les entretiens du patient
@@ -37,34 +42,41 @@ export const EntretienList = ({
     };
 
     fetchEntretiens();
-  }, [patientId,refreshTrigger ]);
+  }, [patientId, refreshTrigger]);
 
+  // Remplaçons la fonction handleDelete existante
+  const handleDelete = (entretienId: number) => {
+    setEntretienToDelete(entretienId);
+    setShowConfirmDialog(true);
+  };
 
-
-  const handleDelete = async (entretienId: number) => {
-    if (window.confirm('Êtes-vous sûr de vouloir supprimer cet entretien ?')) {
-      try {
-        const response = await fetch(`/api/entretiens/${entretienId}`, {
-          method: 'DELETE',
-        });
+  // Ajoutons une fonction pour confirmer la suppression
+  const confirmDelete = async () => {
+    if (entretienToDelete === null) return;
+    
+    try {
+      const response = await fetch(`/api/entretiens/${entretienToDelete}`, {
+        method: 'DELETE',
+      });
+      
+      if (response.ok) {
+        toast.success('Entretien supprimé avec succès');
         
-        if (response.ok) {
-          toast.success('Entretien supprimé avec succès');
-          
-          // Mettre à jour la liste des entretiens localement sans recharger la page
-          setEntretiens(prev => prev.filter(e => e.id !== entretienId));
-          
-          // Si un callback onDelete est fourni, l'appeler pour notifier le parent
-          if (onDelete) onDelete(entretienId);
-        } else {
-          toast.error('Erreur lors de la suppression');
-        }
-      } catch (error) {
-        console.error('Erreur:', error);
-        toast.error('Une erreur est survenue');
+        // Mettre à jour la liste des entretiens localement
+        setEntretiens(prev => prev.filter(e => e.id !== entretienToDelete));
+        
+        // Si un callback onDelete est fourni, l'appeler pour notifier le parent
+        if (onDelete) onDelete(entretienToDelete);
+      } else {
+        toast.error('Erreur lors de la suppression');
       }
+    } catch (error) {
+      console.error('Erreur:', error);
+      toast.error('Une erreur est survenue');
     }
   };
+
+
   return (
     <div className="bg-white rounded-lg shadow">
       <div className="p-4 flex justify-between items-center border-b">
@@ -171,6 +183,18 @@ export const EntretienList = ({
           </table>
         </div>
       )}
+
+<ConfirmDialog
+        isOpen={showConfirmDialog}
+        onClose={() => setShowConfirmDialog(false)}
+        onConfirm={confirmDelete}
+        title="Supprimer cet entretien"
+        message="Êtes-vous sûr de vouloir supprimer cet entretien ? Cette action est irréversible."
+        confirmText="Supprimer"
+        cancelText="Annuler"
+        variant="danger"
+      />
+    
     </div>
   );
 };

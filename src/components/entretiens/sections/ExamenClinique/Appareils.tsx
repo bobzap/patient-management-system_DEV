@@ -6,6 +6,7 @@ import { AppareilsData } from './types';
 interface Props {
   data: AppareilsData;
   onChange: (data: AppareilsData) => void;
+  isReadOnly?: boolean; // Ajout du prop isReadOnly
 }
 
 interface AppareilSectionProps {
@@ -20,8 +21,10 @@ const AppareilSection = ({ title, children }: AppareilSectionProps) => (
   </div>
 );
 
-export const Appareils = ({ data, onChange }: Props) => {
+export const Appareils = ({ data, onChange, isReadOnly = false }: Props) => {
   const handleChange = (path: string, value: string | boolean) => {
+    if (isReadOnly) return; // Ne pas mettre à jour si on est en mode lecture seule
+    
     const newData = { ...data };
     const keys = path.split('.');
     let current: any = newData;
@@ -44,7 +47,12 @@ export const Appareils = ({ data, onChange }: Props) => {
               type="checkbox"
               checked={data.yeuxAnnexes.bilanOPH}
               onChange={(e) => handleChange('yeuxAnnexes.bilanOPH', e.target.checked)}
-              className="w-4 h-4 text-purple-600 border-purple-300 rounded focus:ring-purple-500"
+              className={`w-4 h-4 rounded 
+                ${isReadOnly 
+                  ? 'text-gray-400 border-gray-300 cursor-not-allowed' 
+                  : 'text-purple-600 border-purple-300 focus:ring-purple-500'
+                }`}
+              disabled={isReadOnly}
             />
             <label className="text-sm font-medium text-purple-900">
               Bilan OPH
@@ -59,7 +67,12 @@ export const Appareils = ({ data, onChange }: Props) => {
               value={data.yeuxAnnexes.commentairesORL}
               onChange={(e) => handleChange('yeuxAnnexes.commentairesORL', e.target.value)}
               rows={2}
-              className="w-full px-3 py-2 rounded-md border border-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className={`w-full px-3 py-2 rounded-md border 
+                ${isReadOnly 
+                  ? 'bg-gray-100 border-gray-200 text-gray-700 cursor-not-allowed' 
+                  : 'border-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-500'
+                }`}
+              readOnly={isReadOnly}
             />
           </div>
 
@@ -71,7 +84,12 @@ export const Appareils = ({ data, onChange }: Props) => {
               value={data.yeuxAnnexes.commentairesOPH}
               onChange={(e) => handleChange('yeuxAnnexes.commentairesOPH', e.target.value)}
               rows={2}
-              className="w-full px-3 py-2 rounded-md border border-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className={`w-full px-3 py-2 rounded-md border 
+                ${isReadOnly 
+                  ? 'bg-gray-100 border-gray-200 text-gray-700 cursor-not-allowed' 
+                  : 'border-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-500'
+                }`}
+              readOnly={isReadOnly}
             />
           </div>
         </div>
@@ -85,7 +103,12 @@ export const Appareils = ({ data, onChange }: Props) => {
               type="checkbox"
               checked={data.cardioPulmonaire.bilanCardio}
               onChange={(e) => handleChange('cardioPulmonaire.bilanCardio', e.target.checked)}
-              className="w-4 h-4 text-purple-600 border-purple-300 rounded focus:ring-purple-500"
+              className={`w-4 h-4 rounded 
+                ${isReadOnly 
+                  ? 'text-gray-400 border-gray-300 cursor-not-allowed' 
+                  : 'text-purple-600 border-purple-300 focus:ring-purple-500'
+                }`}
+              disabled={isReadOnly}
             />
             <label className="text-sm font-medium text-purple-900">
               Bilan Cardio
@@ -100,7 +123,12 @@ export const Appareils = ({ data, onChange }: Props) => {
               value={data.cardioPulmonaire.commentaires}
               onChange={(e) => handleChange('cardioPulmonaire.commentaires', e.target.value)}
               rows={2}
-              className="w-full px-3 py-2 rounded-md border border-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className={`w-full px-3 py-2 rounded-md border 
+                ${isReadOnly 
+                  ? 'bg-gray-100 border-gray-200 text-gray-700 cursor-not-allowed' 
+                  : 'border-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-500'
+                }`}
+              readOnly={isReadOnly}
             />
           </div>
         </div>
@@ -116,7 +144,12 @@ export const Appareils = ({ data, onChange }: Props) => {
             value={data.appareilDigestif.commentaires}
             onChange={(e) => handleChange('appareilDigestif.commentaires', e.target.value)}
             rows={2}
-            className="w-full px-3 py-2 rounded-md border border-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-500"
+            className={`w-full px-3 py-2 rounded-md border 
+              ${isReadOnly 
+                ? 'bg-gray-100 border-gray-200 text-gray-700 cursor-not-allowed' 
+                : 'border-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-500'
+              }`}
+            readOnly={isReadOnly}
           />
         </div>
       </AppareilSection>
@@ -129,7 +162,12 @@ export const Appareils = ({ data, onChange }: Props) => {
               type="checkbox"
               checked={data.uroGenital.suiviGyneco}
               onChange={(e) => handleChange('uroGenital.suiviGyneco', e.target.checked)}
-              className="w-4 h-4 text-purple-600 border-purple-300 rounded focus:ring-purple-500"
+              className={`w-4 h-4 rounded 
+                ${isReadOnly 
+                  ? 'text-gray-400 border-gray-300 cursor-not-allowed' 
+                  : 'text-purple-600 border-purple-300 focus:ring-purple-500'
+                }`}
+              disabled={isReadOnly}
             />
             <label className="text-sm font-medium text-purple-900">
               Suivi gynéco
@@ -144,7 +182,12 @@ export const Appareils = ({ data, onChange }: Props) => {
               value={data.uroGenital.commentaires}
               onChange={(e) => handleChange('uroGenital.commentaires', e.target.value)}
               rows={2}
-              className="w-full px-3 py-2 rounded-md border border-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className={`w-full px-3 py-2 rounded-md border 
+                ${isReadOnly 
+                  ? 'bg-gray-100 border-gray-200 text-gray-700 cursor-not-allowed' 
+                  : 'border-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-500'
+                }`}
+              readOnly={isReadOnly}
             />
           </div>
         </div>
@@ -158,7 +201,12 @@ export const Appareils = ({ data, onChange }: Props) => {
               type="checkbox"
               checked={data.osteoArticulaire.plainteEvoquee}
               onChange={(e) => handleChange('osteoArticulaire.plainteEvoquee', e.target.checked)}
-              className="w-4 h-4 text-purple-600 border-purple-300 rounded focus:ring-purple-500"
+              className={`w-4 h-4 rounded 
+                ${isReadOnly 
+                  ? 'text-gray-400 border-gray-300 cursor-not-allowed' 
+                  : 'text-purple-600 border-purple-300 focus:ring-purple-500'
+                }`}
+              disabled={isReadOnly}
             />
             <label className="text-sm font-medium text-purple-900">
               Plainte évoquée
@@ -173,7 +221,12 @@ export const Appareils = ({ data, onChange }: Props) => {
               value={data.osteoArticulaire.commentairesDouleurs}
               onChange={(e) => handleChange('osteoArticulaire.commentairesDouleurs', e.target.value)}
               rows={2}
-              className="w-full px-3 py-2 rounded-md border border-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className={`w-full px-3 py-2 rounded-md border 
+                ${isReadOnly 
+                  ? 'bg-gray-100 border-gray-200 text-gray-700 cursor-not-allowed' 
+                  : 'border-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-500'
+                }`}
+              readOnly={isReadOnly}
             />
           </div>
         </div>
@@ -187,7 +240,12 @@ export const Appareils = ({ data, onChange }: Props) => {
               type="checkbox"
               checked={data.neuroPsy.sommeilBon}
               onChange={(e) => handleChange('neuroPsy.sommeilBon', e.target.checked)}
-              className="w-4 h-4 text-purple-600 border-purple-300 rounded focus:ring-purple-500"
+              className={`w-4 h-4 rounded 
+                ${isReadOnly 
+                  ? 'text-gray-400 border-gray-300 cursor-not-allowed' 
+                  : 'text-purple-600 border-purple-300 focus:ring-purple-500'
+                }`}
+              disabled={isReadOnly}
             />
             <label className="text-sm font-medium text-purple-900">
               Sommeil bon ?
@@ -202,7 +260,12 @@ export const Appareils = ({ data, onChange }: Props) => {
               value={data.neuroPsy.commentaires}
               onChange={(e) => handleChange('neuroPsy.commentaires', e.target.value)}
               rows={2}
-              className="w-full px-3 py-2 rounded-md border border-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className={`w-full px-3 py-2 rounded-md border 
+                ${isReadOnly 
+                  ? 'bg-gray-100 border-gray-200 text-gray-700 cursor-not-allowed' 
+                  : 'border-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-500'
+                }`}
+              readOnly={isReadOnly}
             />
           </div>
         </div>
@@ -218,7 +281,12 @@ export const Appareils = ({ data, onChange }: Props) => {
             type="text"
             value={data.endocrinoMetabolisme.dernierBilan}
             onChange={(e) => handleChange('endocrinoMetabolisme.dernierBilan', e.target.value)}
-            className="w-full px-3 py-2 rounded-md border border-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-500"
+            className={`w-full px-3 py-2 rounded-md border 
+              ${isReadOnly 
+                ? 'bg-gray-100 border-gray-200 text-gray-700 cursor-not-allowed' 
+                : 'border-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-500'
+              }`}
+            readOnly={isReadOnly}
           />
         </div>
       </AppareilSection>

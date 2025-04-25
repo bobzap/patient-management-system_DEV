@@ -18,6 +18,7 @@ import {
 interface ActionsProps {
   data?: ActionData;
   onChange: (data: ActionData) => void;
+  isReadOnly?: boolean; // Ajout du prop isReadOnly
 }
 
 const defaultData: ActionData = {
@@ -41,7 +42,7 @@ const ActionSection = ({ title, children }: ActionSectionProps) => (
   </div>
 );
 
-export const Actions = ({ data = defaultData, onChange }: ActionsProps) => {
+export const Actions = ({ data = defaultData, onChange, isReadOnly = false }: ActionsProps) => {
   const [lists, setLists] = useState<{
     orientation: string[];
     managers: string[];
@@ -71,30 +72,36 @@ export const Actions = ({ data = defaultData, onChange }: ActionsProps) => {
     fetchLists();
   }, []);
 
+  // Helper pour simplifier la mise à jour des données
+  const handleChange = (updates: Partial<ActionData>) => {
+    if (isReadOnly) return; // Ne pas mettre à jour si en mode lecture seule
+    onChange({ ...data, ...updates });
+  };
 
+  // Exemple pour mise à jour de sous-propriétés
+  const updateOrientation = (updates: Partial<typeof data.orientation>) => {
+    if (isReadOnly) return;
+    handleChange({
+      orientation: {
+        ...data.orientation,
+        ...updates
+      }
+    });
+  };
 
-  
   return (
     <div className="space-y-6">
       <h3 className="text-lg font-semibold">Actions à suivre</h3>
-
-
-
 
       <div className="space-y-4">
         {/* Action 1: Orientations */}
         <ActionSection title="1. Orientations">
           <Select
             value={data.orientation.selected[0] || ''}
-            onValueChange={(value) => onChange({
-              ...data,
-              orientation: {
-                ...data.orientation,
-                selected: [value]
-              }
-            })}
+            onValueChange={(value) => updateOrientation({ selected: [value] })}
+            disabled={isReadOnly}
           >
-            <SelectTrigger>
+            <SelectTrigger className={isReadOnly ? 'bg-gray-100 text-gray-700 cursor-not-allowed border-gray-200' : ''}>
               <SelectValue placeholder="Choisir une orientation..." />
             </SelectTrigger>
             <SelectContent>
@@ -105,18 +112,12 @@ export const Actions = ({ data = defaultData, onChange }: ActionsProps) => {
           </Select>
           <Textarea
             value={data.orientation.commentaire}
-            onChange={(e) => onChange({
-              ...data,
-              orientation: {
-                ...data.orientation,
-                commentaire: e.target.value
-              }
-            })}
+            onChange={(e) => updateOrientation({ commentaire: e.target.value })}
             placeholder="Commentaire sur l'orientation..."
-            className="mt-2"
+            className={`mt-2 ${isReadOnly ? 'bg-gray-100 text-gray-700 cursor-not-allowed border-gray-200' : ''}`}
+            readOnly={isReadOnly}
           />
         </ActionSection>
-
 
         {/* Action 2: Étude de poste */}
         <ActionSection title="2. Étude de poste">
@@ -124,28 +125,29 @@ export const Actions = ({ data = defaultData, onChange }: ActionsProps) => {
             <Checkbox
               id="etude-poste"
               checked={data.etudePoste.aFaire}
-              onCheckedChange={(checked) => onChange({
-                ...data,
+              onCheckedChange={(checked) => handleChange({
                 etudePoste: {
                   ...data.etudePoste,
                   aFaire: checked as boolean
                 }
               })}
+              disabled={isReadOnly}
+              className={isReadOnly ? 'cursor-not-allowed' : ''}
             />
-            <Label htmlFor="etude-poste">Étude à faire</Label>
+            <Label htmlFor="etude-poste" className={isReadOnly ? 'cursor-not-allowed' : ''}>Étude à faire</Label>
           </div>
           {data.etudePoste.aFaire && (
             <Textarea
               value={data.etudePoste.commentaire}
-              onChange={(e) => onChange({
-                ...data,
+              onChange={(e) => handleChange({
                 etudePoste: {
                   ...data.etudePoste,
                   commentaire: e.target.value
                 }
               })}
               placeholder="Commentaire sur l'étude..."
-              className="mt-2"
+              className={`mt-2 ${isReadOnly ? 'bg-gray-100 text-gray-700 cursor-not-allowed border-gray-200' : ''}`}
+              readOnly={isReadOnly}
             />
           )}
         </ActionSection>
@@ -156,29 +158,30 @@ export const Actions = ({ data = defaultData, onChange }: ActionsProps) => {
             <Checkbox
               id="entretien-manager"
               checked={data.manager.entretienNecessaire}
-              onCheckedChange={(checked) => onChange({
-                ...data,
+              onCheckedChange={(checked) => handleChange({
                 manager: {
                   ...data.manager,
                   entretienNecessaire: checked as boolean
                 }
               })}
+              disabled={isReadOnly}
+              className={isReadOnly ? 'cursor-not-allowed' : ''}
             />
-            <Label htmlFor="entretien-manager">Entretien nécessaire</Label>
+            <Label htmlFor="entretien-manager" className={isReadOnly ? 'cursor-not-allowed' : ''}>Entretien nécessaire</Label>
           </div>
           {data.manager.entretienNecessaire && (
             <div className="space-y-3 mt-2">
               <Select
                 value={data.manager.managerSelectionne}
-                onValueChange={(value) => onChange({
-                  ...data,
+                onValueChange={(value) => handleChange({
                   manager: {
                     ...data.manager,
                     managerSelectionne: value
                   }
                 })}
+                disabled={isReadOnly}
               >
-                <SelectTrigger>
+                <SelectTrigger className={isReadOnly ? 'bg-gray-100 text-gray-700 cursor-not-allowed border-gray-200' : ''}>
                   <SelectValue placeholder="Sélectionner un manager..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -189,28 +192,29 @@ export const Actions = ({ data = defaultData, onChange }: ActionsProps) => {
               </Select>
               <Textarea
                 value={data.manager.commentaire}
-                onChange={(e) => onChange({
-                  ...data,
+                onChange={(e) => handleChange({
                   manager: {
                     ...data.manager,
                     commentaire: e.target.value
                   }
                 })}
                 placeholder="Commentaire pour l'entretien..."
+                className={isReadOnly ? 'bg-gray-100 text-gray-700 cursor-not-allowed border-gray-200' : ''}
+                readOnly={isReadOnly}
               />
               <div>
-                <Label>Date de rappel</Label>
+                <Label className={isReadOnly ? 'cursor-not-allowed' : ''}>Date de rappel</Label>
                 <Input
                   type="date"
                   value={data.manager.dateRappel}
-                  onChange={(e) => onChange({
-                    ...data,
+                  onChange={(e) => handleChange({
                     manager: {
                       ...data.manager,
                       dateRappel: e.target.value
                     }
                   })}
-                  className="mt-1"
+                  className={`mt-1 ${isReadOnly ? 'bg-gray-100 text-gray-700 cursor-not-allowed border-gray-200' : ''}`}
+                  readOnly={isReadOnly}
                 />
               </div>
             </div>
@@ -223,30 +227,31 @@ export const Actions = ({ data = defaultData, onChange }: ActionsProps) => {
             <Checkbox
               id="entretien-prevoir"
               checked={data.entretien.aPrevoir}
-              onCheckedChange={(checked) => onChange({
-                ...data,
+              onCheckedChange={(checked) => handleChange({
                 entretien: {
                   ...data.entretien,
                   aPrevoir: checked as boolean
                 }
               })}
+              disabled={isReadOnly}
+              className={isReadOnly ? 'cursor-not-allowed' : ''}
             />
-            <Label htmlFor="entretien-prevoir">Entretien à prévoir</Label>
+            <Label htmlFor="entretien-prevoir" className={isReadOnly ? 'cursor-not-allowed' : ''}>Entretien à prévoir</Label>
           </div>
           {data.entretien.aPrevoir && (
             <div className="mt-2">
-              <Label>Date de rappel</Label>
+              <Label className={isReadOnly ? 'cursor-not-allowed' : ''}>Date de rappel</Label>
               <Input
                 type="date"
                 value={data.entretien.dateRappel}
-                onChange={(e) => onChange({
-                  ...data,
+                onChange={(e) => handleChange({
                   entretien: {
                     ...data.entretien,
                     dateRappel: e.target.value
                   }
                 })}
-                className="mt-1"
+                className={`mt-1 ${isReadOnly ? 'bg-gray-100 text-gray-700 cursor-not-allowed border-gray-200' : ''}`}
+                readOnly={isReadOnly}
               />
             </div>
           )}
@@ -258,28 +263,29 @@ export const Actions = ({ data = defaultData, onChange }: ActionsProps) => {
             <Checkbox
               id="echange-medecin"
               checked={data.medecin.echangeNecessaire}
-              onCheckedChange={(checked) => onChange({
-                ...data,
+              onCheckedChange={(checked) => handleChange({
                 medecin: {
                   ...data.medecin,
                   echangeNecessaire: checked as boolean
                 }
               })}
+              disabled={isReadOnly}
+              className={isReadOnly ? 'cursor-not-allowed' : ''}
             />
-            <Label htmlFor="echange-medecin">Échange nécessaire</Label>
+            <Label htmlFor="echange-medecin" className={isReadOnly ? 'cursor-not-allowed' : ''}>Échange nécessaire</Label>
           </div>
           {data.medecin.echangeNecessaire && (
             <Textarea
               value={data.medecin.commentaire}
-              onChange={(e) => onChange({
-                ...data,
+              onChange={(e) => handleChange({
                 medecin: {
                   ...data.medecin,
                   commentaire: e.target.value
                 }
               })}
               placeholder="Commentaire pour le médecin..."
-              className="mt-2"
+              className={`mt-2 ${isReadOnly ? 'bg-gray-100 text-gray-700 cursor-not-allowed border-gray-200' : ''}`}
+              readOnly={isReadOnly}
             />
           )}
         </ActionSection>
@@ -290,43 +296,45 @@ export const Actions = ({ data = defaultData, onChange }: ActionsProps) => {
             <Checkbox
               id="visite-medicale"
               checked={data.visiteMedicale.aPlanifier}
-              onCheckedChange={(checked) => onChange({
-                ...data,
+              onCheckedChange={(checked) => handleChange({
                 visiteMedicale: {
                   ...data.visiteMedicale,
                   aPlanifier: checked as boolean
                 }
               })}
+              disabled={isReadOnly}
+              className={isReadOnly ? 'cursor-not-allowed' : ''}
             />
-            <Label htmlFor="visite-medicale">Visite à planifier</Label>
+            <Label htmlFor="visite-medicale" className={isReadOnly ? 'cursor-not-allowed' : ''}>Visite à planifier</Label>
           </div>
           {data.visiteMedicale.aPlanifier && (
             <div className="space-y-3 mt-2">
               <div>
-                <Label>Date de rappel</Label>
+                <Label className={isReadOnly ? 'cursor-not-allowed' : ''}>Date de rappel</Label>
                 <Input
                   type="date"
                   value={data.visiteMedicale.dateRappel}
-                  onChange={(e) => onChange({
-                    ...data,
+                  onChange={(e) => handleChange({
                     visiteMedicale: {
                       ...data.visiteMedicale,
                       dateRappel: e.target.value
                     }
                   })}
-                  className="mt-1"
+                  className={`mt-1 ${isReadOnly ? 'bg-gray-100 text-gray-700 cursor-not-allowed border-gray-200' : ''}`}
+                  readOnly={isReadOnly}
                 />
               </div>
               <Textarea
                 value={data.visiteMedicale.commentaire}
-                onChange={(e) => onChange({
-                  ...data,
+                onChange={(e) => handleChange({
                   visiteMedicale: {
                     ...data.visiteMedicale,
                     commentaire: e.target.value
                   }
                 })}
                 placeholder="Commentaire pour la visite..."
+                className={isReadOnly ? 'bg-gray-100 text-gray-700 cursor-not-allowed border-gray-200' : ''}
+                readOnly={isReadOnly}
               />
             </div>
           )}

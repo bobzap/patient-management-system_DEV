@@ -7,10 +7,13 @@ import { BiometrieData } from './types';
 interface Props {
   data: BiometrieData;
   onChange: (data: BiometrieData) => void;
+  isReadOnly?: boolean; // Ajoutez cette prop
 }
 
-export const Biometrie = ({ data, onChange }: Props) => {
+export const Biometrie = ({ data, onChange, isReadOnly = false }: Props) => {
   const handleChange = (field: keyof BiometrieData, value: string) => {
+    if (isReadOnly) return; // Ignorer les modifications en mode lecture seule
+    
     const newData = { ...data, [field]: value };
     
     // Calcul IMC seulement si taille et poids sont présents
@@ -47,7 +50,7 @@ export const Biometrie = ({ data, onChange }: Props) => {
         <h3 className="text-lg font-semibold text-purple-900 mb-6">Biométrie</h3>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {fields.map(({ id, label, unit, type, step, readOnly }) => (
+          {fields.map(({ id, label, unit, type, step, readOnly: fieldReadOnly }) => (
             <div key={id} className="relative">
               <label className="block text-sm font-medium text-purple-900 mb-1">
                 {label}
@@ -58,12 +61,13 @@ export const Biometrie = ({ data, onChange }: Props) => {
                   value={data[id as keyof BiometrieData]}
                   onChange={(e) => handleChange(id as keyof BiometrieData, e.target.value)}
                   step={step}
-                  readOnly={readOnly}
+                  readOnly={isReadOnly || fieldReadOnly}
                   className={`
-                    w-full px-3 py-2 pr-12 rounded-md 
-                    border border-purple-200 
-                    focus:outline-none focus:ring-2 focus:ring-purple-500
-                    ${readOnly ? 'bg-gray-50' : 'bg-white'}
+                    w-full px-3 py-2 pr-12 rounded-md border
+                    ${(isReadOnly || fieldReadOnly) 
+                      ? 'bg-gray-100 border-gray-200 text-gray-700 cursor-not-allowed' 
+                      : 'bg-white border-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-500'
+                    }
                   `}
                   placeholder={`${label}...`}
                 />

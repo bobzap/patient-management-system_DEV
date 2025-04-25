@@ -5,8 +5,6 @@ import { useState } from 'react';
 import VecuTravail, { VecuTravailData } from './VecuTravail';
 import ModeVie, { ModeVieData } from './ModeVie';
 
-
-
 const initialVecuTravailData: VecuTravailData = {
   motifVisite: {
     motif: '',
@@ -78,9 +76,10 @@ interface SanteTravailProps {
     vecuTravail: VecuTravailData;
     modeVie: ModeVieData;
   }) => void;
+  isReadOnly?: boolean;
 }
 
-export const SanteTravail = ({ data, onChange }: SanteTravailProps) => {
+export const SanteTravail = ({ data, onChange, isReadOnly = false }: SanteTravailProps) => {
   console.log('SANTÉ: Props reçues:', data);
 
   // Vérification de sécurité
@@ -93,6 +92,9 @@ export const SanteTravail = ({ data, onChange }: SanteTravailProps) => {
   const [localData, setLocalData] = useState(safeData);
 
   const handleVecuTravailChange = (newVecuData: VecuTravailData) => {
+    // Ignorer les modifications en mode lecture seule
+    if (isReadOnly) return;
+    
     const newData = {
       ...localData,
       vecuTravail: newVecuData
@@ -102,6 +104,9 @@ export const SanteTravail = ({ data, onChange }: SanteTravailProps) => {
   };
 
   const handleModeVieChange = (newModeVieData: ModeVieData) => {
+    // Ignorer les modifications en mode lecture seule
+    if (isReadOnly) return;
+    
     const newData = {
       ...localData,
       modeVie: newModeVieData
@@ -142,11 +147,13 @@ export const SanteTravail = ({ data, onChange }: SanteTravailProps) => {
           <VecuTravail 
             data={localData.vecuTravail}
             onChange={handleVecuTravailChange}
+            isReadOnly={isReadOnly} // Propager isReadOnly
           />
         ) : (
           <ModeVie 
             data={localData.modeVie}
             onChange={handleModeVieChange}
+            isReadOnly={isReadOnly} // Propager isReadOnly
           />
         )}
       </div>

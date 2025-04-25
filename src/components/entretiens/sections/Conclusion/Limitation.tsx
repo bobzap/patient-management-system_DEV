@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 interface LimitationProps {
   data?: LimitationData;
   onChange: (data: LimitationData) => void;
+  isReadOnly?: boolean; // Ajout du prop isReadOnly
 }
 
 const defaultData: LimitationData = {
@@ -19,7 +20,13 @@ const defaultData: LimitationData = {
   commentaire: ''
 };
 
-export const Limitation = ({ data = defaultData, onChange }: LimitationProps) => {
+export const Limitation = ({ data = defaultData, onChange, isReadOnly = false }: LimitationProps) => {
+  // Fonction helper pour les mises à jour
+  const handleChange = (fieldUpdates: Partial<LimitationData>) => {
+    if (isReadOnly) return; // Ne pas mettre à jour si en mode lecture seule
+    onChange({ ...data, ...fieldUpdates });
+  };
+
   return (
     <div className="space-y-6">
       <h3 className="text-lg font-semibold">Limitation de travail</h3>
@@ -29,19 +36,17 @@ export const Limitation = ({ data = defaultData, onChange }: LimitationProps) =>
           <Label>La personne nécessite-t-elle une limitation ?</Label>
           <RadioGroup
             value={data.hasLimitation ? "oui" : "non"}
-            onValueChange={(value) => onChange({
-              ...data,
-              hasLimitation: value === "oui"
-            })}
+            onValueChange={(value) => handleChange({ hasLimitation: value === "oui" })}
             className="flex gap-4"
+            disabled={isReadOnly}
           >
             <div className="flex items-center space-x-2">
-              <RadioGroupItem value="oui" id="limitation-oui" />
-              <Label htmlFor="limitation-oui">Oui</Label>
+              <RadioGroupItem value="oui" id="limitation-oui" disabled={isReadOnly} className={isReadOnly ? 'cursor-not-allowed' : ''} />
+              <Label htmlFor="limitation-oui" className={isReadOnly ? 'cursor-not-allowed' : ''}>Oui</Label>
             </div>
             <div className="flex items-center space-x-2">
-              <RadioGroupItem value="non" id="limitation-non" />
-              <Label htmlFor="limitation-non">Non</Label>
+              <RadioGroupItem value="non" id="limitation-non" disabled={isReadOnly} className={isReadOnly ? 'cursor-not-allowed' : ''} />
+              <Label htmlFor="limitation-non" className={isReadOnly ? 'cursor-not-allowed' : ''}>Non</Label>
             </div>
           </RadioGroup>
         </div>
@@ -52,19 +57,17 @@ export const Limitation = ({ data = defaultData, onChange }: LimitationProps) =>
               <Label>Type de durée</Label>
               <RadioGroup
                 value={data.dureeType}
-                onValueChange={(value: 'definitive' | 'temporaire') => onChange({
-                  ...data,
-                  dureeType: value
-                })}
+                onValueChange={(value: 'definitive' | 'temporaire') => handleChange({ dureeType: value })}
                 className="flex gap-4"
+                disabled={isReadOnly}
               >
                 <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="definitive" id="duree-definitive" />
-                  <Label htmlFor="duree-definitive">Définitive</Label>
+                  <RadioGroupItem value="definitive" id="duree-definitive" disabled={isReadOnly} className={isReadOnly ? 'cursor-not-allowed' : ''} />
+                  <Label htmlFor="duree-definitive" className={isReadOnly ? 'cursor-not-allowed' : ''}>Définitive</Label>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="temporaire" id="duree-temporaire" />
-                  <Label htmlFor="duree-temporaire">Temporaire</Label>
+                  <RadioGroupItem value="temporaire" id="duree-temporaire" disabled={isReadOnly} className={isReadOnly ? 'cursor-not-allowed' : ''} />
+                  <Label htmlFor="duree-temporaire" className={isReadOnly ? 'cursor-not-allowed' : ''}>Temporaire</Label>
                 </div>
               </RadioGroup>
             </div>
@@ -76,12 +79,10 @@ export const Limitation = ({ data = defaultData, onChange }: LimitationProps) =>
                   <Input
                     type="number"
                     value={data.dureeJours || ''}
-                    onChange={(e) => onChange({
-                      ...data,
-                      dureeJours: parseInt(e.target.value) || 0
-                    })}
-                    className="w-24"
+                    onChange={(e) => handleChange({ dureeJours: parseInt(e.target.value) || 0 })}
+                    className={`w-24 ${isReadOnly ? 'bg-gray-100 text-gray-700 cursor-not-allowed border-gray-200' : ''}`}
                     min="1"
+                    readOnly={isReadOnly}
                   />
                   <span>jours</span>
                 </div>
@@ -92,12 +93,10 @@ export const Limitation = ({ data = defaultData, onChange }: LimitationProps) =>
               <Label>Commentaire</Label>
               <Textarea
                 value={data.commentaire}
-                onChange={(e) => onChange({
-                  ...data,
-                  commentaire: e.target.value
-                })}
+                onChange={(e) => handleChange({ commentaire: e.target.value })}
                 placeholder="Détails sur la limitation..."
-                className="min-h-[100px]"
+                className={`min-h-[100px] ${isReadOnly ? 'bg-gray-100 text-gray-700 cursor-not-allowed border-gray-200' : ''}`}
+                readOnly={isReadOnly}
               />
             </div>
           </div>

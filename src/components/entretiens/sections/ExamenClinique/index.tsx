@@ -4,10 +4,7 @@
 import { useState } from 'react';
 import { ExamenCliniqueData } from './types';
 
-interface ExamenCliniqueProps {
-  data: ExamenCliniqueData;
-  onChange: (data: ExamenCliniqueData) => void;
-}
+
 
 
 import { Biometrie } from './Biometrie';
@@ -23,7 +20,13 @@ export type {
 } from './types';
 
 
-export const ExamenClinique = ({ data, onChange }: ExamenCliniqueProps) => {
+interface ExamenCliniqueProps {
+  data: ExamenCliniqueData;
+  onChange: (data: ExamenCliniqueData) => void;
+  isReadOnly?: boolean; // Ajoutez cette prop
+}
+
+export const ExamenClinique = ({ data, onChange, isReadOnly = false }: ExamenCliniqueProps) => {
   const [currentPage, setCurrentPage] = useState(1);
 
   return (
@@ -72,30 +75,34 @@ export const ExamenClinique = ({ data, onChange }: ExamenCliniqueProps) => {
         </button>
       </div>
 
-      {/* Contenu */}
-      <div className="flex-grow bg-white/50 rounded-lg p-4">
+       {/* Contenu */}
+       <div className="flex-grow bg-white/50 rounded-lg p-4">
         {currentPage === 1 && (
           <Biometrie 
             data={data.biometrie}
-            onChange={(newData) => onChange({ ...data, biometrie: newData })}
+            onChange={(newData) => !isReadOnly && onChange({ ...data, biometrie: newData })}
+            isReadOnly={isReadOnly}
           />
         )}
         {currentPage === 2 && (
           <Appareils 
             data={data.appareils}
-            onChange={(newData) => onChange({ ...data, appareils: newData })}
+            onChange={(newData) => !isReadOnly && onChange({ ...data, appareils: newData })}
+            isReadOnly={isReadOnly}
           />
         )}
         {currentPage === 3 && (
           <Antecedents 
             data={data.antecedents}
-            onChange={(newData) => onChange({ ...data, antecedents: newData })}
+            onChange={(newData) => !isReadOnly && onChange({ ...data, antecedents: newData })}
+            isReadOnly={isReadOnly}
           />
         )}
         {currentPage === 4 && (
           <Traitements 
             data={data.traitements}
-            onChange={(newData) => onChange({ ...data, traitements: newData })}
+            onChange={(newData) => !isReadOnly && onChange({ ...data, traitements: newData })}
+            isReadOnly={isReadOnly}
           />
         )}
       </div>

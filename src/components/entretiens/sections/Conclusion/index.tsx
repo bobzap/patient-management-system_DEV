@@ -9,9 +9,10 @@ import type { ConclusionData } from '../../types/ConclusionTypes';
 interface ConclusionProps {
   data: ConclusionData;
   onChange: (data: ConclusionData) => void;
+  isReadOnly?: boolean; // Ajout du prop isReadOnly
 }
 
-export const Conclusion: React.FC<ConclusionProps> = ({ data, onChange }) => {
+export const Conclusion: React.FC<ConclusionProps> = ({ data, onChange, isReadOnly = false }) => {
   const [currentPage, setCurrentPage] = useState(1);
 
   return (
@@ -55,19 +56,22 @@ export const Conclusion: React.FC<ConclusionProps> = ({ data, onChange }) => {
         {currentPage === 1 && (
           <Prevention 
             data={data.prevention}
-            onChange={(newData) => onChange({ ...data, prevention: newData })}
+            onChange={(newData) => !isReadOnly && onChange({ ...data, prevention: newData })}
+            isReadOnly={isReadOnly}
           />
         )}
         {currentPage === 2 && (
           <Limitation 
             data={data.limitation}
-            onChange={(newData) => onChange({ ...data, limitation: newData })}
+            onChange={(newData) => !isReadOnly && onChange({ ...data, limitation: newData })}
+            isReadOnly={isReadOnly}
           />
         )}
         {currentPage === 3 && (
           <Actions 
             data={data.actions}
-            onChange={(newData) => onChange({ ...data, actions: newData })}
+            onChange={(newData) => !isReadOnly && onChange({ ...data, actions: newData })}
+            isReadOnly={isReadOnly}
           />
         )}
       </div>
