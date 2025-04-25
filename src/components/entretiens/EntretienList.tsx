@@ -1,12 +1,15 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { toast } from 'sonner'; // Ajoutez cet import
+
 
 interface EntretienListProps {
   patientId: number;
-  refreshTrigger?: number; // Nouveau prop
-  onEntretienSelect: (entretienId: number) => void;
+  refreshTrigger?: number;
+  onEntretienSelect: (entretienId: number, isReadOnly: boolean) => void;
   onNewEntretien: () => void;
+  onDelete?: (entretienId: number) => void;
 }
 
 export const EntretienList = ({ 
@@ -36,6 +39,32 @@ export const EntretienList = ({
     fetchEntretiens();
   }, [patientId,refreshTrigger ]);
 
+
+
+  const handleDelete = async (entretienId: number) => {
+    if (window.confirm('Êtes-vous sûr de vouloir supprimer cet entretien ?')) {
+      try {
+        const response = await fetch(`/api/entretiens/${entretienId}`, {
+          method: 'DELETE',
+        });
+        
+        if (response.ok) {
+          toast.success('Entretien supprimé avec succès');
+          
+          // Mettre à jour la liste des entretiens localement sans recharger la page
+          setEntretiens(prev => prev.filter(e => e.id !== entretienId));
+          
+          // Si un callback onDelete est fourni, l'appeler pour notifier le parent
+          if (onDelete) onDelete(entretienId);
+        } else {
+          toast.error('Erreur lors de la suppression');
+        }
+      } catch (error) {
+        console.error('Erreur:', error);
+        toast.error('Une erreur est survenue');
+      }
+    }
+  };
   return (
     <div className="bg-white rounded-lg shadow">
       <div className="p-4 flex justify-between items-center border-b">
@@ -104,11 +133,38 @@ export const EntretienList = ({
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {new Date(entretien.dateModification).toLocaleString()}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <button className="text-blue-600 hover:text-blue-900">
-                      Voir
-                    </button>
-                  </td>
+                  
+<td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+  <div className="flex items-center justify-end gap-2">
+    <button 
+      onClick={(e) => {
+        e.stopPropagation(); // Empêcher la propagation pour ne pas déclencher le onClick de la ligne
+        onEntretienSelect(entretien.id, true); // true pour le mode consultation
+      }}
+      className="text-blue-600 hover:text-blue-900 px-2 py-1"
+    >
+      Voir
+    </button>
+    <button 
+      onClick={(e) => {
+        e.stopPropagation();
+        onEntretienSelect(entretien.id, false); // false pour le mode édition
+      }}
+      className="text-green-600 hover:text-green-900 px-2 py-1"
+    >
+      Modifier
+    </button>
+    <button 
+      onClick={(e) => {
+        e.stopPropagation();
+        handleDelete(entretien.id);
+      }}
+      className="text-red-600 hover:text-red-900 px-2 py-1"
+    >
+      Supprimer
+    </button>
+  </div>
+</td>
                 </tr>
               ))}
             </tbody>

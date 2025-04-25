@@ -26,8 +26,31 @@ export const PatientDetails = ({ patient, onEdit, onDelete }: PatientDetailsProp
   // Dans PatientDetails.tsx, ajoutez un nouvel état:
 const [selectedEntretienId, setSelectedEntretienId] = useState<number | null>(null);
 const [refreshEntretiens, setRefreshEntretiens] = useState(0);
+const [isReadOnly, setIsReadOnly] = useState(true);
+
+
+
+// Dans PatientDetails.tsx, ajoutez ou complétez cette fonction
+const handleEntretienDelete = () => {
+  // Incrémenter le compteur pour déclencher un rafraîchissement
+  setRefreshEntretiens(prev => prev + 1);
+  
+  // Vous pouvez aussi afficher un toast de confirmation ici
+  toast.success('Entretien supprimé avec succès');
+};
+
+
+
+// Fonction de sélection d'entretien modifiée
+const handleEntretienSelect = (entretienId: number, readOnly: boolean) => {
+  setSelectedEntretienId(entretienId);
+  setIsReadOnly(readOnly);
+  setShowEntretien(true);
+};
   
   
+
+
 
   const toastStyle = {
     background: '#2DD4BF',
@@ -100,7 +123,19 @@ const [refreshEntretiens, setRefreshEntretiens] = useState(0);
     return <EntretienForm 
       patient={patient}
       entretienId={selectedEntretienId}
-      onClose={handleCloseEntretien}
+      isReadOnly={isReadOnly}
+      onClose={() => {
+        // Si on ferme depuis le mode consultation et qu'on veut passer en édition
+        if (isReadOnly && selectedEntretienId) {
+          setIsReadOnly(false);
+          // Ne pas fermer le formulaire, juste changer de mode
+        } else {
+          setShowEntretien(false);
+          setSelectedEntretienId(null);
+          setIsReadOnly(true);
+          setRefreshEntretiens(prev => prev + 1);
+        }
+      }}
     />;
   }
 
@@ -239,17 +274,16 @@ const [refreshEntretiens, setRefreshEntretiens] = useState(0);
 {activeTab === 'historique' && (
   <div className="mb-6">
     <EntretienList
-      patientId={patient.id!}
-      refreshTrigger={refreshEntretiens}
-      onEntretienSelect={(entretienId) => {
-        setSelectedEntretienId(entretienId);
-        setShowEntretien(true);
-      }}
-      onNewEntretien={() => {
-        setSelectedEntretienId(null);
-        setShowEntretien(true);
-      }}
-    />
+  patientId={patient.id!}
+  refreshTrigger={refreshEntretiens}
+  onEntretienSelect={handleEntretienSelect}
+  onNewEntretien={() => {
+    setSelectedEntretienId(null);
+    setIsReadOnly(false);
+    setShowEntretien(true);
+  }}
+  onDelete={handleEntretienDelete}
+/>
   </div>
 )}
 

@@ -1,7 +1,7 @@
 // src/app/api/entretiens/[id]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../../lib/prisma';
-import { setTempData } from '@/lib/tempEntretienData';
+
 
 export async function GET(
   request: Request,
@@ -23,7 +23,7 @@ export async function GET(
         // Parser les données
         const parsedData = JSON.parse(entretien.donneesEntretien);
         // Les stocker dans notre système temporaire
-        setTempData(entretien.id, parsedData);
+        //setTempData(entretien.id, parsedData);
         // Ajouter un flag indiquant que nous avons des données
         entretien._hasData = true;
       } catch (error) {

@@ -33,7 +33,7 @@ export async function GET(
   try {
     const patientId = parseInt(params.id);
     
-    console.log(`Récupération des entretiens pour le patient ID: ${patientId}`);
+    
     
     if (isNaN(patientId)) {
       return NextResponse.json({ error: 'ID patient invalide' }, { status: 400 });
@@ -45,7 +45,7 @@ export async function GET(
       orderBy: { dateCreation: 'desc' },
     });
 
-    console.log(`Nombre d'entretiens trouvés: ${entretiens.length}`);
+    
 
     // Ajouter les styles de statut
     const formattedEntretiens = entretiens.map(entretien => ({
@@ -58,7 +58,7 @@ export async function GET(
       data: formattedEntretiens
     });
   } catch (error) {
-    console.error('Erreur lors de la récupération des entretiens:', error);
+    
     return NextResponse.json(
       { success: false, error: 'Erreur serveur' },
       { status: 500 }

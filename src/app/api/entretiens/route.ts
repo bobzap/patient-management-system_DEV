@@ -4,81 +4,86 @@ import { prisma } from '../../../lib/prisma';
 
 export async function POST(req: Request) {
   try {
-    const reqText = await req.text();
-    const reqData = JSON.parse(reqText);
+    const reqData = await req.json();
     console.log('Données reçues:', reqData);
 
     // Validation
     if (!reqData.patientId) {
-      return new NextResponse(
-        JSON.stringify({
-          success: false,
-          error: 'ID du patient requis'
-        }),
-        { 
-          status: 400,
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
-      );
+      return NextResponse.json({ success: false, error: 'ID du patient requis' }, { status: 400 });
     }
 
-    // Création de l'entretien avec conversion en string des données
+    // Déterminer le numéro d'entretien
+    let numeroEntretien = reqData.numeroEntretien || 1;
+    
+    if (!reqData.numeroEntretien) {
+      // Trouver le nombre d'entretiens pour ce patient
+      const existingEntretiens = await prisma.entretien.findMany({
+        where: { patientId: reqData.patientId },
+        select: { numeroEntretien: true }
+      });
+      
+      if (existingEntretiens.length > 0) {
+        // Trouver le numéro le plus élevé et ajouter 1
+        numeroEntretien = Math.max(...existingEntretiens.map(e => e.numeroEntretien)) + 1;
+      }
+    }
+
+    // Création de l'entretien
     const nouvelEntretien = await prisma.entretien.create({
       data: {
         patientId: reqData.patientId,
-        numeroEntretien: reqData.numeroEntretien || 1,
-        status: 'brouillon',
+        numeroEntretien: numeroEntretien,
+        status: reqData.status || 'brouillon',
         isTemplate: false,
-        donneesEntretien: JSON.stringify(reqData.donneesEntretien) // Conversion en string
+        donneesEntretien: typeof reqData.donneesEntretien === 'string'
+          ? reqData.donneesEntretien
+          : JSON.stringify(reqData.donneesEntretien)
       },
       include: {
         patient: true
       }
     });
 
-    return new NextResponse(
-      JSON.stringify({
-        success: true,
-        data: nouvelEntretien
-      }),
-      {
-        status: 201,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      }
-    );
+    return NextResponse.json({
+      success: true,
+      data: nouvelEntretien
+    }, { status: 201 });
 
   } catch (error: any) {
     console.error('Erreur détaillée:', error);
-    
-    return new NextResponse(
-      JSON.stringify({
-        success: false,
-        error: error.message || 'Erreur serveur'
-      }),
-      {
-        status: 500,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      }
-    );
+    return NextResponse.json({
+      success: false,
+      error: error.message || 'Erreur serveur'
+    }, { status: 500 });
   }
 }
 
 
-
-export async function GET() {
+export async function GET(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
   try {
-    const entretiens = await prisma.entretien.findMany({
-      orderBy: { dateCreation: 'desc' },
+    
+    
+    const entretien = await prisma.entretien.findUnique({
+      where: { id: parseInt(params.id) },
       include: {
         patient: true
       }
     });
+    
+    if (!entretien) {
+      return NextResponse.json({ error: 'Entretien non trouvé' }, { status: 404 });
+    }
+
+    
+    console.log('API: donneesEntretien (début):', 
+      typeof entretien.donneesEntretien === 'string'
+        ? entretien.donneesEntretien.substring(0, 100) + '...'
+        : JSON.stringify(entretien.donneesEntretien).substring(0, 100) + '...'
+    );
+
 
     return NextResponse.json({
       success: true,
