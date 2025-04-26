@@ -129,14 +129,11 @@ export default function HomePage() {
       <main className="flex-1 overflow-auto">
         {selectedPatient ? (
           <div className="relative">
-            <PatientDetails patient={selectedPatient} />
-            <button
-              onClick={() => setSelectedPatient(null)}
-              className="absolute top-6 right-6 px-4 py-2 bg-gray-100 text-gray-600 
-                       rounded-lg hover:bg-gray-200 transition-colors duration-200"
-            >
-              ← Retour à la liste
-            </button>
+            <PatientDetails 
+              patient={selectedPatient} 
+              onEdit={() => console.log('Edit patient:', selectedPatient)} 
+              onDelete={() => console.log('Delete patient:', selectedPatient)} 
+            />
           </div>
         ) : (
           <>

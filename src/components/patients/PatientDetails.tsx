@@ -10,6 +10,7 @@ import { usePatients } from '@/hooks/usePatients'; // Nouveau import
 import { toast } from 'sonner';
 import { PatientForm } from './PatientForm';
 import { EntretienList } from '../entretiens/EntretienList';
+import Link from 'next/link';
 
 interface PatientDetailsProps {
   patient: Patient;
@@ -139,155 +140,154 @@ const handleEntretienSelect = (entretienId: number, readOnly: boolean) => {
     />;
   }
 
-  return (
-    <div className="p-6 max-w-7xl mx-auto">
-
-
-{/* En-tête du dossier */}
-<div className="bg-white rounded-xl shadow-lg mb-6">
-  {/* Section supérieure avec infos et boutons */}
-  <div className="p-6 border-b border-gray-100">
-    <div className="flex justify-between items-start">
-      {/* Info patient */}
-      <div className="flex items-center gap-4">
-        <div className="h-16 w-16 rounded-full bg-blue-100 flex items-center justify-center">
-          <span className="text-xl font-bold text-blue-900">
-            {`${patient.prenom[0]}${patient.nom[0]}`}
-          </span>
-        </div>
-        <div>
-          <h2 className="text-2xl font-bold text-blue-900">
-            {`${patient.civilites} ${patient.nom} ${patient.prenom}`}
-          </h2>
-          <div className="flex items-center gap-3 mt-1">
-            <span className="text-gray-600">{patient.age} ans</span>
-            <span className="text-gray-300">•</span>
-            <span className="px-2.5 py-1 rounded-full bg-blue-100 text-blue-800 text-sm font-medium">
-              {patient.departement}
-            </span>
-            <span className="text-gray-300">•</span>
-            <span className="text-gray-600">{`Entré le ${patient.dateEntree}`}</span>
+  // Refonte complète du return de PatientDetails.tsx
+return (
+  <div className="p-6 max-w-7xl mx-auto">
+    {/* En-tête du dossier avec navigation */}
+    <div className="bg-white rounded-xl shadow-lg mb-6">
+      <div className="p-6">
+        {/* Barre supérieure avec navigation et actions principales */}
+        <div className="flex justify-between items-center mb-6">
+          <div className="flex items-center gap-2">
+            <div className="h-16 w-16 rounded-full bg-blue-100 flex items-center justify-center">
+              <span className="text-xl font-bold text-blue-900">
+                {`${patient.prenom[0]}${patient.nom[0]}`}
+              </span>
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold text-blue-900">
+                {`${patient.civilites} ${patient.nom} ${patient.prenom}`}
+              </h2>
+              <div className="flex items-center gap-3 mt-1">
+                <span className="text-gray-600">{patient.age} ans</span>
+                <span className="text-gray-300">•</span>
+                <span className="px-2.5 py-1 rounded-full bg-blue-100 text-blue-800 text-sm font-medium">
+                  {patient.departement}
+                </span>
+              </div>
+            </div>
+          </div>
+          
+          {/* Actions regroupées */}
+          <div className="flex items-center gap-3">
+            <Link 
+              href="/"
+              className="flex items-center gap-1 px-3 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+              Retour à la liste
+            </Link>
+            
+            <button
+              onClick={() => setShowEntretien(true)}
+              className="flex items-center gap-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+              </svg>
+              Nouvel Entretien
+            </button>
           </div>
         </div>
-      </div>
-
-        {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-gray-50 rounded-lg p-4">
-            <p className="text-sm text-gray-600">Entré le</p>
-            <p className="text-lg font-semibold text-blue-900">{patient.dateEntree}</p>
-          </div>
-          <div className="bg-gray-50 rounded-lg p-4">
-            <p className="text-sm text-gray-600">Ancienneté</p>
-            <p className="text-lg font-semibold text-blue-900">{patient.anciennete}</p>
-          </div>
-          <div className="bg-gray-50 rounded-lg p-4">
-            <p className="text-sm text-gray-600">Dernier entretien</p>
-            <p className="text-lg font-semibold text-blue-900">{patient.dateEntretien || 'Aucun'}</p>
-          </div>
-        </div>
-
-        {/* Bouton Nouvel Entretien */}
-        <button
-          onClick={() => setShowEntretien(true)}
-          className="mt-6 px-4 py-2 bg-blue-600 text-white rounded-lg 
-                   hover:bg-blue-700 transition-colors duration-200 
-                   flex items-center gap-2"
-        >
-          <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" 
-                  d="M12 4v16m8-8H4" />
-          </svg>
-          Nouvel Entretien
-        </button>
-      </div>
-
- {/* Boutons d'action */}
- <div className="flex gap-3">
-        <button
-          onClick={() => setShowEditForm(true)}
-          className="px-4 py-2 text-blue-600 bg-blue-50 border border-blue-200 rounded-lg 
-                   hover:bg-blue-100 transition-colors duration-200 
-                   flex items-center gap-2 font-medium"
-        >
-          <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" 
-                  d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-          </svg>
-          Modifier
-        </button>
-
         
-  <button
-    onClick={handleDelete} // Modification ici
-    className="px-4 py-2 text-red-600 bg-red-50 border border-red-200 rounded-lg 
-             hover:bg-red-100 transition-colors duration-200 
-             flex items-center gap-2 font-medium"
-  >
-    <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" 
-            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-    </svg>
-    Supprimer
-  </button>
+        {/* Infos synthétiques */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+          <div className="bg-gray-50 rounded-lg p-3">
+            <p className="text-xs text-gray-500">Entré le</p>
+            <p className="text-sm font-semibold text-gray-900">{patient.dateEntree}</p>
+          </div>
+          <div className="bg-gray-50 rounded-lg p-3">
+            <p className="text-xs text-gray-500">Ancienneté</p>
+            <p className="text-sm font-semibold text-gray-900">{patient.anciennete}</p>
+          </div>
+          <div className="bg-gray-50 rounded-lg p-3">
+            <p className="text-xs text-gray-500">Dernier entretien</p>
+            <p className="text-sm font-semibold text-gray-900">{patient.dateEntretien || 'Aucun'}</p>
+          </div>
+        </div>
+        
+        {/* Actions secondaires */}
+        <div className="flex gap-3">
+          <button
+            onClick={() => setShowEditForm(true)}
+            className="px-3 py-1.5 text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors flex items-center gap-1 text-sm"
+          >
+            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+            </svg>
+            Modifier
+          </button>
+          
+          <button
+            onClick={handleDelete}
+            className="px-3 py-1.5 text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors flex items-center gap-1 text-sm"
+          >
+            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+            Supprimer
+          </button>
+        </div>
       </div>
     </div>
-  </div>
 
-      {/* Navigation */}
-      <div className="bg-white rounded-xl shadow-lg p-4 mb-6">
-        <nav className="flex gap-4">
-          <button 
-            onClick={() => setActiveTab('general')}
-            className={`px-4 py-2 font-semibold transition-colors duration-200 ${
-              activeTab === 'general' 
-                ? 'text-blue-900 border-b-2 border-blue-900' 
-                : 'text-gray-500 hover:text-blue-900'
-            }`}
-          >
-            Informations générales
-    </button>
-    <button 
-      onClick={() => setActiveTab('historique')}
-      className={`px-4 py-2 font-semibold transition-colors duration-200 ${
-        activeTab === 'historique' 
-          ? 'text-blue-900 border-b-2 border-blue-900' 
-          : 'text-gray-500 hover:text-blue-900'
-      }`}
-    >
-      Historique des entretiens
-    </button>
-    <button 
-      onClick={() => setActiveTab('documents')}
-      className={`px-4 py-2 font-semibold transition-colors duration-200 ${
-        activeTab === 'documents' 
-          ? 'text-blue-900 border-b-2 border-blue-900' 
-          : 'text-gray-500 hover:text-blue-900'
-      }`}
-    >
-      Documents
-    </button>
-  </nav>
-</div>
+    {/* Navigation des onglets */}
+    <div className="bg-white rounded-xl shadow-lg p-4 mb-6">
+      <nav className="flex gap-4">
+        <button 
+          onClick={() => setActiveTab('general')}
+          className={`px-4 py-2 font-medium transition-colors duration-200 ${
+            activeTab === 'general' 
+              ? 'text-blue-900 border-b-2 border-blue-900' 
+              : 'text-gray-500 hover:text-blue-900'
+          }`}
+        >
+          Informations générales
+        </button>
+        <button 
+          onClick={() => setActiveTab('historique')}
+          className={`px-4 py-2 font-medium transition-colors duration-200 ${
+            activeTab === 'historique' 
+              ? 'text-blue-900 border-b-2 border-blue-900' 
+              : 'text-gray-500 hover:text-blue-900'
+          }`}
+        >
+          Historique des entretiens
+        </button>
+        <button 
+          onClick={() => setActiveTab('documents')}
+          className={`px-4 py-2 font-medium transition-colors duration-200 ${
+            activeTab === 'documents' 
+              ? 'text-blue-900 border-b-2 border-blue-900' 
+              : 'text-gray-500 hover:text-blue-900'
+          }`}
+        >
+          Documents
+        </button>
+      </nav>
+    </div>
 
-{/* Contenu selon l'onglet actif */}
-{activeTab === 'historique' && (
-  <div className="mb-6">
-    <EntretienList
-  patientId={patient.id!}
-  refreshTrigger={refreshEntretiens}
-  onEntretienSelect={handleEntretienSelect}
-  onNewEntretien={() => {
-    setSelectedEntretienId(null);
-    setIsReadOnly(false);
-    setShowEntretien(true);
-  }}
-  onDelete={handleEntretienDelete}
-/>
-  </div>
-)}
+    {/* Contenu selon l'onglet actif */}
+    {activeTab === 'historique' && (
+      <div className="mb-6">
+        <EntretienList
+          patientId={patient.id!}
+          refreshTrigger={refreshEntretiens}
+          onEntretienSelect={handleEntretienSelect}
+          onNewEntretien={() => {
+            setSelectedEntretienId(null);
+            setIsReadOnly(false);
+            setShowEntretien(true);
+          }}
+          onDelete={handleEntretienDelete}
+        />
+      </div>
+    )}
 
-      {/* Contenu principal */}
+    {/* Contenu principal - uniquement pour l'onglet général */}
+    {activeTab === 'general' && (
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Colonne principale - 2/3 */}
         <div className="lg:col-span-2 space-y-6">
@@ -379,7 +379,7 @@ const handleEntretienSelect = (entretienId: number, readOnly: boolean) => {
             </div>
           </div>
 
-          {/* Transport - Déplacé ici */}
+          {/* Transport */}
           <div className="bg-white rounded-xl shadow-lg p-6">
             <h3 className="text-lg font-semibold text-blue-900 mb-4">
               Transport
@@ -399,6 +399,17 @@ const handleEntretienSelect = (entretienId: number, readOnly: boolean) => {
           </div>
         </div>
       </div>
-    </div>
-  );
+    )}
+    
+    {/* Onglet documents - à compléter selon vos besoins */}
+    {activeTab === 'documents' && (
+      <div className="bg-white rounded-xl shadow-lg p-6">
+        <p className="text-gray-500 text-center py-10">Aucun document disponible</p>
+      </div>
+    )}
+  </div>
+);
+
+
+  
 };

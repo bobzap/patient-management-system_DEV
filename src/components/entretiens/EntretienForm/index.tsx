@@ -15,6 +15,7 @@ import { defaultConclusionData } from '../types/defaultData';
 import type { VecuTravailData } from '../sections/SanteAuTravail/VecuTravail';
 import type { ModeVieData } from '../sections/SanteAuTravail/ModeVie';
 import { IMAA } from '../sections/IMAA';
+import Link from 'next/link';
 
 interface EntretienData {
   numeroEntretien: number;
@@ -423,24 +424,83 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
     }
   };
 
-  return (
-    <div className="p-6">
-      {/* En-tête avec bouton de statut */}
-      <div className="max-w-[98%] mx-auto bg-white rounded-xl shadow-lg p-6 mb-6">
-        <div className="flex justify-between items-start mb-4">
-          <div className="flex-grow">
-            <h2 className="text-xl font-bold text-blue-900">
-              {entretienId ? `${isReadOnly ? 'Consultation' : 'Modification'} de l'entretien n°${entretienData.numeroEntretien}` : 'Nouvel entretien'} - {patient.civilites} {patient.nom} {patient.prenom}
-            </h2>
-            <div className="mt-2 text-gray-600">
-              {patient.age} ans • {patient.poste} • {patient.departement}
-            </div>
-            <div className="mt-1 text-gray-600">
-              Ancienneté : {patient.anciennete} • Horaire : {patient.horaire}
-            </div>
+// Refonte complète du return de EntretienForm.tsx
+return (
+  <div className="p-6">
+    {/* En-tête avec navigation et informations */}
+    <div className="max-w-[98%] mx-auto bg-white rounded-xl shadow-lg p-6 mb-6">
+      {/* Barre de navigation supérieure */}
+      <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+        {/* Boutons de navigation - côté gauche */}
+        <div className="flex items-center gap-3">
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+            >
+              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+              Retour au dossier
+            </Link>
           </div>
+          
+          {/* Actions principales - côté droit */}
+          <div className="flex items-center gap-3">
+            <button
+              onClick={resetSizes}
+              className="px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+            >
+              Mise en page par défaut
+            </button>
+            
+            {/* Action contextuelle (Modifier ou Sauvegarder) */}
+            {isReadOnly ? (
+              <button 
+                onClick={() => onClose && onClose()}
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Modifier
+              </button>
+            ) : (
+              <button 
+                onClick={saveEntretien}
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Sauvegarder
+              </button>
+            )}
+            
+            {/* Lien vers la liste (toujours disponible) */}
+            <Link
+              href="/"
+              className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+            >
+              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16m-7 6h7" />
+              </svg>
+              Retour à la liste
+            </Link>
+          </div>
+        </div>
+      
+        {/* Informations du patient et statut */}
+        <div className="mt-4 pt-4 border-t border-gray-200">
+          <div className="flex flex-wrap justify-between items-start gap-4">
+            <div>
+              <h2 className="text-xl font-bold text-blue-900">
+                {entretienId 
+                  ? `${isReadOnly ? 'Consultation' : 'Modification'} de l'entretien n°${entretienData.numeroEntretien}` 
+                  : 'Nouvel entretien'} - {patient.civilites} {patient.nom} {patient.prenom}
+              </h2>
+              <div className="mt-1 text-sm text-gray-600">
+                {patient.age} ans • {patient.poste} • {patient.departement}
+              </div>
+              <div className="mt-1 text-sm text-gray-600">
+                Ancienneté : {patient.anciennete} • Horaire : {patient.horaire}
+              </div>
+            </div>
 
-          <div className="flex items-center gap-4 ml-4">
             {/* Sélecteur de statut - visible seulement en mode édition */}
             {!isReadOnly && (
               <div className="flex items-center gap-2">
@@ -448,8 +508,7 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
                 <select
                   value={entretienData.status}
                   onChange={(e) => setEntretienData(prev => ({ ...prev, status: e.target.value }))}
-                  className="px-3 py-2 bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  disabled={isReadOnly}
+                  className="px-3 py-2 text-sm bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="brouillon">Brouillon</option>
                   <option value="finalise">Finalisé</option>
@@ -457,57 +516,18 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
                 </select>
               </div>
             )}
-
-            <button
-              onClick={resetSizes}
-              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 
-                       transition-colors duration-200 shadow hover:shadow-md"
-            >
-              <span className="whitespace-nowrap">Mise en page par défaut</span>
-            </button>
-            
-            {/* Bouton Modifier - visible seulement en mode consultation */}
-            {isReadOnly && (
-              <button 
-                onClick={() => {
-                  // Rediriger vers le mode édition
-                  if (onClose) {
-                    onClose();
-                    // Vous devrez gérer la redirection vers le mode édition depuis le composant parent
-                  }
-                }}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 
-                         transition-colors duration-200 shadow hover:shadow-md"
-              >
-                <span className="whitespace-nowrap">Modifier</span>
-              </button>
-            )}
-            
-            {/* Bouton Sauvegarder - visible seulement en mode édition */}
-            {!isReadOnly && (
-              <button 
-                onClick={saveEntretien}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 
-                         transition-colors duration-200 shadow hover:shadow-md"
-              >
-                <span className="whitespace-nowrap">Sauvegarder</span>
-              </button>
-            )}
-            
-            {onClose && (
-              <button
-                onClick={onClose}
-                className="px-4 py-2 text-gray-600 hover:text-gray-800 
-                         flex items-center gap-2 rounded-lg hover:bg-gray-100
-                         transition-colors duration-200"
-              >
-                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                </svg>
-                <span className="whitespace-nowrap">Retour au dossier</span>
-              </button>
-            )}
           </div>
+          
+          {/* Indicateur de mode lecture seule - si applicable */}
+          {isReadOnly && (
+            <div className="mt-2 inline-flex items-center px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-medium">
+              <svg className="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+              </svg>
+              Mode consultation
+            </div>
+          )}
         </div>
       </div>
 
@@ -539,7 +559,7 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
                     key={section.id} 
                     draggableId={section.id} 
                     index={index}
-                    isDragDisabled={!!focusedSection || !!expandedSection || isReadOnly} // Désactive le drag si focused ou expanded ou en lecture seule
+                    isDragDisabled={!!focusedSection || !!expandedSection || isReadOnly}
                   >
                     {(provided, snapshot) => (
                       <div
@@ -585,7 +605,7 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
             onClick={() => setFocusedSection(null)}
             className="fixed bottom-4 right-4 px-4 py-2 bg-blue-600 text-white 
                       rounded-lg shadow-lg hover:bg-blue-700 transition-colors"
-            style={{ zIndex: 60 }} // Au-dessus de tout
+            style={{ zIndex: 60 }}
           >
             Quitter le mode focus
           </button>
