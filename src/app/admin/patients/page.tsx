@@ -32,7 +32,7 @@ export default function PatientsPage() {
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold text-blue-900 mb-6">Liste des Dossiers Patients</h1>
+      <h1 className="text-2xl font-bold text-blue-900 mb-6">Liste des Dossiers employés</h1>
       <PatientList patients={patients} />
     </div>
   );

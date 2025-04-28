@@ -23,7 +23,7 @@ export const Sidebar = ({ activeTab, onTabChange }: SidebarProps) => {
     },
     {
       id: 'patients' as NavigationTab,
-      label: 'Dossiers patients',
+      label: 'Dossiers employés',
       icon: (
         <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" 
@@ -37,7 +37,7 @@ export const Sidebar = ({ activeTab, onTabChange }: SidebarProps) => {
     },
     {
       id: 'newDossier' as NavigationTab,
-      label: 'Nouveau patient',
+      label: 'Nouveau employé',
       icon: (
         <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" 

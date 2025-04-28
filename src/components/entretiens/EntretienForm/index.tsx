@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
+// Les imports problématiques de @hello-pangea/dnd sont supprimés
 import { toast } from 'sonner';
 import { Patient } from '@/types';
 import { TabBar } from './TabBar';
@@ -16,10 +16,6 @@ import type { VecuTravailData } from '../sections/SanteAuTravail/VecuTravail';
 import type { ModeVieData } from '../sections/SanteAuTravail/ModeVie';
 import { IMAA } from '../sections/IMAA';
 import { Minus, Maximize2, Focus, Expand, ZoomIn, ZoomOut } from 'lucide-react';
-
-
-
-
 
 interface EntretienData {
   numeroEntretien: number;
@@ -89,15 +85,12 @@ const initialModeVieData: ModeVieData = {
   }
 };
 
-
-const [globalZoom, setGlobalZoom] = useState(100);
-
-
 export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClose }: EntretienFormProps) => {
   // États
   const [focusedSection, setFocusedSection] = useState<string | null>(null);
   const [maxZIndex, setMaxZIndex] = useState(1);
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
+  const [globalZoom, setGlobalZoom] = useState(100); // Déplacé ici à l'intérieur du composant
   const [sections, setSections] = useState<Section[]>([
     { 
       id: 'sante', 
@@ -141,6 +134,92 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
     }
   ]);
 
+  // Fonction remplaçant handleDragEnd
+  const updateSectionOrder = (sectionId: string, newPosition: number) => {
+    // Obtenir les indices actuels
+    const currentIndex = sections.findIndex(s => s.id === sectionId);
+    if (currentIndex === -1 || newPosition === currentIndex) return;
+    
+    // Créer une copie des sections
+    const newSections = [...sections];
+    const [movedSection] = newSections.splice(currentIndex, 1);
+    newSections.splice(newPosition, 0, movedSection);
+    
+    // Mettre à jour les positions
+    const updatedSections = newSections.map((section, index) => ({
+      ...section,
+      position: index
+    }));
+    
+    setSections(updatedSections);
+  };
+
+  // Implémentation de la disposition verticale
+  const arrangeWindowsVertically = () => {
+    // Récupérer les sections non minimisées
+    const visibleSections = sections.filter(s => !s.isMinimized);
+    
+    if (visibleSections.length === 0) return;
+    
+    // Calculer l'espace disponible
+    const mainWidth = window.innerWidth - 64; // Moins la sidebar
+    const mainHeight = window.innerHeight - 150; // Moins l'en-tête
+    
+    // Hauteur pour chaque section (répartie équitablement)
+    const optimalHeight = (mainHeight / visibleSections.length) - 20;
+    const optimalWidth = mainWidth - 40; // Largeur maximale disponible
+    
+    // Mettre à jour chaque section
+    const updatedSections = sections.map(section => {
+      if (section.isMinimized) return section;
+      
+      // L'index dans les sections visibles
+      const visibleIndex = visibleSections.findIndex(s => s.id === section.id);
+      
+      return {
+        ...section,
+        width: optimalWidth,
+        height: optimalHeight,
+        position: visibleIndex
+      };
+    });
+    
+    setSections(updatedSections);
+  };
+
+  // Implémentation de la disposition horizontale
+  const arrangeWindowsHorizontally = () => {
+    // Récupérer les sections non minimisées
+    const visibleSections = sections.filter(s => !s.isMinimized);
+    
+    if (visibleSections.length === 0) return;
+    
+    // Calculer l'espace disponible
+    const mainWidth = window.innerWidth - 64; // Moins la sidebar
+    const mainHeight = window.innerHeight - 150; // Moins l'en-tête
+    
+    // Largeur pour chaque section (répartie équitablement)
+    const optimalWidth = (mainWidth / visibleSections.length) - 20;
+    const optimalHeight = mainHeight - 40; // Hauteur maximale disponible
+    
+    // Mettre à jour chaque section
+    const updatedSections = sections.map(section => {
+      if (section.isMinimized) return section;
+      
+      // L'index dans les sections visibles
+      const visibleIndex = visibleSections.findIndex(s => s.id === section.id);
+      
+      return {
+        ...section,
+        width: optimalWidth,
+        height: optimalHeight,
+        position: visibleIndex
+      };
+    });
+    
+    setSections(updatedSections);
+  };
+
   const arrangeWindowsEvenly = () => {
     // Récupérer les sections non minimisées
     const visibleSections = sections.filter(s => !s.isMinimized);
@@ -180,7 +259,6 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
     
     setSections(updatedSections);
   };
-
 
   const [entretienData, setEntretienData] = useState<EntretienData>({
     numeroEntretien: 1,
@@ -340,22 +418,6 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
     }
   };
 
-  // Gestion du drag and drop
-  const handleDragEnd = (result: DropResult) => {
-    if (!result.destination) return;
-    
-    const newSections = Array.from(sections);
-    const [reorderedItem] = newSections.splice(result.source.index, 1);
-    newSections.splice(result.destination.index, 0, reorderedItem);
-    
-    const updatedSections = newSections.map((section, index) => ({
-      ...section,
-      position: index
-    }));
-    
-    setSections(updatedSections);
-  };
-
   // Effet pour charger les données d'un entretien existant
   useEffect(() => {
     if (entretienId) {
@@ -474,252 +536,217 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
   };
 
   return (
-    
-    <>
-    {/* Boutons de zoom global */}
-    <div className="absolute top-2 right-2 flex items-center gap-2 z-50 bg-white rounded-lg shadow-md p-1">
-      <button
-        onClick={() => setGlobalZoom(prev => Math.max(prev - 5, 80))}
-        className="p-1 hover:bg-gray-100 rounded"
-        title="Réduire la taille"
-      >
-        <ZoomOut size={16} />
-      </button>
-      <span className="text-xs font-medium">{globalZoom}%</span>
-      <button
-        onClick={() => setGlobalZoom(prev => Math.min(prev + 5, 120))}
-        className="p-1 hover:bg-gray-100 rounded"
-        title="Augmenter la taille"
-      >
-        <ZoomIn size={16} />
-      </button>
-    </div>
-    
-    {/* Appliquer le zoom à tout le contenu */}
-    <div style={{ zoom: `${globalZoom}%` }}>
-      {/* Reste du contenu existant */}
-      <div className="p-6">
-      {/* En-tête avec navigation et informations */}
-      <div className="max-w-[98%] mx-auto bg-white rounded-xl shadow-lg p-3 mb-3">
-
-        
-        {/* Barre de navigation supérieure */}
-        <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-
-          
-          {/* Boutons de navigation - côté gauche */}
-
-          
-          <div className="flex items-center gap-3">
-            {onClose && (
-              <button
-                onClick={onClose}
-                className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-              >
-                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                </svg>
-                Retour au dossier
-              </button>
-            )}
-          </div>
-          
-          {/* Actions principales - côté droit */}
-          <div className="flex items-center gap-3">
-            <button
-              onClick={resetSizes}
-              className="px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-            >
-              Mise en page par défaut
-            </button>
-            
-            {/* Action contextuelle (Modifier ou Sauvegarder) */}
-            {isReadOnly ? (
-              <button 
-                onClick={() => onClose && onClose()}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                Modifier
-              </button>
-            ) : (
-              <button 
-                onClick={saveEntretien}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                Sauvegarder
-              </button>
-            )}
-            
-            
-          </div>
-        </div>
-      
-        {/* Informations du patient et statut */}
-        <div className="mt-4 pt-4 border-t border-gray-200">
-          <div className="flex flex-wrap justify-between items-start gap-4">
-            <div>
-              <h2 className="text-xl font-bold text-blue-900">
-                {entretienId 
-                  ? `${isReadOnly ? 'Consultation' : 'Modification'} de l'entretien n°${entretienData.numeroEntretien}` 
-                  : 'Nouvel entretien'} - {patient.civilites} {patient.nom} {patient.prenom}
-              </h2>
-              <div className="mt-1 text-sm text-gray-600">
-                {patient.age} ans • {patient.poste} • {patient.departement}
-              </div>
-              <div className="mt-1 text-sm text-gray-600">
-                Ancienneté : {patient.anciennete} • Horaire : {patient.horaire}
-              </div>
-            </div>
-
-            {/* Sélecteur de statut - visible seulement en mode édition */}
-            {!isReadOnly && (
-              <div className="flex items-center gap-2">
-                <label className="text-sm font-medium text-gray-700">Statut :</label>
-                <select
-                  value={entretienData.status}
-                  onChange={(e) => setEntretienData(prev => ({ ...prev, status: e.target.value }))}
-                  className="px-3 py-2 text-sm bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="brouillon">Brouillon</option>
-                  <option value="finalise">Finalisé</option>
-                  <option value="archive">Archivé</option>
-                </select>
-              </div>
-            )}
-          </div>
-          
-          {/* Indicateur de mode lecture seule - si applicable */}
-          {isReadOnly && (
-            <div className="mt-2 inline-flex items-center px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-medium">
-              <svg className="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-              </svg>
-              Mode consultation
-            </div>
-          )}
-        </div>
+    <div>
+      {/* Boutons de zoom global */}
+      <div className="absolute top-2 right-2 flex items-center gap-2 z-50 bg-white rounded-lg shadow-md p-1">
+        <button
+          onClick={() => setGlobalZoom(prev => Math.max(prev - 5, 80))}
+          className="p-1 hover:bg-gray-100 rounded"
+          title="Réduire la taille"
+        >
+          <ZoomOut size={16} />
+        </button>
+        <span className="text-xs font-medium">{globalZoom}%</span>
+        <button
+          onClick={() => setGlobalZoom(prev => Math.min(prev + 5, 120))}
+          className="p-1 hover:bg-gray-100 rounded"
+          title="Augmenter la taille"
+        >
+          <ZoomIn size={16} />
+        </button>
       </div>
       
-      {/* TabBar */}
-      <div className="max-w-[98%] mx-auto mb-4">
-        <TabBar 
-          sections={sections}
-          onMaximize={handleMaximize}
-        />
-     {/* Boutons de disposition intégrés */}
-  <div className="flex items-center gap-2">
-    <span className="text-sm text-gray-500 mr-2">Disposition:</span>
-    <button
-      onClick={() => {/* code de disposition verticale */}}
-      className="p-1.5 rounded hover:bg-gray-100"
-      title="Vertical"
-    >
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <rect x="4" y="4" width="16" height="6" rx="1" />
-        <rect x="4" y="14" width="16" height="6" rx="1" />
-      </svg>
-    </button>
-    
-    <button
-      onClick={() => {/* code de disposition horizontale */}}
-      className="p-1.5 rounded hover:bg-gray-100"
-      title="Horizontal"
-    >
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <rect x="4" y="4" width="6" height="16" rx="1" />
-        <rect x="14" y="4" width="6" height="16" rx="1" />
-      </svg>
-    </button>
-    
-    <button
-      onClick={arrangeWindowsEvenly}
-      className="p-1.5 rounded hover:bg-gray-100"
-      title="Grille"
-    >
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <rect x="4" y="4" width="6" height="6" rx="1" />
-        <rect x="14" y="4" width="6" height="6" rx="1" />
-        <rect x="4" y="14" width="6" height="6" rx="1" />
-        <rect x="14" y="14" width="6" height="6" rx="1" />
-      </svg>
-    </button>
-    
-    <button
-      onClick={resetSizes}
-      className="p-1.5 rounded hover:bg-gray-100"
-      title="Réinitialiser"
-    >
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <path d="M3 12a9 9 0 1 1 18 0 9 9 0 0 1-18 0z" />
-        <path d="M12 3v9l3.5 3.5" />
-      </svg>
-    </button>
-
-
-    
-  </div>
-</div>
-
-      {/* Sections */}
-      <DragDropContext onDragEnd={handleDragEnd}>
-  <Droppable droppableId="sections" direction="horizontal" type="section">
-    {(provided) => (
-      <div 
-        {...provided.droppableProps}
-        ref={provided.innerRef}
-        className="grid grid-cols-1 md:grid-cols-2 auto-rows-min gap-4 max-w-[98%] mx-auto"
-        style={{
-          display: "grid",
-          gridTemplateColumns: focusedSection ? "1fr" : "repeat(auto-fit, minmax(500px, 1fr))",
-          gridAutoFlow: "dense"
-        }}
-      >
-              {sections
-                .filter(section => !section.isMinimized)
-                .filter(section => !focusedSection || section.id === focusedSection)
-                .sort((a, b) => a.position - b.position)
-                .map((section, index) => (
-                  <Draggable 
-                    key={section.id} 
-                    draggableId={section.id} 
-                    index={index}
-                    isDragDisabled={!!focusedSection || !!expandedSection || isReadOnly}
+      {/* Appliquer le zoom à tout le contenu */}
+      <div style={{ zoom: `${globalZoom}%` }}>
+        {/* Reste du contenu existant */}
+        <div className="p-6">
+          {/* En-tête avec navigation et informations */}
+          <div className="max-w-[98%] mx-auto bg-white rounded-xl shadow-lg p-3 mb-3">
+            {/* Barre de navigation supérieure */}
+            <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+              {/* Boutons de navigation - côté gauche */}
+              <div className="flex items-center gap-3">
+                {onClose && (
+                  <button
+                    onClick={onClose}
+                    className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
                   >
-                    {(provided, snapshot) => (
-                      <div
-                        ref={provided.innerRef}
-                        {...provided.draggableProps}
-                        {...provided.dragHandleProps}
-                        className={`transition-all duration-200 ${
-                          snapshot.isDragging ? 'opacity-70' : ''
-                        }`}
-                      >
-                        <ResizableSection
-                          {...section}
-                          isExpanded={expandedSection === section.id}
-                          isFocused={focusedSection === section.id}
-                          onMinimize={handleMinimize}
-                          onMaximize={handleMaximize}
-                          onToggleFocus={handleToggleFocus}
-                          onExpand={handleExpand}
-                          onResize={handleResize}
-                          onBringToFront={bringToFront}
-                        >
-                          {renderSectionContent(section.id)}
-                        </ResizableSection>
-                      </div>
-                    )}
-                  </Draggable>
-                ))}
-              {provided.placeholder}
+                    <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                    </svg>
+                    Retour au dossier
+                  </button>
+                )}
+              </div>
+              
+              {/* Actions principales - côté droit */}
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={resetSizes}
+                  className="px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                  Mise en page par défaut
+                </button>
+                
+                {/* Action contextuelle (Modifier ou Sauvegarder) */}
+                {isReadOnly ? (
+                  <button 
+                    onClick={() => onClose && onClose()}
+                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    Modifier
+                  </button>
+                ) : (
+                  <button 
+                    onClick={saveEntretien}
+                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    Sauvegarder
+                  </button>
+                )}
+              </div>
             </div>
-          )}
-        </Droppable>
-      </DragDropContext>
+          
+            {/* Informations du patient et statut */}
+            <div className="mt-4 pt-4 border-t border-gray-200">
+              <div className="flex flex-wrap justify-between items-start gap-4">
+                <div>
+                  <h2 className="text-xl font-bold text-blue-900">
+                    {entretienId 
+                      ? `${isReadOnly ? 'Consultation' : 'Modification'} de l'entretien n°${entretienData.numeroEntretien}` 
+                      : 'Nouvel entretien'} - {patient.civilites} {patient.nom} {patient.prenom}
+                  </h2>
+                  <div className="mt-1 text-sm text-gray-600">
+                    {patient.age} ans • {patient.poste} • {patient.departement}
+                  </div>
+                  <div className="mt-1 text-sm text-gray-600">
+                    Ancienneté : {patient.anciennete} • Horaire : {patient.horaire}
+                  </div>
+                </div>
 
-      {/* Bouton quitter le mode focus */}
-      
+                {/* Sélecteur de statut - visible seulement en mode édition */}
+                {!isReadOnly && (
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm font-medium text-gray-700">Statut :</label>
+                    <select
+                      value={entretienData.status}
+                      onChange={(e) => setEntretienData(prev => ({ ...prev, status: e.target.value }))}
+                      className="px-3 py-2 text-sm bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="brouillon">Brouillon</option>
+                      <option value="finalise">Finalisé</option>
+                      <option value="archive">Archivé</option>
+                    </select>
+                  </div>
+                )}
+              </div>
+              
+              {/* Indicateur de mode lecture seule - si applicable */}
+              {isReadOnly && (
+                <div className="mt-2 inline-flex items-center px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-medium">
+                  <svg className="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  </svg>
+                  Mode consultation
+                </div>
+              )}
+            </div>
+          </div>
+          
+          {/* TabBar */}
+          <div className="max-w-[98%] mx-auto mb-4">
+            <TabBar 
+              sections={sections}
+              onMaximize={handleMaximize}
+            />
+            {/* Boutons de disposition intégrés */}
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-500 mr-2">Disposition:</span>
+              <button
+                onClick={arrangeWindowsVertically}
+                className="p-1.5 rounded hover:bg-gray-100"
+                title="Vertical"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="4" y="4" width="16" height="6" rx="1" />
+                  <rect x="4" y="14" width="16" height="6" rx="1" />
+                </svg>
+              </button>
+              
+              <button
+                onClick={arrangeWindowsHorizontally}
+                className="p-1.5 rounded hover:bg-gray-100"
+                title="Horizontal"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="4" y="4" width="6" height="16" rx="1" />
+                  <rect x="14" y="4" width="6" height="16" rx="1" />
+                </svg>
+              </button>
+              
+              <button
+                onClick={arrangeWindowsEvenly}
+                className="p-1.5 rounded hover:bg-gray-100"
+                title="Grille"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="4" y="4" width="6" height="6" rx="1" />
+                  <rect x="14" y="4" width="6" height="6" rx="1" />
+                  <rect x="4" y="14" width="6" height="6" rx="1" />
+                  <rect x="14" y="14" width="6" height="6" rx="1" />
+                </svg>
+              </button>
+              
+              <button
+                onClick={resetSizes}
+                className="p-1.5 rounded hover:bg-gray-100"
+                title="Réinitialiser"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M3 12a9 9 0 1 1 18 0 9 9 0 0 1-18 0z" />
+                  <path d="M12 3v9l3.5 3.5" />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          {/* Sections - Version sans DragDropContext */}
+          <div 
+            className="grid grid-cols-1 md:grid-cols-2 auto-rows-min gap-4 max-w-[98%] mx-auto"
+            style={{
+              display: "grid",
+              gridTemplateColumns: focusedSection ? "1fr" : "repeat(auto-fit, minmax(500px, 1fr))",
+              gridAutoFlow: "dense"
+            }}
+          >
+            {sections
+              .filter(section => !section.isMinimized)
+              .filter(section => !focusedSection || section.id === focusedSection)
+              .sort((a, b) => a.position - b.position)
+              .map((section) => (
+                <div
+                  key={section.id}
+                  className="transition-all duration-200"
+                >
+                  <ResizableSection
+                    {...section}
+                    isExpanded={expandedSection === section.id}
+                    isFocused={focusedSection === section.id}
+                    onMinimize={handleMinimize}
+                    onMaximize={handleMaximize}
+                    onToggleFocus={handleToggleFocus}
+                    onExpand={handleExpand}
+                    onResize={handleResize}
+                    onBringToFront={bringToFront}
+                  >
+                    {renderSectionContent(section.id)}
+                  </ResizableSection>
+                </div>
+              ))}
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

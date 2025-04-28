@@ -149,7 +149,7 @@ const resetFilters = () => {
     <div className="p-6">
       {/* En-tête avec recherche et filtres */}
       <div className="flex flex-col md:flex-row justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-blue-900">Liste des Dossiers Patients</h2>
+        <h2 className="text-2xl font-bold text-blue-900">Liste des Dossiers Employés</h2>
         
         <div className="flex gap-4 items-center">
           {/* Barre de recherche avec bouton de filtres */}

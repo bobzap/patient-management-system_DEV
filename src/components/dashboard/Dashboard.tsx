@@ -495,7 +495,7 @@ export const Dashboard = ({ patients }: DashboardProps) => {
                   <div className="flex items-center">
                     <Calendar className="text-blue-600 mr-3" size={18} />
                     <span className="text-sm font-medium text-gray-800">
-                      {patients.data.length} dossiers patients actifs
+                      {patients.data.length} dossiers employés actifs
                     </span>
                   </div>
                   <button 
