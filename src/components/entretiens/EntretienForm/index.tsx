@@ -152,97 +152,131 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
     setSections(updatedSections);
   };
 
-  // Implémentation de la disposition verticale améliorée
-  const arrangeWindowsVertically = () => {
-    // Récupérer les sections non minimisées
-    const visibleSections = sections.filter(s => !s.isMinimized);
-    
-    if (visibleSections.length === 0) return;
-    
-    // Récupérer les dimensions du conteneur parent
-    const container = document.querySelector('.max-w-\\[98\\%\\]')?.parentElement;
-    if (!container) return;
-    
-    const containerRect = container.getBoundingClientRect();
-    const mainWidth = containerRect.width - 40; // Marge de 20px de chaque côté
-    
-    // Calculer l'espace vertical disponible
-    const headerHeight = 150; // Estimation de la hauteur des en-têtes
-    const mainHeight = window.innerHeight - containerRect.top - headerHeight;
-    
-    // Hauteur pour chaque section (répartie équitablement)
-    const sectionMargin = 20; // Marge entre les sections
-    const totalMargins = sectionMargin * (visibleSections.length - 1);
-    const optimalHeight = Math.max(300, (mainHeight - totalMargins) / visibleSections.length);
-    
-    // Largeur fixe pour toutes les sections
-    const optimalWidth = Math.min(mainWidth, 900);
-    
-    // Mettre à jour chaque section
-    const updatedSections = sections.map(section => {
-      if (section.isMinimized) return section;
-      
-      // L'index dans les sections visibles
-      const visibleIndex = visibleSections.findIndex(s => s.id === section.id);
-      
-      return {
-        ...section,
-        width: optimalWidth,
-        height: optimalHeight,
-        position: visibleIndex
-      };
-    });
-    
-    setSections(updatedSections);
-  };
 
-  // Implémentation de la disposition en grille améliorée
-  const arrangeWindowsEvenly = () => {
-    // Récupérer les sections non minimisées
-    const visibleSections = sections.filter(s => !s.isMinimized);
+
+
+  // src/components/entretiens/EntretienForm/index.tsx
+// Modifiez la fonction arrangeWindowsVertically
+const arrangeWindowsVertically = () => {
+  // Récupérer les sections non minimisées
+  const visibleSections = sections.filter(s => !s.isMinimized);
+  
+  if (visibleSections.length === 0) return;
+  
+  // Obtenir les dimensions réelles du conteneur
+  const container = document.querySelector('.max-w-\\[98\\%\\]');
+  if (!container) return;
+  
+  const containerRect = container.getBoundingClientRect();
+  const containerWidth = containerRect.width - 40; // Marge de 20px de chaque côté
+  const containerHeight = window.innerHeight - containerRect.top - 150; // Hauteur disponible
+  
+  // Largeur pour chaque section (répartie équitablement)
+  const sectionMargin = 20;
+  const totalMargins = sectionMargin * (visibleSections.length - 1);
+  const optimalWidth = Math.max(400, (containerWidth - totalMargins) / visibleSections.length);
+  
+  // Hauteur adaptative, utilisant plus d'espace vertical
+  const optimalHeight = Math.max(550, containerHeight - 100);
+  
+  // Mettre à jour chaque section
+  const updatedSections = sections.map(section => {
+    if (section.isMinimized) return section;
     
-    if (visibleSections.length === 0) return;
+    // L'index dans les sections visibles
+    const visibleIndex = visibleSections.findIndex(s => s.id === section.id);
     
-    // Récupérer les dimensions du conteneur parent
-    const container = document.querySelector('.max-w-\\[98\\%\\]')?.parentElement;
-    if (!container) return;
+    // Calculer la position horizontale
+    const leftPosition = visibleIndex * (optimalWidth + sectionMargin);
     
-    const containerRect = container.getBoundingClientRect();
-    const mainWidth = containerRect.width - 40; // Marge de 20px de chaque côté
+    // Mise à jour du style qui sera appliqué directement à l'élément
+    if (section.id) {
+      const element = document.querySelector(`[data-section-id="${section.id}"]`);
+      if (element instanceof HTMLElement) {
+        element.style.left = `${leftPosition}px`;
+        element.style.top = '20px';
+        element.style.width = `${optimalWidth}px`;
+        element.style.height = `${optimalHeight}px`;
+      }
+    }
     
-    // Calculer l'espace disponible
-    const headerHeight = 150; // Estimation de la hauteur des en-têtes
-    const mainHeight = window.innerHeight - containerRect.top - headerHeight;
-    
-    // Déterminer le nombre optimal de colonnes et lignes
-    const columns = visibleSections.length <= 2 ? Math.min(visibleSections.length, 2) : 2;
-    const rows = Math.ceil(visibleSections.length / columns);
-    
-    // Calculer les dimensions optimales avec des marges entre les sections
-    const sectionMargin = 20; // Marge entre les sections
-    const totalHorizontalMargins = sectionMargin * (columns - 1);
-    const totalVerticalMargins = sectionMargin * (rows - 1);
-    
-    const optimalWidth = Math.max(400, (mainWidth - totalHorizontalMargins) / columns);
-    const optimalHeight = Math.max(300, (mainHeight - totalVerticalMargins) / rows);
-    
-    // Mettre à jour chaque section
-    const updatedSections = sections.map(section => {
-      if (section.isMinimized) return section;
-      
-      // L'index dans les sections visibles
-      const visibleIndex = visibleSections.findIndex(s => s.id === section.id);
-      
-      return {
-        ...section,
-        width: optimalWidth,
-        height: optimalHeight,
-        position: visibleIndex
-      };
-    });
-    
-    setSections(updatedSections);
-  };
+    return {
+      ...section,
+      width: optimalWidth,
+      height: optimalHeight,
+      position: visibleIndex
+    };
+  });
+  
+  setSections(updatedSections);
+};
+
+const arrangeWindowsEvenly = () => {
+  // Récupérer les sections non minimisées
+  const visibleSections = sections.filter(s => !s.isMinimized);
+ 
+  if (visibleSections.length === 0) return;
+ 
+  // Obtenir les dimensions réelles du conteneur
+  const container = document.querySelector('.max-w-\\[98\\%\\]');
+  if (!container) return;
+  
+  const containerRect = container.getBoundingClientRect();
+  const containerWidth = containerRect.width - 40; // Marge de 20px de chaque côté
+  const containerHeight = window.innerHeight - containerRect.top - 150; // Hauteur disponible
+ 
+  // Déterminer le nombre optimal de colonnes et lignes
+  const columns = visibleSections.length <= 2 ? Math.min(visibleSections.length, 2) : 2;
+  const rows = Math.ceil(visibleSections.length / columns);
+ 
+  // Calculer les dimensions optimales avec des marges entre les sections
+  const sectionMargin = 20;
+  const totalHorizontalMargins = sectionMargin * (columns - 1);
+  const totalVerticalMargins = sectionMargin * (rows - 1);
+ 
+  // Dimensions plus grandes pour chaque section
+  const optimalWidth = Math.max(450, (containerWidth - totalHorizontalMargins) / columns);
+  const optimalHeight = Math.max(400, (containerHeight - totalVerticalMargins) / rows);
+ 
+  // Mettre à jour chaque section
+  const updatedSections = sections.map(section => {
+    if (section.isMinimized) return section;
+   
+    // L'index dans les sections visibles
+    const visibleIndex = visibleSections.findIndex(s => s.id === section.id);
+   
+    // Calculer la position en grille
+    const rowIndex = Math.floor(visibleIndex / columns);
+    const colIndex = visibleIndex % columns;
+   
+    const leftPosition = colIndex * (optimalWidth + sectionMargin);
+    const topPosition = rowIndex * (optimalHeight + sectionMargin);
+   
+    // Mise à jour du style qui sera appliqué directement à l'élément
+    if (section.id) {
+      const element = document.querySelector(`[data-section-id="${section.id}"]`);
+      if (element instanceof HTMLElement) {
+        element.style.left = `${leftPosition}px`;
+        element.style.top = `${topPosition}px`;
+        element.style.width = `${optimalWidth}px`;
+        element.style.height = `${optimalHeight}px`;
+      }
+    }
+   
+    return {
+      ...section,
+      width: optimalWidth,
+      height: optimalHeight,
+      position: visibleIndex
+    };
+  });
+ 
+  setSections(updatedSections);
+};
+
+
+
+
 
   const [entretienData, setEntretienData] = useState<EntretienData>({
     numeroEntretien: 1,
@@ -298,16 +332,15 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
   };
 
   // Ajustez le resetSizes pour réinitialiser les sections
+  // Fonction améliorée pour réinitialiser complètement les sections
   const resetSizes = () => {
-    setSections(prev =>
-      prev.map(section => ({
-        ...section,
-        width: 750,
-        height: 400,
-        zIndex: 1,
-        isMinimized: true
-      }))
-    );
+    // Minimiser toutes les sections
+    const defaultSections = sections.map(section => ({
+      ...section,
+      isMinimized: true
+    }));
+  
+    setSections(defaultSections);
     setMaxZIndex(1);
     setFocusedSection(null);
   };
@@ -388,39 +421,53 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
 
   // Fonction pour rendre les sections
   const renderSections = () => {
+    const visibleSections = sections.filter(s => !s.isMinimized);
+    
     return (
       <div 
-        className="relative grid grid-cols-1 gap-4 max-w-[98%] mx-auto min-h-[500px]"
+        className="max-w-[98%] mx-auto"
         style={{
-          height: focusedSection ? 'auto' : '70vh'
+          height: '80vh',  // Utilise 80% de la hauteur de la fenêtre
+          overflow: 'auto', // Scrollable si nécessaire
+          position: 'relative',
+          padding: '20px'
         }}
       >
-        {sections
-          .filter(section => !section.isMinimized)
-          .filter(section => !focusedSection || section.id === focusedSection)
-          .sort((a, b) => a.position - b.position)
-          .map((section) => (
-            <div
-              key={section.id}
-              data-section-id={section.id}
-              className="transition-all duration-200"
-              style={{
-                position: 'relative'
-              }}
-            >
-              <ResizableSection
-                {...section}
-                isFocused={focusedSection === section.id}
-                onMinimize={handleMinimize}
-                onMaximize={handleMaximize}
-                onToggleFocus={handleToggleFocus}
-                onResize={handleResize}
-                onBringToFront={bringToFront}
+        {visibleSections.length === 0 ? (
+          <div className="flex items-center justify-center h-full text-gray-500">
+            Cliquez sur un onglet pour commencer
+          </div>
+        ) : (
+          visibleSections
+            .filter(section => !focusedSection || section.id === focusedSection)
+            .sort((a, b) => a.position - b.position)
+            .map((section) => (
+              <div
+                key={section.id}
+                data-section-id={section.id}
+                className="transition-all duration-200"
+                style={{
+                  position: 'absolute',
+                  width: `${section.width}px`,
+                  height: `${section.height}px`,
+                  zIndex: section.zIndex,
+                  // Les positions sont gérées par les fonctions de mise en page
+                }}
               >
-                {renderSectionContent(section.id)}
-              </ResizableSection>
-            </div>
-          ))}
+                <ResizableSection
+                  {...section}
+                  isFocused={focusedSection === section.id}
+                  onMinimize={handleMinimize}
+                  onMaximize={handleMaximize}
+                  onToggleFocus={handleToggleFocus}
+                  onResize={handleResize}
+                  onBringToFront={bringToFront}
+                >
+                  {renderSectionContent(section.id)}
+                </ResizableSection>
+              </div>
+            ))
+        )}
       </div>
     );
   };
@@ -667,44 +714,47 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
               sections={sections}
               onMaximize={handleMaximize}
             />
-            {/* Boutons de disposition simplifiés */}
+            {/* Boutons de disposition améliorés avec des noms plus clairs */}
             <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-500 mr-2">Disposition:</span>
-              <button
-                onClick={arrangeWindowsVertically}
-                className="p-1.5 rounded hover:bg-gray-100"
-                title="Vertical"
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <rect x="4" y="4" width="16" height="6" rx="1" />
-                  <rect x="4" y="14" width="16" height="6" rx="1" />
-                </svg>
-              </button>
-              
-              <button
-                onClick={arrangeWindowsEvenly}
-                className="p-1.5 rounded hover:bg-gray-100"
-                title="Grille"
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <rect x="4" y="4" width="6" height="6" rx="1" />
-                  <rect x="14" y="4" width="6" height="6" rx="1" />
-                  <rect x="4" y="14" width="6" height="6" rx="1" />
-                  <rect x="14" y="14" width="6" height="6" rx="1" />
-                </svg>
-              </button>
-              
-              <button
-                onClick={resetSizes}
-                className="p-1.5 rounded hover:bg-gray-100"
-                title="Réinitialiser"
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M3 12a9 9 0 1 1 18 0 9 9 0 0 1-18 0z" />
-                  <path d="M12 3v9l3.5 3.5" />
-                </svg>
-              </button>
-            </div>
+  <span className="text-sm text-gray-500 mr-2">Disposition:</span>
+  <button
+    onClick={arrangeWindowsVertically}
+    className="p-1.5 rounded hover:bg-gray-100 flex flex-col items-center justify-center"
+    title="Côte à côte"
+  >
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <rect x="3" y="6" width="7" height="12" rx="1" />
+      <rect x="14" y="6" width="7" height="12" rx="1" />
+    </svg>
+    <span className="text-xs mt-1">Côte à côte</span>
+  </button>
+  
+  <button
+    onClick={arrangeWindowsEvenly}
+    className="p-1.5 rounded hover:bg-gray-100 flex flex-col items-center justify-center"
+    title="Grille"
+  >
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <rect x="3" y="3" width="8" height="8" rx="1" />
+      <rect x="13" y="3" width="8" height="8" rx="1" />
+      <rect x="3" y="13" width="8" height="8" rx="1" />
+      <rect x="13" y="13" width="8" height="8" rx="1" />
+    </svg>
+    <span className="text-xs mt-1">Grille</span>
+  </button>
+  
+  <button
+    onClick={resetSizes}
+    className="p-1.5 rounded hover:bg-gray-100 flex flex-col items-center justify-center"
+    title="Réinitialiser"
+  >
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M3 12a9 9 0 1 1 18 0 9 9 0 0 1-18 0z" />
+      <path d="M12 3v9l3.5 3.5" />
+    </svg>
+    <span className="text-xs mt-1">Réinitialiser</span>
+  </button>
+</div>
           </div>
 
           {/* Sections - Utilisation de la fonction renderSections */}

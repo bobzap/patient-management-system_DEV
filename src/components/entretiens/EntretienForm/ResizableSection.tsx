@@ -1,4 +1,5 @@
 // src/components/entretiens/EntretienForm/ResizableSection.tsx
+
 import React, { useState, useRef, useEffect } from 'react';
 import { ResizableBox } from 'react-resizable';
 import { Minus, Focus, ZoomIn, ZoomOut } from 'lucide-react';
@@ -38,17 +39,12 @@ export const ResizableSection = ({
   onBringToFront,
   children
 }: ResizableSectionProps) => {
-
-
-
-  
   // État pour suivre le niveau de zoom
   const [zoomLevel, setZoomLevel] = useState(100);
   const [isDragging, setIsDragging] = useState(false);
   const [dragStartPos, setDragStartPos] = useState({ x: 0, y: 0 });
   const [elementPos, setElementPos] = useState({ x: 0, y: 0 });
   const sectionRef = useRef<HTMLDivElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
   
   // Obtenir les dimensions du conteneur
   const [containerDimensions, setContainerDimensions] = useState({
@@ -99,6 +95,7 @@ export const ResizableSection = ({
       if (e.target.tagName === 'BUTTON' || e.target.parentElement?.tagName === 'BUTTON') return;
     }
     
+    // Avertir le parent de mettre cette section au premier plan
     onBringToFront(id);
     
     const rect = sectionRef.current?.getBoundingClientRect();
@@ -129,11 +126,11 @@ export const ResizableSection = ({
     newX = Math.max(0, Math.min(newX, containerDimensions.width - width));
     newY = Math.max(0, Math.min(newY, containerDimensions.height - height));
     
-    // Appliquer la nouvelle position
-    if (sectionRef.current) {
-      sectionRef.current.style.position = 'absolute';
-      sectionRef.current.style.left = `${newX}px`;
-      sectionRef.current.style.top = `${newY}px`;
+    // Appliquer la nouvelle position au parent (élément absolument positionné) plutôt qu'à cette section
+    const parentElement = sectionRef.current?.parentElement;
+    if (parentElement) {
+      parentElement.style.left = `${newX}px`;
+      parentElement.style.top = `${newY}px`;
     }
   };
 
@@ -248,8 +245,6 @@ export const ResizableSection = ({
       style={{
         width: `${width}px`,
         height: `${height}px`,
-        zIndex,
-        position: 'relative',
         overflow: 'hidden'
       }}
       onClick={() => onBringToFront(id)}
