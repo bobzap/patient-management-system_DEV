@@ -2,7 +2,6 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-// Les imports problématiques de @hello-pangea/dnd sont supprimés
 import { toast } from 'sonner';
 import { Patient } from '@/types';
 import { TabBar } from './TabBar';
@@ -15,7 +14,7 @@ import { defaultConclusionData } from '../types/defaultData';
 import type { VecuTravailData } from '../sections/SanteAuTravail/VecuTravail';
 import type { ModeVieData } from '../sections/SanteAuTravail/ModeVie';
 import { IMAA } from '../sections/IMAA';
-import { Minus, Maximize2, Focus, Expand, ZoomIn, ZoomOut } from 'lucide-react';
+import { ZoomIn, ZoomOut } from 'lucide-react';
 
 interface EntretienData {
   numeroEntretien: number;
@@ -89,8 +88,7 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
   // États
   const [focusedSection, setFocusedSection] = useState<string | null>(null);
   const [maxZIndex, setMaxZIndex] = useState(1);
-  const [expandedSection, setExpandedSection] = useState<string | null>(null);
-  const [globalZoom, setGlobalZoom] = useState(100); // Déplacé ici à l'intérieur du composant
+  const [globalZoom, setGlobalZoom] = useState(100);
   const [sections, setSections] = useState<Section[]>([
     { 
       id: 'sante', 
@@ -154,20 +152,31 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
     setSections(updatedSections);
   };
 
-  // Implémentation de la disposition verticale
+  // Implémentation de la disposition verticale améliorée
   const arrangeWindowsVertically = () => {
     // Récupérer les sections non minimisées
     const visibleSections = sections.filter(s => !s.isMinimized);
     
     if (visibleSections.length === 0) return;
     
-    // Calculer l'espace disponible
-    const mainWidth = window.innerWidth - 64; // Moins la sidebar
-    const mainHeight = window.innerHeight - 150; // Moins l'en-tête
+    // Récupérer les dimensions du conteneur parent
+    const container = document.querySelector('.max-w-\\[98\\%\\]')?.parentElement;
+    if (!container) return;
+    
+    const containerRect = container.getBoundingClientRect();
+    const mainWidth = containerRect.width - 40; // Marge de 20px de chaque côté
+    
+    // Calculer l'espace vertical disponible
+    const headerHeight = 150; // Estimation de la hauteur des en-têtes
+    const mainHeight = window.innerHeight - containerRect.top - headerHeight;
     
     // Hauteur pour chaque section (répartie équitablement)
-    const optimalHeight = (mainHeight / visibleSections.length) - 20;
-    const optimalWidth = mainWidth - 40; // Largeur maximale disponible
+    const sectionMargin = 20; // Marge entre les sections
+    const totalMargins = sectionMargin * (visibleSections.length - 1);
+    const optimalHeight = Math.max(300, (mainHeight - totalMargins) / visibleSections.length);
+    
+    // Largeur fixe pour toutes les sections
+    const optimalWidth = Math.min(mainWidth, 900);
     
     // Mettre à jour chaque section
     const updatedSections = sections.map(section => {
@@ -187,56 +196,35 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
     setSections(updatedSections);
   };
 
-  // Implémentation de la disposition horizontale
-  const arrangeWindowsHorizontally = () => {
-    // Récupérer les sections non minimisées
-    const visibleSections = sections.filter(s => !s.isMinimized);
-    
-    if (visibleSections.length === 0) return;
-    
-    // Calculer l'espace disponible
-    const mainWidth = window.innerWidth - 64; // Moins la sidebar
-    const mainHeight = window.innerHeight - 150; // Moins l'en-tête
-    
-    // Largeur pour chaque section (répartie équitablement)
-    const optimalWidth = (mainWidth / visibleSections.length) - 20;
-    const optimalHeight = mainHeight - 40; // Hauteur maximale disponible
-    
-    // Mettre à jour chaque section
-    const updatedSections = sections.map(section => {
-      if (section.isMinimized) return section;
-      
-      // L'index dans les sections visibles
-      const visibleIndex = visibleSections.findIndex(s => s.id === section.id);
-      
-      return {
-        ...section,
-        width: optimalWidth,
-        height: optimalHeight,
-        position: visibleIndex
-      };
-    });
-    
-    setSections(updatedSections);
-  };
-
+  // Implémentation de la disposition en grille améliorée
   const arrangeWindowsEvenly = () => {
     // Récupérer les sections non minimisées
     const visibleSections = sections.filter(s => !s.isMinimized);
     
     if (visibleSections.length === 0) return;
     
-    // Calculer l'espace disponible (en tenant compte de la barre latérale)
-    const mainWidth = window.innerWidth - 64; // Moins 64px pour la sidebar
-    const mainHeight = window.innerHeight - 150; // Moins 150px pour l'en-tête
+    // Récupérer les dimensions du conteneur parent
+    const container = document.querySelector('.max-w-\\[98\\%\\]')?.parentElement;
+    if (!container) return;
     
-    // Déterminer la disposition optimale (grille)
-    const columns = visibleSections.length <= 2 ? 1 : 2;
+    const containerRect = container.getBoundingClientRect();
+    const mainWidth = containerRect.width - 40; // Marge de 20px de chaque côté
+    
+    // Calculer l'espace disponible
+    const headerHeight = 150; // Estimation de la hauteur des en-têtes
+    const mainHeight = window.innerHeight - containerRect.top - headerHeight;
+    
+    // Déterminer le nombre optimal de colonnes et lignes
+    const columns = visibleSections.length <= 2 ? Math.min(visibleSections.length, 2) : 2;
     const rows = Math.ceil(visibleSections.length / columns);
     
-    // Calculer les dimensions optimales
-    const optimalWidth = (mainWidth / columns) - 20;
-    const optimalHeight = (mainHeight / rows) - 20;
+    // Calculer les dimensions optimales avec des marges entre les sections
+    const sectionMargin = 20; // Marge entre les sections
+    const totalHorizontalMargins = sectionMargin * (columns - 1);
+    const totalVerticalMargins = sectionMargin * (rows - 1);
+    
+    const optimalWidth = Math.max(400, (mainWidth - totalHorizontalMargins) / columns);
+    const optimalHeight = Math.max(300, (mainHeight - totalVerticalMargins) / rows);
     
     // Mettre à jour chaque section
     const updatedSections = sections.map(section => {
@@ -244,10 +232,6 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
       
       // L'index dans les sections visibles
       const visibleIndex = visibleSections.findIndex(s => s.id === section.id);
-      
-      // Calculer la position en grille
-      const col = visibleIndex % columns;
-      const row = Math.floor(visibleIndex / columns);
       
       return {
         ...section,
@@ -313,22 +297,7 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
     );
   };
 
-  // Ajoutez ce nouveau gestionnaire
-  const handleExpand = (id: string) => {
-    if (expandedSection === id) {
-      setExpandedSection(null);
-    } else {
-      setExpandedSection(id);
-      // Quand on expand une section, on la met au premier plan
-      bringToFront(id);
-      // Et on sort du mode focus si actif
-      if (focusedSection) {
-        setFocusedSection(null);
-      }
-    }
-  };
-
-  // Ajustez le resetSizes pour inclure l'expanded state
+  // Ajustez le resetSizes pour réinitialiser les sections
   const resetSizes = () => {
     setSections(prev =>
       prev.map(section => ({
@@ -341,7 +310,6 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
     );
     setMaxZIndex(1);
     setFocusedSection(null);
-    setExpandedSection(null); // Réinitialise l'état d'expansion
   };
 
   // Gestionnaires de mise à jour des sections
@@ -416,6 +384,45 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
       default:
         return null;
     }
+  };
+
+  // Fonction pour rendre les sections
+  const renderSections = () => {
+    return (
+      <div 
+        className="relative grid grid-cols-1 gap-4 max-w-[98%] mx-auto min-h-[500px]"
+        style={{
+          height: focusedSection ? 'auto' : '70vh'
+        }}
+      >
+        {sections
+          .filter(section => !section.isMinimized)
+          .filter(section => !focusedSection || section.id === focusedSection)
+          .sort((a, b) => a.position - b.position)
+          .map((section) => (
+            <div
+              key={section.id}
+              data-section-id={section.id}
+              className="transition-all duration-200"
+              style={{
+                position: 'relative'
+              }}
+            >
+              <ResizableSection
+                {...section}
+                isFocused={focusedSection === section.id}
+                onMinimize={handleMinimize}
+                onMaximize={handleMaximize}
+                onToggleFocus={handleToggleFocus}
+                onResize={handleResize}
+                onBringToFront={bringToFront}
+              >
+                {renderSectionContent(section.id)}
+              </ResizableSection>
+            </div>
+          ))}
+      </div>
+    );
   };
 
   // Effet pour charger les données d'un entretien existant
@@ -660,7 +667,7 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
               sections={sections}
               onMaximize={handleMaximize}
             />
-            {/* Boutons de disposition intégrés */}
+            {/* Boutons de disposition simplifiés */}
             <div className="flex items-center gap-2">
               <span className="text-sm text-gray-500 mr-2">Disposition:</span>
               <button
@@ -671,17 +678,6 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <rect x="4" y="4" width="16" height="6" rx="1" />
                   <rect x="4" y="14" width="16" height="6" rx="1" />
-                </svg>
-              </button>
-              
-              <button
-                onClick={arrangeWindowsHorizontally}
-                className="p-1.5 rounded hover:bg-gray-100"
-                title="Horizontal"
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <rect x="4" y="4" width="6" height="16" rx="1" />
-                  <rect x="14" y="4" width="6" height="16" rx="1" />
                 </svg>
               </button>
               
@@ -711,40 +707,8 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
             </div>
           </div>
 
-          {/* Sections - Version sans DragDropContext */}
-          <div 
-            className="grid grid-cols-1 md:grid-cols-2 auto-rows-min gap-4 max-w-[98%] mx-auto"
-            style={{
-              display: "grid",
-              gridTemplateColumns: focusedSection ? "1fr" : "repeat(auto-fit, minmax(500px, 1fr))",
-              gridAutoFlow: "dense"
-            }}
-          >
-            {sections
-              .filter(section => !section.isMinimized)
-              .filter(section => !focusedSection || section.id === focusedSection)
-              .sort((a, b) => a.position - b.position)
-              .map((section) => (
-                <div
-                  key={section.id}
-                  className="transition-all duration-200"
-                >
-                  <ResizableSection
-                    {...section}
-                    isExpanded={expandedSection === section.id}
-                    isFocused={focusedSection === section.id}
-                    onMinimize={handleMinimize}
-                    onMaximize={handleMaximize}
-                    onToggleFocus={handleToggleFocus}
-                    onExpand={handleExpand}
-                    onResize={handleResize}
-                    onBringToFront={bringToFront}
-                  >
-                    {renderSectionContent(section.id)}
-                  </ResizableSection>
-                </div>
-              ))}
-          </div>
+          {/* Sections - Utilisation de la fonction renderSections */}
+          {renderSections()}
         </div>
       </div>
     </div>

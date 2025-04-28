@@ -1,7 +1,7 @@
 // src/components/entretiens/EntretienForm/ResizableSection.tsx
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { ResizableBox } from 'react-resizable';
-import { Minus, Maximize2, Focus, Expand, ZoomIn, ZoomOut } from 'lucide-react';
+import { Minus, Focus, ZoomIn, ZoomOut } from 'lucide-react';
 
 interface ResizableSectionProps {
   id: string;
@@ -12,14 +12,13 @@ interface ResizableSectionProps {
   zIndex: number;
   isMinimized: boolean;
   isFocused: boolean;
+  position: number; // Numéro de position pour les dispositions
   onMinimize: (id: string) => void;
   onMaximize: (id: string) => void;
   onToggleFocus: (id: string) => void;
   onResize: (id: string, size: { width: number; height: number }) => void;
   onBringToFront: (id: string) => void;
   children: React.ReactNode;
-  isExpanded: boolean;
-  onExpand: (id: string) => void;
 }
 
 export const ResizableSection = ({
@@ -31,18 +30,49 @@ export const ResizableSection = ({
   zIndex,
   isMinimized,
   isFocused,
-  isExpanded,
+  position,
   onMinimize,
   onMaximize,
   onToggleFocus,
-  onExpand,
   onResize,
   onBringToFront,
   children
 }: ResizableSectionProps) => {
-  const SIDEBAR_WIDTH = 5;
+
+
+
+  
   // État pour suivre le niveau de zoom
   const [zoomLevel, setZoomLevel] = useState(100);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStartPos, setDragStartPos] = useState({ x: 0, y: 0 });
+  const [elementPos, setElementPos] = useState({ x: 0, y: 0 });
+  const sectionRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  
+  // Obtenir les dimensions du conteneur
+  const [containerDimensions, setContainerDimensions] = useState({
+    width: window.innerWidth - 100, // Estimation initiale
+    height: window.innerHeight - 200 // Estimation initiale
+  });
+
+  // Effect pour mesurer le conteneur
+  useEffect(() => {
+    const updateContainerSize = () => {
+      const container = document.querySelector('.max-w-\\[98\\%\\]');
+      if (container) {
+        const rect = container.getBoundingClientRect();
+        setContainerDimensions({
+          width: rect.width,
+          height: window.innerHeight - rect.top - 20
+        });
+      }
+    };
+
+    updateContainerSize();
+    window.addEventListener('resize', updateContainerSize);
+    return () => window.removeEventListener('resize', updateContainerSize);
+  }, []);
 
   // Fonction pour augmenter le zoom
   const increaseZoom = (e: React.MouseEvent) => {
@@ -56,12 +86,67 @@ export const ResizableSection = ({
     setZoomLevel(prev => Math.max(prev - 10, 70)); // Minimum 70%
   };
 
-  // Définition de la fonction handleResize
-  const handleResize = (e: any, { size }: { size: { width: number; height: number } }) => {
-    e.stopPropagation();
-    onResize(id, size);
+  // Gestion du début du drag
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (e.target instanceof HTMLElement) {
+      const isHandle = e.target.classList.contains('react-resizable-handle') || 
+                      (e.target.parentElement && e.target.parentElement.classList.contains('react-resizable-handle'));
+      
+      // Si on clique sur la poignée de redimensionnement, ne pas démarrer le drag
+      if (isHandle) return;
+      
+      // Si on clique sur un bouton, ne pas démarrer le drag
+      if (e.target.tagName === 'BUTTON' || e.target.parentElement?.tagName === 'BUTTON') return;
+    }
+    
+    onBringToFront(id);
+    
+    const rect = sectionRef.current?.getBoundingClientRect();
+    if (rect) {
+      setIsDragging(true);
+      setDragStartPos({ x: e.clientX, y: e.clientY });
+      setElementPos({ x: rect.left, y: rect.top });
+      
+      // Ajout des écouteurs pour le déplacement
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+    }
   };
 
+  // Gestion du déplacement pendant le drag
+  const handleMouseMove = (e: MouseEvent) => {
+    if (!isDragging) return;
+    
+    // Calcul du déplacement
+    const deltaX = e.clientX - dragStartPos.x;
+    const deltaY = e.clientY - dragStartPos.y;
+    
+    // Nouvelle position
+    let newX = elementPos.x + deltaX;
+    let newY = elementPos.y + deltaY;
+    
+    // Limiter la position pour que la section reste visible
+    newX = Math.max(0, Math.min(newX, containerDimensions.width - width));
+    newY = Math.max(0, Math.min(newY, containerDimensions.height - height));
+    
+    // Appliquer la nouvelle position
+    if (sectionRef.current) {
+      sectionRef.current.style.position = 'absolute';
+      sectionRef.current.style.left = `${newX}px`;
+      sectionRef.current.style.top = `${newY}px`;
+    }
+  };
+
+  // Gestion de la fin du drag
+  const handleMouseUp = () => {
+    setIsDragging(false);
+    
+    // Suppression des écouteurs
+    document.removeEventListener('mousemove', handleMouseMove);
+    document.removeEventListener('mouseup', handleMouseUp);
+  };
+
+  // Si la section est minimisée, afficher juste l'en-tête
   if (isMinimized) {
     return (
       <div className={`${color} rounded-lg shadow-sm hover:shadow transition-all duration-200`}>
@@ -70,7 +155,9 @@ export const ResizableSection = ({
           onClick={() => onMaximize(id)}
         >
           <h3 className="font-medium">{title}</h3>
-          <Maximize2 className="w-4 h-4 opacity-60" />
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3" />
+          </svg>
         </div>
       </div>
     );
@@ -91,11 +178,9 @@ export const ResizableSection = ({
         
         <div 
           className="fixed inset-0 flex items-center justify-center z-50"
-          // Réduire les paddings pour maximiser l'espace
           style={{ paddingTop: '2rem', paddingBottom: '2rem' }}
         >
           <div 
-            // Augmenter la taille à 95% au lieu de 90%
             className={`${color} w-[95%] h-[95%] rounded-xl shadow-2xl overflow-hidden max-w-[1800px] max-h-[950px]`}
           >
             {/* En-tête plus compact */}
@@ -124,22 +209,21 @@ export const ResizableSection = ({
                 </div>
                 
                 <button
-  onClick={(e) => {
-    e.stopPropagation();
-    onToggleFocus(id);
-  }}
-  className="p-2 bg-red-600 text-white hover:bg-red-700 rounded-lg transition-colors"
-  title="Quitter le mode focus"
->
-  <Focus className="w-5 h-5" />
-  <span className="ml-1 text-sm font-medium">Quitter le focus</span>
-</button>
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onToggleFocus(id);
+                  }}
+                  className="p-2 bg-red-600 text-white hover:bg-red-700 rounded-lg transition-colors"
+                  title="Quitter le mode focus"
+                >
+                  <Focus className="w-5 h-5" />
+                  <span className="ml-1 text-sm font-medium">Quitter le focus</span>
+                </button>
               </div>
             </div>
             
             {/* Contenu avec zoom appliqué et maximisation de l'espace vertical */}
             <div 
-              // Réduire le padding pour maximiser le contenu visible
               className="px-4 py-3 overflow-auto h-[calc(100%-3.5rem)] transition-all duration-200"
               style={{ 
                 transformOrigin: 'top center',
@@ -156,24 +240,45 @@ export const ResizableSection = ({
     );
   }
 
-  // Section en mode étendu
-  if (isExpanded) {
-    return (
-      <div className={`${color} fixed top-24 left-[${SIDEBAR_WIDTH + 16}px] right-4 bottom-4 rounded-xl shadow-xl z-40 overflow-hidden transition-all duration-300`}>
-        {/* En-tête */}
-        <div className="px-6 py-4 border-b border-black/5 rounded-t-xl bg-inherit flex justify-between items-center">
+  // Section en mode normal (avec ResizableBox)
+  return (
+    <div
+      ref={sectionRef}
+      className={`${color} rounded-xl shadow-lg ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+      style={{
+        width: `${width}px`,
+        height: `${height}px`,
+        zIndex,
+        position: 'relative',
+        overflow: 'hidden'
+      }}
+      onClick={() => onBringToFront(id)}
+    >
+      <ResizableBox
+        width={width}
+        height={height}
+        minConstraints={[500, 300]}
+        maxConstraints={[Math.min(1200, containerDimensions.width), Math.min(800, containerDimensions.height)]}
+        onResizeStart={(e) => {
+          e.stopPropagation();
+          onBringToFront(id);
+        }}
+        onResizeStop={(e, { size }) => {
+          onResize(id, size);
+        }}
+        resizeHandles={['se']}
+        handle={<div className="absolute bottom-0 right-0 w-6 h-6 bg-black/5 hover:bg-black/10 rounded-tl-lg cursor-se-resize z-10">
+          <div className="absolute right-1.5 bottom-1.5 w-2 h-2 border-r-2 border-b-2 border-black/25" />
+        </div>}
+      >
+        {/* En-tête avec boutons */}
+        <div 
+          className="sticky top-0 bg-inherit px-6 py-4 border-b border-black/5 rounded-t-xl 
+                    flex justify-between items-center"
+          onMouseDown={handleMouseDown}
+        >
           <h3 className="font-medium">{title}</h3>
           <div className="flex items-center gap-2">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onExpand(id);
-              }}
-              className="p-1.5 hover:bg-black/5 rounded-lg transition-colors"
-              title="Réduire"
-            >
-              <Expand className="w-4 h-4 rotate-180" />
-            </button>
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -196,142 +301,12 @@ export const ResizableSection = ({
             </button>
           </div>
         </div>
-        
+
         {/* Contenu */}
-        <div className="p-6 overflow-auto h-[calc(100%-4rem)]">
+        <div className="p-6 overflow-y-auto h-[calc(100%-4rem)] overflow-x-hidden">
           {children}
         </div>
-      </div>
-    );
-  }
-
-  // Section en mode normal
-  return (
-    <ResizableBox
-  width={width}
-  height={height}
-  minConstraints={[500, 300]}
-  maxConstraints={[1200, 800]}
-  onResizeStart={(e, data) => {
-    // S'assurer que l'événement vient de la poignée
-    const target = e.target as HTMLElement;
-    const isHandle = target.classList.contains('react-resizable-handle') || 
-                     target.parentElement?.classList.contains('react-resizable-handle');
-    
-    if (isHandle) {
-      e.stopPropagation();
-      
-      // Désactiver temporairement le drag
-      const draggables = document.querySelectorAll('[data-rbd-draggable-id]');
-      draggables.forEach(el => {
-        el.setAttribute('data-temp-no-drag', 'true');
-        (el as HTMLElement).style.pointerEvents = 'none';
-      });
-    }
-  }}
-  onResizeStop={(e, { size }) => {
-    // Réactiver le drag
-    const draggables = document.querySelectorAll('[data-temp-no-drag]');
-    draggables.forEach(el => {
-      el.removeAttribute('data-temp-no-drag');
-      (el as HTMLElement).style.pointerEvents = 'auto';
-    });
-    
-    // Mettre à jour les dimensions
-    onResize(id, size);
-    
-    // Amener au premier plan
-    onBringToFront(id);
-  }}
-  resizeHandles={['se']}
-  className={`${color} rounded-xl shadow-lg transition-all duration-200 hover:shadow-xl`}
-  style={{ 
-    zIndex: zIndex,
-    cursor: 'default'
-  }}
-  onClick={() => onBringToFront(id)}
->
-  {/* En-tête avec boutons */}
-  <div 
-    className={`sticky top-0 bg-inherit px-6 py-4 border-b border-black/5 rounded-t-xl 
-                flex justify-between items-center drag-handle-${id}`}
-    onMouseDown={(e) => e.stopPropagation()}
-  >
-    <h3 className="font-medium">{title}</h3>
-    <div className="flex items-center gap-2">
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          onExpand(id);
-        }}
-        className="p-1.5 hover:bg-black/5 rounded-lg transition-colors"
-        title="Agrandir"
-      >
-        <Expand className="w-4 h-4" />
-      </button>
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          onToggleFocus(id);
-        }}
-        className="p-1.5 hover:bg-black/5 rounded-lg transition-colors"
-        title="Mode focus"
-      >
-        <Focus className="w-4 h-4" />
-      </button>
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          onMinimize(id);
-        }}
-        className="p-1.5 hover:bg-black/5 rounded-lg transition-colors"
-        title="Minimiser"
-      >
-        <Minus className="w-4 h-4" />
-      </button>
+      </ResizableBox>
     </div>
-  </div>
-
-  {/* Contenu */}
-  <div className="p-6 overflow-y-auto h-[calc(100%-4rem)]">
-    {children}
-  </div>
-
-  {/* Poignée de redimensionnement améliorée */}
-  <div 
-    className="react-resizable-handle"
-    style={{
-      position: 'absolute',
-      bottom: 0,
-      right: 0,
-      width: '24px',
-      height: '24px',
-      backgroundColor: 'rgba(0, 0, 0, 0.05)',
-      borderRadius: '0 0 8px 0',
-      cursor: 'se-resize',
-      zIndex: 10,
-    }}
-    onClick={(e) => e.stopPropagation()}
-  >
-    <div 
-      style={{
-        position: 'absolute',
-        right: '6px',
-        bottom: '6px',
-        width: '8px',
-        height: '8px',
-        borderRight: '2px solid rgba(0, 0, 0, 0.3)',
-        borderBottom: '2px solid rgba(0, 0, 0, 0.3)'
-      }}
-    />
-  </div>
-
-  {/* Styles pour la poignée de redimensionnement - Remplacé par le style direct ci-dessus */}
-  <style jsx>{`
-    :global(.react-resizable-handle:hover) {
-      background-color: rgba(0, 0, 0, 0.1);
-    }
-  `}</style>
-</ResizableBox>
   );
 };
