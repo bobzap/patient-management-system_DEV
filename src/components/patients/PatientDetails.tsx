@@ -10,7 +10,8 @@ import { usePatients } from '@/hooks/usePatients'; // Nouveau import
 import { toast } from 'sonner';
 import { PatientForm } from './PatientForm';
 import { EntretienList } from '../entretiens/EntretienList';
-import Link from 'next/link';
+import { useEffect } from 'react';
+
 
 interface PatientDetailsProps {
   patient: Patient;
@@ -28,6 +29,8 @@ export const PatientDetails = ({ patient, onEdit, onDelete }: PatientDetailsProp
 const [selectedEntretienId, setSelectedEntretienId] = useState<number | null>(null);
 const [refreshEntretiens, setRefreshEntretiens] = useState(0);
 const [isReadOnly, setIsReadOnly] = useState(true);
+const [entretiens, setEntretiens] = useState([]);
+const [entretiensLoaded, setEntretiensLoaded] = useState(false);
 
 
 
@@ -39,6 +42,32 @@ const handleEntretienDelete = () => {
   // Vous pouvez aussi afficher un toast de confirmation ici
   toast.success('Entretien supprimé avec succès');
 };
+
+
+
+useEffect(() => {
+  const fetchEntretiens = async () => {
+    if (!patient?.id) return;
+    
+    try {
+      const response = await fetch(`/api/patients/${patient.id}/entretiens`);
+      const result = await response.json();
+      
+      if (result.success && result.data) {
+        console.log('Entretiens chargés:', result.data);
+        setEntretiens(result.data);
+      }
+    } catch (error) {
+      console.error('Erreur lors du chargement des entretiens:', error);
+    } finally {
+      setEntretiensLoaded(true);
+    }
+  };
+
+  if (!entretiensLoaded) {
+    fetchEntretiens();
+  }
+}, [patient?.id, entretiensLoaded]);
 
 
 
@@ -87,6 +116,11 @@ const handleEntretienSelect = (entretienId: number, readOnly: boolean) => {
   setRefreshEntretiens(prev => prev + 1);
 };
 
+
+
+
+
+
     // Nouvelle fonction handleEdit à ajouter ici
     const handleEdit = async (updatedPatient: Patient) => {
       try {
@@ -127,18 +161,20 @@ const handleEntretienSelect = (entretienId: number, readOnly: boolean) => {
       isReadOnly={isReadOnly}
       onClose={() => {
         // Si on ferme depuis le mode consultation et qu'on veut passer en édition
-        if (isReadOnly && selectedEntretienId) {
-          setIsReadOnly(false);
-          // Ne pas fermer le formulaire, juste changer de mode
-        } else {
+        
           setShowEntretien(false);
           setSelectedEntretienId(null);
           setIsReadOnly(true);
           setRefreshEntretiens(prev => prev + 1);
-        }
+        
       }}
     />;
   }
+
+
+  
+
+
 
   // Refonte complète du return de PatientDetails.tsx
 return (
@@ -170,25 +206,36 @@ return (
           
           {/* Actions regroupées */}
           <div className="flex items-center gap-3">
-            <Link 
-              href="/"
-              className="flex items-center gap-1 px-3 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-              </svg>
-              Retour à la liste
-            </Link>
+          <button
+  onClick={() => {
+    const patientsButton = document.querySelector('.patients-link');
+    if (patientsButton) {
+      (patientsButton as HTMLElement).click();
+    } else {
+      window.location.href = '/';
+    }
+  }}
+  className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+>
+  <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16m-7 6h7" />
+  </svg>
+  Retour à la liste
+</button>
             
-            <button
-              onClick={() => setShowEntretien(true)}
-              className="flex items-center gap-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
-              </svg>
-              Nouvel Entretien
-            </button>
+<button
+  onClick={() => {
+    setSelectedEntretienId(null); // Pas d'entretien sélectionné car c'est un nouvel entretien
+    setIsReadOnly(false); // Mode édition, pas consultation
+    setShowEntretien(true); // Afficher le formulaire d'entretien
+  }}
+  className="flex items-center gap-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+>
+  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+  </svg>
+  Nouvel Entretien
+</button>
           </div>
         </div>
         
@@ -203,9 +250,13 @@ return (
             <p className="text-sm font-semibold text-gray-900">{patient.anciennete}</p>
           </div>
           <div className="bg-gray-50 rounded-lg p-3">
-            <p className="text-xs text-gray-500">Dernier entretien</p>
-            <p className="text-sm font-semibold text-gray-900">{patient.dateEntretien || 'Aucun'}</p>
-          </div>
+  <p className="text-xs text-gray-500">Dernier entretien</p>
+  <p className="text-sm font-semibold text-gray-900">
+    {entretiens.length > 0 && entretiens[0].dateCreation
+      ? new Date(entretiens[0].dateCreation).toLocaleDateString('fr-FR')
+      : 'Aucun'}
+  </p>
+</div>
         </div>
         
         {/* Actions secondaires */}
@@ -271,20 +322,20 @@ return (
 
     {/* Contenu selon l'onglet actif */}
     {activeTab === 'historique' && (
-      <div className="mb-6">
-        <EntretienList
-          patientId={patient.id!}
-          refreshTrigger={refreshEntretiens}
-          onEntretienSelect={handleEntretienSelect}
-          onNewEntretien={() => {
-            setSelectedEntretienId(null);
-            setIsReadOnly(false);
-            setShowEntretien(true);
-          }}
-          onDelete={handleEntretienDelete}
-        />
-      </div>
-    )}
+  <div className="mb-6">
+    <EntretienList
+      patientId={patient.id!}
+      refreshTrigger={refreshEntretiens}
+      onEntretienSelect={handleEntretienSelect}
+      onNewEntretien={() => {
+        setSelectedEntretienId(null);
+        setIsReadOnly(false); // Assurez-vous que cette ligne est présente
+        setShowEntretien(true);
+      }}
+      onDelete={handleEntretienDelete}
+    />
+  </div>
+)}
 
     {/* Contenu principal - uniquement pour l'onglet général */}
     {activeTab === 'general' && (
@@ -345,39 +396,56 @@ return (
         {/* Colonne latérale - 1/3 */}
         <div className="lg:col-span-1 space-y-6">
           {/* Dernier entretien */}
-          <div className="bg-white rounded-xl shadow-lg p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold text-blue-900">Dernier entretien</h3>
-              {patient.typeEntretien && (
-                <span className="px-3 py-1 rounded-full bg-green-100 text-green-800 text-sm font-semibold">
-                  {patient.typeEntretien}
-                </span>
-              )}
-            </div>
-            
-            <div className="space-y-4">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Date</p>
-                <p className="text-base font-semibold text-gray-900 mt-1">
-                  {patient.dateEntretien || 'Aucun entretien'}
-                </p>
-              </div>
-              {patient.duree && (
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Durée</p>
-                  <p className="text-base font-semibold text-gray-900 mt-1">{patient.duree}</p>
-                </div>
-              )}
-              {patient.consentement && (
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Consentement</p>
-                  <p className="text-base font-semibold text-gray-900 mt-1">
-                    {patient.consentement}
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
+<div className="bg-white rounded-xl shadow-lg p-6">
+  <div className="flex justify-between items-center mb-4">
+    <h3 className="text-lg font-semibold text-blue-900">Dernier entretien</h3>
+    <span className="px-3 py-1 rounded-full bg-blue-100 text-blue-800 text-sm font-semibold">
+      {entretiens.length} entretien{entretiens.length !== 1 ? 's' : ''}
+    </span>
+  </div>
+  
+  <div className="space-y-4">
+    <div>
+      <p className="text-sm font-medium text-gray-600">Date</p>
+      <p className="text-base font-semibold text-gray-900 mt-1">
+  {entretiens?.length > 0 && entretiens[0]?.dateCreation
+    ? new Date(entretiens[0].dateCreation).toLocaleDateString('fr-FR')
+    : 'Aucun entretien'}
+</p>
+    </div>
+    {entretiens?.length > 0 && entretiens[0]?.status && (
+  <div>
+    <p className="text-sm font-medium text-gray-600">Statut</p>
+    <div className="mt-1">
+      <span className={`inline-flex px-2 py-1 rounded-full text-sm font-medium ${
+        entretiens[0].status === 'finalise' ? 'bg-green-100 text-green-800' : 
+        entretiens[0].status === 'archive' ? 'bg-gray-100 text-gray-800' : 
+        'bg-yellow-100 text-yellow-800'
+      }`}>
+        {entretiens[0].status === 'finalise' ? 'Finalisé' : 
+         entretiens[0].status === 'archive' ? 'Archivé' : 'Brouillon'}
+      </span>
+    </div>
+  </div>
+)}
+    {entretiens.length > 0 && entretiens[0].numeroEntretien && (
+      <div>
+        <p className="text-sm font-medium text-gray-600">N° d'entretien</p>
+        <p className="text-base font-semibold text-gray-900 mt-1">
+          {entretiens[0].numeroEntretien}
+        </p>
+      </div>
+    )}
+    {patient.typeEntretien && (
+      <div>
+        <p className="text-sm font-medium text-gray-600">Type</p>
+        <p className="text-base font-semibold text-gray-900 mt-1">
+          {patient.typeEntretien}
+        </p>
+      </div>
+    )}
+  </div>
+</div>
 
           {/* Transport */}
           <div className="bg-white rounded-xl shadow-lg p-6">

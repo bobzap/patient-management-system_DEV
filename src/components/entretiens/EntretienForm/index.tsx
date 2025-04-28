@@ -85,6 +85,9 @@ const initialModeVieData: ModeVieData = {
   }
 };
 
+
+
+
 export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClose }: EntretienFormProps) => {
   // États
   const [focusedSection, setFocusedSection] = useState<string | null>(null);
@@ -95,8 +98,8 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
       id: 'sante', 
       title: 'SANTÉ AU TRAVAIL', 
       color: 'bg-amber-50', 
-      width: 750, 
-      height: 400, 
+      width: 900, 
+      height: 500, 
       zIndex: 1, 
       position: 0,
       isMinimized: true
@@ -105,8 +108,8 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
       id: 'examen', 
       title: 'EXAMEN CLINIQUE', 
       color: 'bg-purple-50', 
-      width: 750, 
-      height: 400, 
+      width: 900, 
+      height: 500, 
       zIndex: 1, 
       position: 1,
       isMinimized: true
@@ -115,8 +118,8 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
       id: 'imaa', 
       title: 'IMAA', 
       color: 'bg-green-50', 
-      width: 750, 
-      height: 400, 
+      width: 900, 
+      height: 500, 
       zIndex: 1, 
       position: 2,
       isMinimized: true
@@ -125,13 +128,54 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
       id: 'conclusion', 
       title: 'CONCLUSION', 
       color: 'bg-pink-50', 
-      width: 750, 
-      height: 400, 
+      width: 900, 
+      height: 500, 
       zIndex: 1, 
       position: 3,
       isMinimized: true
     }
   ]);
+
+  const arrangeWindowsEvenly = () => {
+    // Récupérer les sections non minimisées
+    const visibleSections = sections.filter(s => !s.isMinimized);
+    
+    if (visibleSections.length === 0) return;
+    
+    // Calculer l'espace disponible (en tenant compte de la barre latérale)
+    const mainWidth = window.innerWidth - 64; // Moins 64px pour la sidebar
+    const mainHeight = window.innerHeight - 150; // Moins 150px pour l'en-tête
+    
+    // Déterminer la disposition optimale (grille)
+    const columns = visibleSections.length <= 2 ? 1 : 2;
+    const rows = Math.ceil(visibleSections.length / columns);
+    
+    // Calculer les dimensions optimales
+    const optimalWidth = (mainWidth / columns) - 20;
+    const optimalHeight = (mainHeight / rows) - 20;
+    
+    // Mettre à jour chaque section
+    const updatedSections = sections.map(section => {
+      if (section.isMinimized) return section;
+      
+      // L'index dans les sections visibles
+      const visibleIndex = visibleSections.findIndex(s => s.id === section.id);
+      
+      // Calculer la position en grille
+      const col = visibleIndex % columns;
+      const row = Math.floor(visibleIndex / columns);
+      
+      return {
+        ...section,
+        width: optimalWidth,
+        height: optimalHeight,
+        position: visibleIndex
+      };
+    });
+    
+    setSections(updatedSections);
+  };
+
 
   const [entretienData, setEntretienData] = useState<EntretienData>({
     numeroEntretien: 1,
@@ -175,7 +219,7 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
     );
   }
 
-  const handleResize = (id: string) => (e: any, { size }: { size: { width: number; height: number } }) => {
+  const handleResize = (id: string, size: { width: number; height: number }) => {
     bringToFront(id);
     setSections(prev =>
       prev.map(section =>
@@ -424,25 +468,31 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
     }
   };
 
-// Refonte complète du return de EntretienForm.tsx
-return (
-  <div className="p-6">
-    {/* En-tête avec navigation et informations */}
-    <div className="max-w-[98%] mx-auto bg-white rounded-xl shadow-lg p-6 mb-6">
-      {/* Barre de navigation supérieure */}
-      <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-        {/* Boutons de navigation - côté gauche */}
-        <div className="flex items-center gap-3">
-          {onClose && (
-            <button
-              onClick={onClose}
-              className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-            >
-              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-              </svg>
-              Retour au dossier
-            </Link>
+  return (
+    <div className="p-6">
+      {/* En-tête avec navigation et informations */}
+      <div className="max-w-[98%] mx-auto bg-white rounded-xl shadow-lg p-6 mb-6">
+
+        
+        {/* Barre de navigation supérieure */}
+        <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+
+          
+          {/* Boutons de navigation - côté gauche */}
+
+          
+          <div className="flex items-center gap-3">
+            {onClose && (
+              <button
+                onClick={onClose}
+                className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                Retour au dossier
+              </button>
+            )}
           </div>
           
           {/* Actions principales - côté droit */}
@@ -471,16 +521,7 @@ return (
               </button>
             )}
             
-            {/* Lien vers la liste (toujours disponible) */}
-            <Link
-              href="/"
-              className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-            >
-              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16m-7 6h7" />
-              </svg>
-              Retour à la liste
-            </Link>
+            
           </div>
         </div>
       
@@ -530,26 +571,78 @@ return (
           )}
         </div>
       </div>
-
+      
       {/* TabBar */}
       <div className="max-w-[98%] mx-auto mb-4">
         <TabBar 
           sections={sections}
           onMaximize={handleMaximize}
         />
-      </div>
+     {/* Boutons de disposition intégrés */}
+  <div className="flex items-center gap-2">
+    <span className="text-sm text-gray-500 mr-2">Disposition:</span>
+    <button
+      onClick={() => {/* code de disposition verticale */}}
+      className="p-1.5 rounded hover:bg-gray-100"
+      title="Vertical"
+    >
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <rect x="4" y="4" width="16" height="6" rx="1" />
+        <rect x="4" y="14" width="16" height="6" rx="1" />
+      </svg>
+    </button>
+    
+    <button
+      onClick={() => {/* code de disposition horizontale */}}
+      className="p-1.5 rounded hover:bg-gray-100"
+      title="Horizontal"
+    >
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <rect x="4" y="4" width="6" height="16" rx="1" />
+        <rect x="14" y="4" width="6" height="16" rx="1" />
+      </svg>
+    </button>
+    
+    <button
+      onClick={arrangeWindowsEvenly}
+      className="p-1.5 rounded hover:bg-gray-100"
+      title="Grille"
+    >
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <rect x="4" y="4" width="6" height="6" rx="1" />
+        <rect x="14" y="4" width="6" height="6" rx="1" />
+        <rect x="4" y="14" width="6" height="6" rx="1" />
+        <rect x="14" y="14" width="6" height="6" rx="1" />
+      </svg>
+    </button>
+    
+    <button
+      onClick={resetSizes}
+      className="p-1.5 rounded hover:bg-gray-100"
+      title="Réinitialiser"
+    >
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M3 12a9 9 0 1 1 18 0 9 9 0 0 1-18 0z" />
+        <path d="M12 3v9l3.5 3.5" />
+      </svg>
+    </button>
+  </div>
+</div>
 
       {/* Sections */}
       <DragDropContext onDragEnd={handleDragEnd}>
-        <Droppable droppableId="sections">
-          {(provided) => (
-            <div 
-              {...provided.droppableProps}
-              ref={provided.innerRef}
-              className={`grid ${
-                focusedSection ? 'grid-cols-1 max-w-3xl mx-auto' : 'grid-cols-2'
-              } gap-4 max-w-[98%] mx-auto`}
-            >
+  <Droppable droppableId="sections" direction="horizontal" type="section">
+    {(provided) => (
+      <div 
+        {...provided.droppableProps}
+        ref={provided.innerRef}
+        className="grid grid-cols-1 md:grid-cols-2 auto-rows-min gap-4 max-w-[98%] mx-auto"
+        style={{
+          display: "grid",
+          gridTemplateColumns: focusedSection ? "1fr" : "repeat(auto-fit, minmax(500px, 1fr))",
+          gridAutoFlow: "dense"
+        }}
+      >
               {sections
                 .filter(section => !section.isMinimized)
                 .filter(section => !focusedSection || section.id === focusedSection)
@@ -578,9 +671,8 @@ return (
                           onMaximize={handleMaximize}
                           onToggleFocus={handleToggleFocus}
                           onExpand={handleExpand}
-                          onResize={(id, size) => handleResize(id)({ target: null }, { size })}
+                          onResize={handleResize}
                           onBringToFront={bringToFront}
-                          isReadOnly={isReadOnly}
                         >
                           {renderSectionContent(section.id)}
                         </ResizableSection>
@@ -595,22 +687,7 @@ return (
       </DragDropContext>
 
       {/* Bouton quitter le mode focus */}
-      {focusedSection && (
-        <>
-          <div 
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm transition-all duration-300"
-            style={{ zIndex: 40 }}
-          />
-          <button
-            onClick={() => setFocusedSection(null)}
-            className="fixed bottom-4 right-4 px-4 py-2 bg-blue-600 text-white 
-                      rounded-lg shadow-lg hover:bg-blue-700 transition-colors"
-            style={{ zIndex: 60 }}
-          >
-            Quitter le mode focus
-          </button>
-        </>
-      )}
+      
     </div>
   );
 };
