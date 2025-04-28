@@ -206,113 +206,145 @@ export const ResizableSection = ({
   }
 
   // Section en mode normal
-  return (
-    <ResizableBox
-  width={width}
-  height={height}
-  minConstraints={[350, 250]}
-  maxConstraints={[1200, 800]}
-  onResizeStop={handleResize}
-  resizeHandles={['se']}
-  className={`${color} rounded-xl shadow-lg transition-all duration-100 ease-in-out hover:shadow-xl`}
-  
-      style={{ 
-        zIndex: zIndex,
-        cursor: 'default'
+  // Dans src/components/entretiens/EntretienForm/ResizableSection.tsx
+// Remplacez complètement le code du mode normal (pas focus, pas minimisé)
+
+// Section en mode normal
+return (
+  <div
+    className={`${color} rounded-xl shadow-lg transition-all duration-200 hover:shadow-xl`}
+    style={{ 
+      width: `${width}px`,
+      height: `${height}px`,
+      zIndex: zIndex,
+      position: 'relative',
+      overflow: 'hidden'
+    }}
+    onClick={() => onBringToFront(id)}
+  >
+    {/* En-tête avec boutons */}
+    <div 
+      className={`sticky top-0 bg-inherit px-6 py-4 border-b border-black/5 rounded-t-xl 
+                flex justify-between items-center`}
+      onMouseDown={(e) => {
+        // Code pour le drag manuel sans utiliser react-dnd
+        const startX = e.clientX;
+        const startY = e.clientY;
+        const container = e.currentTarget.parentElement;
+        
+        if (!container) return;
+        
+        const rect = container.getBoundingClientRect();
+        const offsetX = startX - rect.left;
+        const offsetY = startY - rect.top;
+        
+        const moveHandler = (moveEvent: MouseEvent) => {
+          const newX = moveEvent.clientX - offsetX;
+          const newY = moveEvent.clientY - offsetY;
+          
+          container.style.position = 'absolute';
+          container.style.left = `${newX}px`;
+          container.style.top = `${newY}px`;
+        };
+        
+        const upHandler = () => {
+          document.removeEventListener('mousemove', moveHandler);
+          document.removeEventListener('mouseup', upHandler);
+        };
+        
+        document.addEventListener('mousemove', moveHandler);
+        document.addEventListener('mouseup', upHandler);
       }}
-      onClick={() => onBringToFront(id)}
     >
-      {/* En-tête avec boutons */}
+      <h3 className="font-medium">{title}</h3>
+      <div className="flex items-center gap-2">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onExpand(id);
+          }}
+          className="p-1.5 hover:bg-black/5 rounded-lg transition-colors"
+          title="Agrandir"
+        >
+          <Expand className="w-4 h-4" />
+        </button>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleFocus(id);
+          }}
+          className="p-1.5 hover:bg-black/5 rounded-lg transition-colors"
+          title="Mode focus"
+        >
+          <Focus className="w-4 h-4" />
+        </button>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onMinimize(id);
+          }}
+          className="p-1.5 hover:bg-black/5 rounded-lg transition-colors"
+          title="Minimiser"
+        >
+          <Minus className="w-4 h-4" />
+        </button>
+      </div>
+    </div>
+
+    {/* Contenu */}
+    <div className="p-6 overflow-y-auto h-[calc(100%-4rem)]">
+      {children}
+    </div>
+
+    {/* Poignée de redimensionnement personnalisée */}
+    <div 
+      style={{
+        position: 'absolute',
+        bottom: 0,
+        right: 0,
+        width: '24px',
+        height: '24px',
+        backgroundColor: 'rgba(0, 0, 0, 0.1)',
+        borderRadius: '0 0 8px 0',
+        cursor: 'se-resize',
+        zIndex: 10,
+      }}
+      onMouseDown={(e) => {
+        e.stopPropagation();
+        
+        const startX = e.clientX;
+        const startY = e.clientY;
+        const startWidth = width;
+        const startHeight = height;
+        
+        const moveHandler = (moveEvent: MouseEvent) => {
+          const newWidth = Math.max(300, startWidth + (moveEvent.clientX - startX));
+          const newHeight = Math.max(200, startHeight + (moveEvent.clientY - startY));
+          
+          onResize(id, { width: newWidth, height: newHeight });
+        };
+        
+        const upHandler = () => {
+          document.removeEventListener('mousemove', moveHandler);
+          document.removeEventListener('mouseup', upHandler);
+        };
+        
+        document.addEventListener('mousemove', moveHandler);
+        document.addEventListener('mouseup', upHandler);
+      }}
+    >
       <div 
-        className={`sticky top-0 bg-inherit px-6 py-4 border-b border-black/5 rounded-t-xl 
-                  flex justify-between items-center drag-handle-${id}`}
-        onMouseDown={(e) => e.stopPropagation()}
-      >
-        <h3 className="font-medium">{title}</h3>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onExpand(id);
-            }}
-            className="p-1.5 hover:bg-black/5 rounded-lg transition-colors"
-            title="Agrandir"
-          >
-            <Expand className="w-4 h-4" />
-          </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggleFocus(id);
-            }}
-            className="p-1.5 hover:bg-black/5 rounded-lg transition-colors"
-            title="Mode focus"
-          >
-            <Focus className="w-4 h-4" />
-          </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onMinimize(id);
-            }}
-            className="p-1.5 hover:bg-black/5 rounded-lg transition-colors"
-            title="Minimiser"
-          >
-            <Minus className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
-
-      {/* Contenu */}
-      <div className="p-6 overflow-y-auto h-[calc(100%-4rem)]">
-        {children}
-      </div>
-      
-<div 
-  className="react-resizable-handle"
-  onMouseDown={(e) => {
-    e.stopPropagation();
-    // Désactiver temporairement le drag pendant le redimensionnement
-    const draggables = document.querySelectorAll('[data-rbd-draggable-id]');
-    draggables.forEach(el => el.setAttribute('data-temp-no-drag', 'true'));
-  }}
-  onMouseUp={() => {
-    // Réactiver le drag après le redimensionnement
-    const draggables = document.querySelectorAll('[data-temp-no-drag]');
-    draggables.forEach(el => el.removeAttribute('data-temp-no-drag'));
-  }}
-/>
-
-      {/* Styles pour la poignée de redimensionnement */}
-      <style jsx>{`
-  :global(.react-resizable-handle) {
-    position: absolute;
-    bottom: 0;
-    right: 0;
-    width: 24px;
-    height: 24px;
-    background-color: rgba(0, 0, 0, 0.05);
-    border-radius: 0 0 8px 0;
-    cursor: se-resize;
-    transition: background-color 0.2s;
-    z-index: 10;
-  }
-
-  :global(.react-resizable-handle:hover) {
-    background-color: rgba(0, 0, 0, 0.1);
-  }
-
-  :global(.react-resizable-handle::after) {
-    content: '';
-    position: absolute;
-    right: 6px;
-    bottom: 6px;
-    width: 8px;
-    height: 8px;
-    border-right: 2px solid rgba(0, 0, 0, 0.3);
-    border-bottom: 2px solid rgba(0, 0, 0, 0.3);
-  }
-`}</style>
-    </ResizableBox>
-  );
+        style={{
+          position: 'absolute',
+          right: '6px',
+          bottom: '6px',
+          width: '8px',
+          height: '8px',
+          borderRight: '2px solid rgba(0, 0, 0, 0.4)',
+          borderBottom: '2px solid rgba(0, 0, 0, 0.4)'
+        }}
+      />
+    </div>
+  </div>
+);
 };

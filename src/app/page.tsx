@@ -40,8 +40,28 @@ export default function HomePage() {
         setIsLoading(false);
       }
     };
-
+  
     fetchPatients();
+  
+    // Ajout des écouteurs d'événements pour la navigation
+    const handleNavigateTo = (e: CustomEvent) => {
+      const { tab } = e.detail;
+      setActiveTab(tab as NavigationTab);
+    };
+    
+    const handleViewPatient = (e: CustomEvent) => {
+      const { patient } = e.detail;
+      setSelectedPatient(patient);
+    };
+    
+    window.addEventListener('navigateTo', handleNavigateTo as EventListener);
+    window.addEventListener('viewPatient', handleViewPatient as EventListener);
+    
+    // Nettoyage des écouteurs d'événements à la destruction du composant
+    return () => {
+      window.removeEventListener('navigateTo', handleNavigateTo as EventListener);
+      window.removeEventListener('viewPatient', handleViewPatient as EventListener);
+    };
   }, []);
 
   const handleTabChange = useCallback((newTab: NavigationTab) => {

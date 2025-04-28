@@ -118,7 +118,7 @@ export const SanteTravail = ({ data, onChange, isReadOnly = false }: SanteTravai
   return (
     <div className="h-full flex flex-col">
       {/* Navigation entre les pages */}
-      <div className="flex justify-between mb-4">
+      <div className="flex justify-between mb-2">
         <button 
           onClick={() => setCurrentPage(1)}
           className={`px-4 py-2 rounded-t-lg transition-colors duration-200

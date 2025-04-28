@@ -60,7 +60,7 @@ export const Sidebar = ({ activeTab, onTabChange }: SidebarProps) => {
   ];
 
   return (
-    <div className="w-64 bg-blue-700 text-white flex flex-col h-screen">
+    <div className="w-54 bg-blue-700 text-white flex flex-col h-screen">
       <div className="p-4">
         <h1 className="text-xl font-bold">Vital Sync</h1>
       </div>

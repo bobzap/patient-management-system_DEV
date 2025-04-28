@@ -446,9 +446,14 @@ export const Dashboard = ({ patients }: DashboardProps) => {
                       <button 
   className="text-blue-600 hover:text-blue-800 mt-1"
   onClick={() => {
-    // Rediriger vers le détail du patient avec l'entretien sélectionné
-    const patientId = activity.patientId; // Assurez-vous que cette propriété existe
-    router.push(`/patients/${patientId}`);
+    // Au lieu de router.push
+    // Vous devrez trouver le patient correspondant dans la liste des patients
+    const patientToView = patients.data.find(p => p.id === activity.patientId);
+    if (patientToView) {
+      window.dispatchEvent(new CustomEvent('viewPatient', { 
+        detail: { patient: patientToView } 
+      }));
+    }
   }}
 >
   <ArrowRight size={16} />
@@ -476,7 +481,10 @@ export const Dashboard = ({ patients }: DashboardProps) => {
                   <button 
   className="text-sm text-blue-600 hover:text-blue-800"
   onClick={() => {
-    router.push('/patients'); // Redirige vers la liste des patients
+    // Au lieu de router.push('/patients')
+    window.dispatchEvent(new CustomEvent('navigateTo', { 
+      detail: { tab: 'patients' } 
+    }));
   }}
 >
   Voir

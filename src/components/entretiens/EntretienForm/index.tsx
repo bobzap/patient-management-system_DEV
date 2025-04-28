@@ -15,7 +15,11 @@ import { defaultConclusionData } from '../types/defaultData';
 import type { VecuTravailData } from '../sections/SanteAuTravail/VecuTravail';
 import type { ModeVieData } from '../sections/SanteAuTravail/ModeVie';
 import { IMAA } from '../sections/IMAA';
-import Link from 'next/link';
+import { Minus, Maximize2, Focus, Expand, ZoomIn, ZoomOut } from 'lucide-react';
+
+
+
+
 
 interface EntretienData {
   numeroEntretien: number;
@@ -86,6 +90,7 @@ const initialModeVieData: ModeVieData = {
 };
 
 
+const [globalZoom, setGlobalZoom] = useState(100);
 
 
 export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClose }: EntretienFormProps) => {
@@ -469,9 +474,33 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
   };
 
   return (
-    <div className="p-6">
+    
+    <>
+    {/* Boutons de zoom global */}
+    <div className="absolute top-2 right-2 flex items-center gap-2 z-50 bg-white rounded-lg shadow-md p-1">
+      <button
+        onClick={() => setGlobalZoom(prev => Math.max(prev - 5, 80))}
+        className="p-1 hover:bg-gray-100 rounded"
+        title="Réduire la taille"
+      >
+        <ZoomOut size={16} />
+      </button>
+      <span className="text-xs font-medium">{globalZoom}%</span>
+      <button
+        onClick={() => setGlobalZoom(prev => Math.min(prev + 5, 120))}
+        className="p-1 hover:bg-gray-100 rounded"
+        title="Augmenter la taille"
+      >
+        <ZoomIn size={16} />
+      </button>
+    </div>
+    
+    {/* Appliquer le zoom à tout le contenu */}
+    <div style={{ zoom: `${globalZoom}%` }}>
+      {/* Reste du contenu existant */}
+      <div className="p-6">
       {/* En-tête avec navigation et informations */}
-      <div className="max-w-[98%] mx-auto bg-white rounded-xl shadow-lg p-6 mb-6">
+      <div className="max-w-[98%] mx-auto bg-white rounded-xl shadow-lg p-3 mb-3">
 
         
         {/* Barre de navigation supérieure */}
@@ -626,6 +655,9 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
         <path d="M12 3v9l3.5 3.5" />
       </svg>
     </button>
+
+
+    
   </div>
 </div>
 
