@@ -72,11 +72,25 @@ useEffect(() => {
 
 
 // Fonction de sélection d'entretien modifiée
+// src/components/patients/PatientDetails.tsx
+
+// Fonction de sélection d'entretien modifiée
 const handleEntretienSelect = (entretienId: number, readOnly: boolean) => {
   setSelectedEntretienId(entretienId);
   setIsReadOnly(readOnly);
   setShowEntretien(true);
 };
+
+// Puis dans la liste des entretiens
+<button 
+  onClick={(e) => {
+    e.stopPropagation();
+    handleEntretienSelect(entretien.id, false); // false pour mode édition
+  }}
+  className="text-green-600 hover:text-green-900 px-2 py-1"
+>
+  Modifier
+</button>
   
   
 
@@ -154,22 +168,50 @@ const handleEntretienSelect = (entretienId: number, readOnly: boolean) => {
     />;
   }
 
-  if (showEntretien) {
-    return <EntretienForm 
-      patient={patient}
-      entretienId={selectedEntretienId}
-      isReadOnly={isReadOnly}
-      onClose={() => {
-        // Si on ferme depuis le mode consultation et qu'on veut passer en édition
-        
-          setShowEntretien(false);
-          setSelectedEntretienId(null);
-          setIsReadOnly(true);
-          setRefreshEntretiens(prev => prev + 1);
-        
-      }}
-    />;
-  }
+ // Dans src/components/patients/PatientDetails.tsx
+// Dans src/components/patients/PatientDetails.tsx
+
+// Dans src/components/patients/PatientDetails.tsx
+
+if (showEntretien) {
+  return <EntretienForm 
+    patient={patient}
+    entretienId={selectedEntretienId}
+    isReadOnly={isReadOnly}
+    onClose={async () => {
+      console.log("onClose appelé depuis PatientDetails");
+      
+      // Si on a un ID d'entretien
+      if (selectedEntretienId) {
+        try {
+          console.log("PatientDetails - tentative de mise en pause forcée");
+          
+          // Appel de l'API dédiée
+          const response = await fetch(`/api/entretiens/force-pause/${selectedEntretienId}`, {
+            method: 'POST'
+          });
+          
+          const result = await response.json();
+          console.log("PatientDetails - Résultat mise en pause:", result);
+          
+          if (result.success) {
+            console.log("PatientDetails - Mise en pause réussie!");
+          } else {
+            console.error("PatientDetails - Échec de la mise en pause:", result.error);
+          }
+        } catch (error) {
+          console.error("PatientDetails - Erreur lors de la mise en pause:", error);
+        }
+      }
+      
+      // Fermer l'entretien
+      setShowEntretien(false);
+      setSelectedEntretienId(null);
+      setIsReadOnly(true);
+      setRefreshEntretiens(prev => prev + 1);
+    }}
+  />;
+}
 
 
   

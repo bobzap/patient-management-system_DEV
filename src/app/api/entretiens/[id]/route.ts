@@ -38,6 +38,7 @@ export async function GET(
   }
 }
 
+
 export async function PUT(request: NextRequest) {
   const id = request.url.split('/').pop();
 
@@ -49,7 +50,7 @@ export async function PUT(request: NextRequest) {
     const data = await request.json();
     console.log("API - données entretien reçues:", { id, data });
     
-    // Récupérer l'entretien actuel si nécessaire pour des calculs de temps
+    // Récupérer l'entretien actuel pour avoir l'état précédent
     const currentEntretien = await prisma.entretien.findUnique({
       where: { id: Number(id) }
     });
@@ -67,14 +68,33 @@ export async function PUT(request: NextRequest) {
       dateModification: new Date()
     };
     
-    // Ajouter les données du timer si fournies
+    // Gestion du timer
     if (data.enPause !== undefined) {
       updateData.enPause = data.enPause;
     }
     
-    // Si tempsCourant est fourni, nous pouvons l'utiliser pour mettre à jour tempsFin quand un entretien est finalisé
-    if (data.status === 'finalise' && data.tempsCourant) {
+    // Si on finalise ou archive, mettre le temps de fin
+    if (data.status === 'finalise' || data.status === 'archive') {
       updateData.tempsFin = new Date();
+    }
+    
+    // Si on revient à brouillon depuis un état finalisé/archivé, retirer le temps de fin
+    if (data.status === 'brouillon' && 
+        (currentEntretien.status === 'finalise' || currentEntretien.status === 'archive')) {
+      updateData.tempsFin = null;
+    }
+    
+    // Gestion des pauses
+    if (data.enPause && !currentEntretien.enPause) {
+      // On vient de mettre en pause
+      updateData.dernierePause = new Date();
+    } 
+    else if (!data.enPause && currentEntretien.enPause && currentEntretien.dernierePause) {
+      // On vient de sortir de pause, calculer le temps de pause
+      const pauseStart = new Date(currentEntretien.dernierePause);
+      const pauseDuration = Math.floor((new Date().getTime() - pauseStart.getTime()) / 1000);
+      updateData.tempsPause = (currentEntretien.tempsPause || 0) + pauseDuration;
+      updateData.dernierePause = null;
     }
     
     // Mettre à jour l'entretien
@@ -111,5 +131,82 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json({ error: "Erreur lors de la suppression" }, { status: 500 });
+  }
+}
+
+
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  const id = params.id;
+
+  if (!id) {
+    return NextResponse.json({ error: "ID non trouvé" }, { status: 400 });
+  }
+
+  try {
+    console.log("API - Demande de PATCH pour pause forcée sur entretien:", id);
+    
+    // Récupérer l'entretien actuel
+    const currentEntretien = await prisma.entretien.findUnique({
+      where: { id: Number(id) }
+    });
+    
+    if (!currentEntretien) {
+      return NextResponse.json({ error: "Entretien non trouvé" }, { status: 404 });
+    }
+    
+    // Calculer le temps déjà écoulé (sans les pauses)
+    const now = new Date();
+    const debut = new Date(currentEntretien.tempsDebut);
+    let elapsedSeconds = Math.floor((now.getTime() - debut.getTime()) / 1000);
+    
+    // Soustraire le temps de pause existant
+    if (currentEntretien.tempsPause) {
+      elapsedSeconds -= currentEntretien.tempsPause;
+    }
+    
+    // Si déjà en pause et qu'il y a une dernière pause, soustraire ce temps aussi
+    if (currentEntretien.enPause && currentEntretien.dernierePause) {
+      const dernierePause = new Date(currentEntretien.dernierePause);
+      const pauseDuration = Math.floor((now.getTime() - dernierePause.getTime()) / 1000);
+      elapsedSeconds -= pauseDuration;
+    }
+    
+    // Mise à jour forcée : passer en pause et réinitialiser les temps de pause
+    const updateData = {
+      enPause: true,
+      dernierePause: now,
+      tempsPause: currentEntretien.tempsPause || 0,
+      dateModification: now
+    };
+    
+    console.log("PATCH - Mise à jour avec données:", updateData);
+    
+    // Mettre à jour l'entretien
+    const entretien = await prisma.entretien.update({
+      where: { id: Number(id) },
+      data: updateData
+    });
+
+    console.log("PATCH - Entretien mis à jour avec succès:", {
+      id: entretien.id,
+      enPause: entretien.enPause,
+      dernierePause: entretien.dernierePause,
+      tempsPause: entretien.tempsPause
+    });
+    
+    return NextResponse.json({ 
+      success: true,
+      data: entretien, 
+      message: "Entretien mis en pause avec succès"
+    });
+  } catch (error) {
+    console.error("API - erreur:", error);
+    return NextResponse.json(
+      { error: 'Erreur lors de la mise en pause de l\'entretien' },
+      { status: 500 }
+    );
   }
 }

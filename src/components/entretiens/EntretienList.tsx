@@ -92,40 +92,41 @@ export const EntretienList = ({
   };
 
 
-  const calculateDuration = (entretien: any): number => {
-    // Si pas de temps de début, retourner 0
-    if (!entretien.tempsDebut) return 0;
-    
-    const debut = new Date(entretien.tempsDebut);
-    let fin;
-    
-    // Si l'entretien est finalisé, utiliser tempsFin
-    if (entretien.tempsFin) {
-      fin = new Date(entretien.tempsFin);
-    } 
-    // Sinon, utiliser la date actuelle
-    else {
-      fin = new Date();
-    }
-    
-    // Calculer la différence en secondes
-    let durationSeconds = Math.floor((fin.getTime() - debut.getTime()) / 1000);
-    
-    // Soustraire le temps de pause si disponible
-    if (entretien.tempsPause) {
-      durationSeconds -= entretien.tempsPause;
-    }
-    
-    // Si en pause et qu'il y a une dernière pause, soustraire ce temps aussi
-    if (entretien.enPause && entretien.dernierePause) {
-      const dernierePause = new Date(entretien.dernierePause);
-      const pauseDuration = Math.floor((fin.getTime() - dernierePause.getTime()) / 1000);
-      durationSeconds -= pauseDuration;
-    }
-    
-    return Math.max(0, durationSeconds);
-  };
+ // Dans EntretienList.tsx
 
+const calculateDuration = (entretien: any): number => {
+  // Si pas de temps de début, retourner 0
+  if (!entretien.tempsDebut) return 0;
+  
+  const debut = new Date(entretien.tempsDebut);
+  let fin;
+  
+  // Si l'entretien est finalisé ou archivé et a un tempsFin, utiliser tempsFin
+  if ((entretien.status === 'finalise' || entretien.status === 'archive') && entretien.tempsFin) {
+    fin = new Date(entretien.tempsFin);
+  } 
+  // Sinon, utiliser la date actuelle
+  else {
+    fin = new Date();
+  }
+  
+  // Calculer la différence en secondes
+  let durationSeconds = Math.floor((fin.getTime() - debut.getTime()) / 1000);
+  
+  // Soustraire le temps de pause si disponible
+  if (entretien.tempsPause) {
+    durationSeconds -= entretien.tempsPause;
+  }
+  
+  // Si en pause et qu'il y a une dernière pause, soustraire ce temps aussi
+  if (entretien.enPause && entretien.dernierePause) {
+    const dernierePause = new Date(entretien.dernierePause);
+    const pauseDuration = Math.floor((fin.getTime() - dernierePause.getTime()) / 1000);
+    durationSeconds -= pauseDuration;
+  }
+  
+  return Math.max(0, durationSeconds);
+};
 
   return (
     <div className="bg-white rounded-lg shadow">
@@ -177,42 +178,40 @@ export const EntretienList = ({
                     {entretien.numeroEntretien}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-
-                  <div className="font-mono text-sm text-gray-900">
+  <div className="font-mono text-sm text-gray-900">
     {formatDuration(calculateDuration(entretien))}
   </div>
-  {entretien.enPause && (
+  
+  {/* Indiquer clairement si l'entretien est en pause */}
+  {entretien.enPause && entretien.status === 'brouillon' && (
     <span className="text-xs px-2 py-0.5 bg-yellow-100 text-yellow-800 rounded-full ml-2">
       En pause
     </span>
   )}
-  <span className={`px-2 py-1 text-xs font-medium rounded-full
-    ${entretien.statusInfo ? entretien.statusInfo.className : (
-      entretien.status === 'brouillon' 
-        ? 'bg-yellow-100 text-yellow-800'
-        : entretien.status === 'finalise'
-          ? 'bg-green-100 text-green-800'
-          : 'bg-gray-100 text-gray-800'
-    )}`}
-  >
-    {entretien.statusInfo ? entretien.statusInfo.label : (
-      entretien.status === 'brouillon' 
-        ? 'Brouillon'
-        : entretien.status === 'finalise'
-          ? 'Finalisé'
-          : 'Archivé'
-    )}
+  
+  <span className={`inline-flex px-2 py-0.5 text-xs font-medium rounded-full ${
+    entretien.status === 'brouillon' 
+      ? 'bg-yellow-100 text-yellow-800'
+      : entretien.status === 'finalise'
+        ? 'bg-green-100 text-green-800'
+        : 'bg-gray-100 text-gray-800'
+  }`}>
+    {entretien.status === 'brouillon' 
+      ? 'Brouillon'
+      : entretien.status === 'finalise'
+        ? 'Finalisé'
+        : 'Archivé'}
   </span>
 </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {new Date(entretien.dateModification).toLocaleString()}
                   </td>
                   
-<td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
   <div className="flex items-center justify-end gap-2">
     <button 
       onClick={(e) => {
-        e.stopPropagation(); // Empêcher la propagation pour ne pas déclencher le onClick de la ligne
+        e.stopPropagation();
         onEntretienSelect(entretien.id, true); // true pour le mode consultation
       }}
       className="text-blue-600 hover:text-blue-900 px-2 py-1"
@@ -225,8 +224,9 @@ export const EntretienList = ({
         onEntretienSelect(entretien.id, false); // false pour le mode édition
       }}
       className="text-green-600 hover:text-green-900 px-2 py-1"
+      title={entretien.status !== 'brouillon' ? 'Remettre en brouillon pour modification' : 'Modifier'}
     >
-      Modifier
+      {entretien.status !== 'brouillon' ? 'Rouvrir' : 'Modifier'}
     </button>
     <button 
       onClick={(e) => {

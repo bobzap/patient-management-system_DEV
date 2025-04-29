@@ -2,10 +2,12 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '../../../lib/prisma';
 
+// src/app/api/entretiens/route.ts - La fonction POST pour créer un entretien
+
 export async function POST(req: Request) {
   try {
     const reqData = await req.json();
-    console.log('Données reçues:', reqData);
+    console.log('Création d\'entretien - Données reçues:', reqData);
 
     // Validation
     if (!reqData.patientId) {
@@ -28,14 +30,21 @@ export async function POST(req: Request) {
       }
     }
 
+    // Déterminer l'état de pause selon le contexte
+    // Important: Si l'entretien est créé puis immédiatement fermé, 
+    // nous voulons qu'il soit en pause
+    const shouldBePaused = reqData.action === 'saveThenClose' || reqData.enPause === true;
+    
     // Préparer les données du timer
     const now = new Date();
     const timerData = {
       tempsDebut: reqData.tempsDebut || now.toISOString(),
-      enPause: reqData.enPause || false,
-      tempsPause: 0,
-      dernierePause: reqData.enPause ? now.toISOString() : null
+      enPause: shouldBePaused,
+      tempsPause: reqData.tempsPause || 0,
+      dernierePause: shouldBePaused ? now.toISOString() : null
     };
+
+    console.log('Création d\'entretien - Paramètres timer:', timerData);
 
     // Création de l'entretien avec données du timer
     const nouvelEntretien = await prisma.entretien.create({
@@ -54,13 +63,15 @@ export async function POST(req: Request) {
       }
     });
 
+    console.log('Création d\'entretien - Succès:', nouvelEntretien.id);
+    
     return NextResponse.json({
       success: true,
       data: nouvelEntretien
     }, { status: 201 });
 
   } catch (error: any) {
-    console.error('Erreur détaillée:', error);
+    console.error('Création d\'entretien - Erreur:', error);
     return NextResponse.json({
       success: false,
       error: error.message || 'Erreur serveur'

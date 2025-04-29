@@ -501,158 +501,297 @@ const arrangeWindowsEvenly = () => {
   };
 
   // Effet pour charger les données d'un entretien existant
-  useEffect(() => {
-    if (entretienId) {
-      // Charger un entretien existant
-      const fetchEntretien = async () => {
-        try {
-          const response = await fetch(`/api/entretiens/${entretienId}`);
-          
-          if (!response.ok) {
-            throw new Error(`Erreur HTTP ${response.status}`);
-          }
-          
-          const result = await response.json();
-          
-          if (!result.data) {
-            throw new Error('Données non trouvées');
-          }
-          
-          // Traiter les données d'entretien
-          let donnees = {};
-          if (typeof result.data.donneesEntretien === 'string') {
-            donnees = JSON.parse(result.data.donneesEntretien);
-          } else {
-            donnees = result.data.donneesEntretien || {};
-          }
-          
-          // Mise à jour de l'état
-          setEntretienData({
-            numeroEntretien: result.data.numeroEntretien,
-            status: result.data.status,
-            santeTravail: donnees.santeTravail || {
-              vecuTravail: initialVecuTravailData,
-              modeVie: initialModeVieData
-            },
-            examenClinique: donnees.examenClinique || defaultExamenCliniqueData,
-            imaa: donnees.imaa || {},
-            conclusion: donnees.conclusion || defaultConclusionData
-          });
-  
-          // Charger les données du timer
-          if (result.data.tempsDebut) {
-            // Calculer le temps écoulé
-            const debut = new Date(result.data.tempsDebut);
-            const now = new Date();
-            let elapsedSeconds = Math.floor((now.getTime() - debut.getTime()) / 1000);
-            
-            // Soustraire le temps de pause si disponible
-            if (result.data.tempsPause) {
-              elapsedSeconds -= result.data.tempsPause;
-            }
-            
-            // Si en pause et qu'il y a une dernière pause
-            if (result.data.enPause && result.data.dernierePause) {
-              const dernierePause = new Date(result.data.dernierePause);
-              const pauseDuration = Math.floor((now.getTime() - dernierePause.getTime()) / 1000);
-              elapsedSeconds -= pauseDuration;
-            }
-            
-            setTimerSeconds(Math.max(0, elapsedSeconds));
-            setTimerPaused(result.data.enPause || false);
-            setTimerStarted(true);
-          }
-        } catch (error) {
-          toast.error('Erreur lors du chargement des données');
+  // Dans EntretienForm/index.tsx
+useEffect(() => {
+  if (entretienId) {
+    // Charger un entretien existant
+    const fetchEntretien = async () => {
+      try {
+        console.log("Chargement de l'entretien:", entretienId);
+        const response = await fetch(`/api/entretiens/${entretienId}`);
+        
+        if (!response.ok) {
+          throw new Error(`Erreur HTTP ${response.status}`);
         }
-      };
-  
-      fetchEntretien();
-    } else {
-      // Pour un nouvel entretien
-      // Démarrer le timer automatiquement pour un nouvel entretien
-      setTimerStarted(true);
-      setTimerPaused(false);
-      setTimerSeconds(0);
-      // Pour un nouvel entretien, récupérer le numéro suivant
-      const fetchNextEntretienNumber = async () => {
-        try {
-          const response = await fetch(`/api/patients/${patient.id}/entretiens`);
-          const result = await response.json();
-          
-          // Calculer le prochain numéro
-          let nextNumber = 1;
-          if (result.success && result.data && result.data.length > 0) {
-            const maxNumber = Math.max(...result.data.map(e => e.numeroEntretien || 0));
-            nextNumber = maxNumber + 1;
-          }
-          
-          // Mettre à jour l'état
-          setEntretienData(prev => ({
-            ...prev,
-            numeroEntretien: nextNumber
-          }));
-        } catch (error) {
-          // Silencieux en cas d'erreur, garder le numéro par défaut
+        
+        const result = await response.json();
+        
+        if (!result.data) {
+          throw new Error('Données non trouvées');
         }
-      };
-  
-      fetchNextEntretienNumber();
-    }
-  }, [entretienId, patient.id]);
+        
+        console.log("Données de l'entretien chargées:", {
+          status: result.data.status,
+          tempsDebut: result.data.tempsDebut,
+          tempsFin: result.data.tempsFin,
+          enPause: result.data.enPause,
+          dernierePause: result.data.dernierePause,
+          tempsPause: result.data.tempsPause
+        });
+        
+        // Traiter les données d'entretien
+        let donnees = {};
+        if (typeof result.data.donneesEntretien === 'string') {
+          donnees = JSON.parse(result.data.donneesEntretien);
+        } else {
+          donnees = result.data.donneesEntretien || {};
+        }
+        
+        // Mise à jour de l'état
+        setEntretienData({
+          numeroEntretien: result.data.numeroEntretien,
+          status: result.data.status,
+          santeTravail: donnees.santeTravail || {
+            vecuTravail: initialVecuTravailData,
+            modeVie: initialModeVieData
+          },
+          examenClinique: donnees.examenClinique || defaultExamenCliniqueData,
+          imaa: donnees.imaa || {},
+          conclusion: donnees.conclusion || defaultConclusionData
+        });
 
-  // Fonction de sauvegarde
-  const saveEntretien = async () => {
+        // Charger les données du timer
+        if (result.data.tempsDebut) {
+          // Calculer le temps écoulé
+          const debut = new Date(result.data.tempsDebut);
+          const now = new Date();
+          let elapsedSeconds = Math.floor((now.getTime() - debut.getTime()) / 1000);
+          
+          // Soustraire le temps de pause si disponible
+          if (result.data.tempsPause) {
+            elapsedSeconds -= result.data.tempsPause;
+          }
+          
+          // Si en pause et qu'il y a une dernière pause
+          if (result.data.enPause && result.data.dernierePause) {
+            const dernierePause = new Date(result.data.dernierePause);
+            const pauseDuration = Math.floor((now.getTime() - dernierePause.getTime()) / 1000);
+            elapsedSeconds -= pauseDuration;
+          }
+          
+          console.log("Temps calculé:", {
+            elapsedSeconds,
+            tempsPause: result.data.tempsPause,
+            enPause: result.data.enPause
+          });
+          
+          setTimerSeconds(Math.max(0, elapsedSeconds));
+          
+          // Déterminer l'état de pause initial :
+          // 1. Si on est en lecture seule (isReadOnly), respecter l'état de pause existant
+          // 2. Si on est en édition (!isReadOnly) :
+          //    a. Si c'est un entretien en brouillon, le timer démarre automatiquement
+          //    b. Si c'est un entretien finalisé/archivé, le timer reste en pause
+          const shouldStartPaused = 
+            isReadOnly || // En mode lecture seule : rester en pause
+            result.data.status === 'finalise' || // Entretien finalisé : rester en pause 
+            result.data.status === 'archive'; // Entretien archivé : rester en pause
+          
+          // Définir l'état de pause local
+          setTimerPaused(shouldStartPaused);
+          setTimerStarted(true);
+          
+          // Si l'entretien est en brouillon, était en pause, mais qu'on est en mode édition,
+          // alors le sortir automatiquement de pause dans la base de données
+          if (result.data.status === 'brouillon' && result.data.enPause && !isReadOnly) {
+            console.log("Sortie automatique de pause pour un entretien en brouillon en mode édition");
+            
+            // Mettre à jour l'état dans la base de données
+            fetch(`/api/entretiens/${entretienId}/timer`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ enPause: false })
+            }).catch(error => {
+              console.error('Erreur lors de la sortie de pause du timer:', error);
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Erreur lors du chargement des données:', error);
+        toast.error('Erreur lors du chargement des données');
+      }
+    };
+
+    fetchEntretien();
+  } else {
+    // Pour un nouvel entretien
+    console.log("Initialisation d'un nouvel entretien");
+    setTimerStarted(true);
+    setTimerPaused(false);
+    setTimerSeconds(0);
+    
+    // Pour un nouvel entretien, récupérer le numéro suivant
+    const fetchNextEntretienNumber = async () => {
+      try {
+        const response = await fetch(`/api/patients/${patient.id}/entretiens`);
+        const result = await response.json();
+        
+        // Calculer le prochain numéro
+        let nextNumber = 1;
+        if (result.success && result.data && result.data.length > 0) {
+          const maxNumber = Math.max(...result.data.map(e => e.numeroEntretien || 0));
+          nextNumber = maxNumber + 1;
+        }
+        
+        // Mettre à jour l'état
+        setEntretienData(prev => ({
+          ...prev,
+          numeroEntretien: nextNumber
+        }));
+      } catch (error) {
+        // Silencieux en cas d'erreur, garder le numéro par défaut
+      }
+    };
+
+    fetchNextEntretienNumber();
+  }
+}, [entretienId, patient.id, isReadOnly]); // Ajout de isReadOnly comme dépendance
+
+// Dans src/components/entretiens/EntretienForm/index.tsx
+
+// Ajouter cet useEffect à la fin des autres useEffect
+useEffect(() => {
+  return () => {
+    // Fonction de nettoyage exécutée au démontage du composant
+    console.log("Nettoyage - composant EntretienForm démonté");
+    
+    // Tentative directe de mise en pause au démontage
+    if (entretienId && entretienData.status === 'brouillon') {
+      console.log("Nettoyage - tentative de mise en pause");
+      
+      // Utiliser l'API de pause forcée
+      fetch(`/api/entretiens/force-pause/${entretienId}`, {
+        method: 'POST'
+      }).catch(error => {
+        console.error("Erreur lors de la mise en pause au démontage:", error);
+      });
+    }
+  };
+}, [entretienId, entretienData.status]);
+
+// Dans EntretienForm
+
+// src/components/entretiens/EntretienForm/index.tsx
+
+const saveEntretien = async (shouldClose = false) => {
+  try {
+    console.log("Sauvegarde d'entretien avec fermeture =", shouldClose);
+    
+    // Préparation des données
+    const entretienToSave = {
+      patientId: patient.id,
+      numeroEntretien: entretienData.numeroEntretien,
+      status: entretienData.status,
+      donneesEntretien: JSON.stringify({
+        santeTravail: entretienData.santeTravail,
+        examenClinique: entretienData.examenClinique,
+        imaa: entretienData.imaa,
+        conclusion: entretienData.conclusion
+      }),
+      // Action spécifique pour indiquer la sauvegarde suivie de fermeture
+      action: shouldClose ? 'saveThenClose' : 'saveOnly',
+      // Données du timer
+      tempsDebut: entretienId ? undefined : new Date().toISOString(),
+      enPause: shouldClose, // Mise en pause automatique si on ferme après sauvegarde
+      tempsCourant: timerSeconds
+    };
+    
+    // URL et méthode selon création ou modification
+    const url = entretienId ? 
+      `/api/entretiens/${entretienId}` : 
+      '/api/entretiens';
+    
+    const method = entretienId ? 'PUT' : 'POST';
+    
+    // Envoi de la requête
+    const response = await fetch(url, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(entretienToSave)
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Erreur HTTP: ${response.status}`);
+    }
+    
+    const result = await response.json();
+    console.log("Sauvegarde réussie:", result);
+    
+    toast.success(entretienId ? 
+      'Entretien mis à jour avec succès' : 
+      'Entretien créé avec succès'
+    );
+    
+    // Si on doit fermer après sauvegarde
+    if (shouldClose && onClose) {
+      onClose();
+    }
+  } catch (error) {
+    console.error("Erreur lors de la sauvegarde:", error);
+    toast.error('Une erreur est survenue lors de la sauvegarde');
+  }
+};
+
+
+
+// src/components/entretiens/EntretienForm/index.tsx
+
+// Assurez-vous que cette fonction est déclarée avec useCallback pour éviter les re-rendus inutiles
+// src/components/entretiens/EntretienForm/index.tsx
+
+// Dans src/components/entretiens/EntretienForm/index.tsx
+
+// src/components/entretiens/EntretienForm/index.tsx
+
+const handleCloseEntretien = useCallback(async () => {
+  console.log("Fermeture d'entretien appelée");
+  
+  // Si on a un entretien existant, le sauvegarder avec la mise en pause
+  if (entretienId) {
+    // Pour un entretien existant, le sauvegarder avec enPause=true
+    await saveEntretien(true);
+  } else {
+    // Pour un nouvel entretien pas encore sauvegardé
+    // Mettre en pause avant de créer, puis fermer
+    const entretienToSave = {
+      patientId: patient.id,
+      numeroEntretien: entretienData.numeroEntretien,
+      status: 'brouillon',
+      donneesEntretien: JSON.stringify({
+        santeTravail: entretienData.santeTravail,
+        examenClinique: entretienData.examenClinique,
+        imaa: entretienData.imaa,
+        conclusion: entretienData.conclusion
+      }),
+      action: 'saveThenClose',
+      enPause: true, // Important: mettre en pause dès la création
+      tempsCourant: timerSeconds
+    };
+    
     try {
-      // Calculer les données de temps
-      const now = new Date();
-      const tempsDebut = entretienId ? undefined : now.toISOString(); // Ne pas modifier le temps de début pour les entretiens existants
-      
-      // Préparation des données
-      const entretienToSave = {
-        patientId: patient.id,
-        numeroEntretien: entretienData.numeroEntretien,
-        status: entretienData.status,
-        donneesEntretien: JSON.stringify({
-          santeTravail: entretienData.santeTravail,
-          examenClinique: entretienData.examenClinique,
-          imaa: entretienData.imaa,
-          conclusion: entretienData.conclusion
-        }),
-        // Données du timer
-        tempsDebut: tempsDebut,
-        enPause: timerPaused,
-        tempsCourant: timerSeconds
-      };
-      
-      // URL et méthode selon création ou modification
-      const url = entretienId ? 
-        `/api/entretiens/${entretienId}` : 
-        '/api/entretiens';
-      
-      const method = entretienId ? 'PUT' : 'POST';
-      
-      // Envoi de la requête
-      const response = await fetch(url, {
-        method,
+      const response = await fetch('/api/entretiens', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(entretienToSave)
       });
       
-      if (!response.ok) {
-        throw new Error(`Erreur HTTP: ${response.status}`);
-      }
+      const result = await response.json();
+      console.log("Création et mise en pause réussies:", result);
       
-      toast.success(entretienId ? 
-        'Entretien mis à jour avec succès' : 
-        'Entretien créé avec succès'
-      );
-      
-      if (onClose) onClose();
+      toast.success('Entretien créé et sauvegardé');
     } catch (error) {
-      toast.error('Une erreur est survenue lors de la sauvegarde');
+      console.error("Erreur lors de la création:", error);
+      toast.error('Erreur lors de la sauvegarde');
     }
-  };
+  }
+  
+  // Utiliser onClose qui est passé en prop
+  if (onClose) {
+    onClose();
+  }
+}, [entretienId, entretienData, timerSeconds, patient.id, onClose, saveEntretien]);
+
+
 
   return (
     <div>
@@ -681,49 +820,59 @@ const arrangeWindowsEvenly = () => {
         <div className="p-6">
           {/* En-tête avec navigation et informations */}
           <div className="max-w-[98%] mx-auto bg-white rounded-xl shadow-lg p-3 mb-3">
-            {/* Barre de navigation supérieure */}
-            <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-              {/* Boutons de navigation - côté gauche */}
-              <div className="flex items-center gap-3">
-                {onClose && (
-                  <button
-                    onClick={onClose}
-                    className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-                  >
-                    <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                    </svg>
-                    Retour au dossier
-                  </button>
-                )}
-              </div>
+  {/* Barre de navigation supérieure */}
+  <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+    {/* Boutons de navigation - côté gauche */}
+    <div className="flex items-center gap-3">
+    {/* Bouton de retour */}
+<button
+  onClick={() => {
+    console.log("Bouton retour cliqué");
+    handleCloseEntretien();
+  }}
+  className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+>
+  <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+  </svg>
+  Sauvegarder et Retourner
+</button>
+    </div>
               
               {/* Actions principales - côté droit */}
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={resetSizes}
-                  className="px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-                >
-                  Mise en page par défaut
-                </button>
-                
-                {/* Action contextuelle (Modifier ou Sauvegarder) */}
-                {isReadOnly ? (
-                  <button 
-                    onClick={() => onClose && onClose()}
-                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
-                  >
-                    Modifier
-                  </button>
-                ) : (
-                  <button 
-                    onClick={saveEntretien}
-                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
-                  >
-                    Sauvegarder
-                  </button>
-                )}
-              </div>
+<div className="flex items-center gap-3">
+  <button
+    onClick={resetSizes}
+    className="px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+  >
+    Mise en page par défaut
+  </button>
+  
+  {/* Action contextuelle (Modifier ou Sauvegarder) */}
+  {isReadOnly ? (
+    <button 
+      onClick={() => onClose && onClose()}
+      className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+    >
+      Fermer
+    </button>
+  ) : (
+    <>
+      <button 
+        onClick={() => saveEntretien(false)} // Sauvegarder sans fermer
+        className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+      >
+        Sauvegarder
+      </button>
+      <button 
+        onClick={() => saveEntretien(true)} // Sauvegarder et fermer
+        className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors"
+      >
+        Sauvegarder et Fermer
+      </button>
+    </>
+  )}
+</div>
             </div>
           
             {/* Informations du patient et statut */}
