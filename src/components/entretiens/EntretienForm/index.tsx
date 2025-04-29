@@ -422,7 +422,8 @@ const arrangeWindowsEvenly = () => {
   // Fonction pour rendre les sections
   const renderSections = () => {
     const visibleSections = sections.filter(s => !s.isMinimized);
-    
+    const zoomFactor = 1 / (window.outerWidth / window.innerWidth);
+
     return (
       <div 
         className="max-w-[98%] mx-auto"

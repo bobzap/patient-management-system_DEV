@@ -43,6 +43,7 @@ model Patient {
 
   // Informations professionnelles
   poste        String
+  numeroLigne  String?
   manager      String
   zone         String
   horaire      String?
