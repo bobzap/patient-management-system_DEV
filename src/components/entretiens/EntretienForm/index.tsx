@@ -1,7 +1,7 @@
 // src/components/entretiens/EntretienForm/index.tsx
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback  } from 'react';
 import { toast } from 'sonner';
 import { Patient } from '@/types';
 import { TabBar } from './TabBar';
@@ -15,6 +15,7 @@ import type { VecuTravailData } from '../sections/SanteAuTravail/VecuTravail';
 import type { ModeVieData } from '../sections/SanteAuTravail/ModeVie';
 import { IMAA } from '../sections/IMAA';
 import { ZoomIn, ZoomOut } from 'lucide-react';
+import { Timer } from '@/components/ui/timer';
 
 interface EntretienData {
   numeroEntretien: number;
@@ -89,6 +90,13 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
   const [focusedSection, setFocusedSection] = useState<string | null>(null);
   const [maxZIndex, setMaxZIndex] = useState(1);
   const [globalZoom, setGlobalZoom] = useState(100);
+  // Modifications à apporter au fichier src/components/entretiens/EntretienForm/index.tsx
+
+// Ajoutez après les autres useState
+const [timerSeconds, setTimerSeconds] = useState(0);
+const [timerPaused, setTimerPaused] = useState(false);
+const [timerStarted, setTimerStarted] = useState(false);
+
   const [sections, setSections] = useState<Section[]>([
     { 
       id: 'sante', 
@@ -152,7 +160,26 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
     setSections(updatedSections);
   };
 
+// 3. Ajoutez une fonction pour gérer la mise à jour du temps
+const handleTimeUpdate = useCallback((seconds: number) => {
+  setTimerSeconds(seconds);
+}, []);
 
+// 4. Ajoutez une fonction pour gérer le changement d'état de pause
+const handlePauseChange = useCallback((isPaused: boolean) => {
+  setTimerPaused(isPaused);
+  
+  // Si c'est un entretien existant, mettre à jour l'état de pause dans la base de données
+  if (entretienId) {
+    fetch(`/api/entretiens/${entretienId}/timer`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ enPause: isPaused, tempsCourant: timerSeconds })
+    }).catch(error => {
+      console.error('Erreur lors de la mise à jour du timer:', error);
+    });
+  }
+}, [entretienId, timerSeconds]);
 
 
   // src/components/entretiens/EntretienForm/index.tsx
@@ -511,6 +538,30 @@ const arrangeWindowsEvenly = () => {
             imaa: donnees.imaa || {},
             conclusion: donnees.conclusion || defaultConclusionData
           });
+  
+          // Charger les données du timer
+          if (result.data.tempsDebut) {
+            // Calculer le temps écoulé
+            const debut = new Date(result.data.tempsDebut);
+            const now = new Date();
+            let elapsedSeconds = Math.floor((now.getTime() - debut.getTime()) / 1000);
+            
+            // Soustraire le temps de pause si disponible
+            if (result.data.tempsPause) {
+              elapsedSeconds -= result.data.tempsPause;
+            }
+            
+            // Si en pause et qu'il y a une dernière pause
+            if (result.data.enPause && result.data.dernierePause) {
+              const dernierePause = new Date(result.data.dernierePause);
+              const pauseDuration = Math.floor((now.getTime() - dernierePause.getTime()) / 1000);
+              elapsedSeconds -= pauseDuration;
+            }
+            
+            setTimerSeconds(Math.max(0, elapsedSeconds));
+            setTimerPaused(result.data.enPause || false);
+            setTimerStarted(true);
+          }
         } catch (error) {
           toast.error('Erreur lors du chargement des données');
         }
@@ -518,6 +569,11 @@ const arrangeWindowsEvenly = () => {
   
       fetchEntretien();
     } else {
+      // Pour un nouvel entretien
+      // Démarrer le timer automatiquement pour un nouvel entretien
+      setTimerStarted(true);
+      setTimerPaused(false);
+      setTimerSeconds(0);
       // Pour un nouvel entretien, récupérer le numéro suivant
       const fetchNextEntretienNumber = async () => {
         try {
@@ -548,6 +604,10 @@ const arrangeWindowsEvenly = () => {
   // Fonction de sauvegarde
   const saveEntretien = async () => {
     try {
+      // Calculer les données de temps
+      const now = new Date();
+      const tempsDebut = entretienId ? undefined : now.toISOString(); // Ne pas modifier le temps de début pour les entretiens existants
+      
       // Préparation des données
       const entretienToSave = {
         patientId: patient.id,
@@ -558,7 +618,11 @@ const arrangeWindowsEvenly = () => {
           examenClinique: entretienData.examenClinique,
           imaa: entretienData.imaa,
           conclusion: entretienData.conclusion
-        })
+        }),
+        // Données du timer
+        tempsDebut: tempsDebut,
+        enPause: timerPaused,
+        tempsCourant: timerSeconds
       };
       
       // URL et méthode selon création ou modification
@@ -678,6 +742,20 @@ const arrangeWindowsEvenly = () => {
                     Ancienneté : {patient.anciennete} • Horaire : {patient.horaire}
                   </div>
                 </div>
+
+                 {/* Timer */}
+    {timerStarted && (
+      <div className="flex-shrink-0">
+        <Timer 
+          initialTime={timerSeconds}
+          isPaused={timerPaused}
+          onPauseChange={handlePauseChange}
+          onTimeUpdate={handleTimeUpdate}
+          isReadOnly={isReadOnly}
+          className="border border-gray-200"
+        />
+      </div>
+    )}
 
                 {/* Sélecteur de statut - visible seulement en mode édition */}
                 {!isReadOnly && (

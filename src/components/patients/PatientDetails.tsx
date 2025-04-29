@@ -361,18 +361,29 @@ return (
 
           {/* Informations professionnelles */}
           <div className="bg-white rounded-xl shadow-lg p-6">
-            <h3 className="text-lg font-semibold text-blue-900 mb-4">
-              Informations professionnelles
-            </h3>
-            <div className="grid grid-cols-2 gap-6">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Poste</p>
-                <p className="text-base font-semibold text-gray-900 mt-1">{patient.poste}</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-600">Manager</p>
-                <p className="text-base font-semibold text-gray-900 mt-1">{patient.manager}</p>
-              </div>
+  <h3 className="text-lg font-semibold text-blue-900 mb-4">
+    Informations professionnelles
+  </h3>
+  <div className="grid grid-cols-2 gap-6">
+    <div>
+      <p className="text-sm font-medium text-gray-600">Poste</p>
+      <p className="text-base font-semibold text-gray-900 mt-1">{patient.poste}</p>
+    </div>
+    
+    {/* Afficher le numéro de ligne seulement si le poste est Opérateur SB et que le numéro existe */}
+    {patient.poste === 'Opérateur SB' && (
+  <div>
+    <p className="text-sm font-medium text-gray-600">N° de ligne</p>
+    <p className="text-base font-semibold text-gray-900 mt-1">
+      {patient.numeroLigne ? patient.numeroLigne : "Non spécifié"}
+    </p>
+  </div>
+)}
+    
+    <div>
+      <p className="text-sm font-medium text-gray-600">Manager</p>
+      <p className="text-base font-semibold text-gray-900 mt-1">{patient.manager}</p>
+    </div>
               <div>
                 <p className="text-sm font-medium text-gray-600">Zone</p>
                 <p className="text-base font-semibold text-gray-900 mt-1">{patient.zone}</p>

@@ -49,22 +49,38 @@ export async function PUT(request: NextRequest) {
     const data = await request.json();
     console.log("API - données entretien reçues:", { id, data });
     
-    // Vérifier si donneesEntretien est déjà une chaîne
-    let donneesEntretien = data.donneesEntretien;
-    if (typeof donneesEntretien !== 'string') {
-      console.log("API - conversion des données en chaîne JSON");
-      donneesEntretien = JSON.stringify(donneesEntretien);
-    } else {
-      console.log("API - données déjà au format chaîne JSON");
+    // Récupérer l'entretien actuel si nécessaire pour des calculs de temps
+    const currentEntretien = await prisma.entretien.findUnique({
+      where: { id: Number(id) }
+    });
+    
+    if (!currentEntretien) {
+      return NextResponse.json({ error: "Entretien non trouvé" }, { status: 404 });
     }
     
+    // Préparer les données pour la mise à jour
+    const updateData: any = {
+      donneesEntretien: typeof data.donneesEntretien === 'string'
+        ? data.donneesEntretien
+        : JSON.stringify(data.donneesEntretien),
+      status: data.status,
+      dateModification: new Date()
+    };
+    
+    // Ajouter les données du timer si fournies
+    if (data.enPause !== undefined) {
+      updateData.enPause = data.enPause;
+    }
+    
+    // Si tempsCourant est fourni, nous pouvons l'utiliser pour mettre à jour tempsFin quand un entretien est finalisé
+    if (data.status === 'finalise' && data.tempsCourant) {
+      updateData.tempsFin = new Date();
+    }
+    
+    // Mettre à jour l'entretien
     const entretien = await prisma.entretien.update({
       where: { id: Number(id) },
-      data: {
-        donneesEntretien: donneesEntretien,
-        status: data.status,
-        dateModification: new Date()
-      },
+      data: updateData,
       include: {
         patient: true
       }

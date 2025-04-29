@@ -28,7 +28,16 @@ export async function POST(req: Request) {
       }
     }
 
-    // Création de l'entretien
+    // Préparer les données du timer
+    const now = new Date();
+    const timerData = {
+      tempsDebut: reqData.tempsDebut || now.toISOString(),
+      enPause: reqData.enPause || false,
+      tempsPause: 0,
+      dernierePause: reqData.enPause ? now.toISOString() : null
+    };
+
+    // Création de l'entretien avec données du timer
     const nouvelEntretien = await prisma.entretien.create({
       data: {
         patientId: reqData.patientId,
@@ -37,7 +46,8 @@ export async function POST(req: Request) {
         isTemplate: false,
         donneesEntretien: typeof reqData.donneesEntretien === 'string'
           ? reqData.donneesEntretien
-          : JSON.stringify(reqData.donneesEntretien)
+          : JSON.stringify(reqData.donneesEntretien),
+        ...timerData
       },
       include: {
         patient: true

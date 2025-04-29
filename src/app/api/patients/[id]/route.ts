@@ -46,6 +46,7 @@ export async function PUT(request: NextRequest) {
         
         // Informations professionnelles
         poste: data.poste,
+        numeroLigne: data.poste === 'Opérateur SB' ? data.numeroLigne : null,
         manager: data.manager,
         zone: data.zone,
         horaire: data.horaire,

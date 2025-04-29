@@ -140,4 +140,12 @@ model Entretien {
 
   // Données des sections
   donneesEntretien String // Stocké comme TEXT mais contiendra du JSON
+
+    // Nouveaux champs pour le timer
+  tempsDebut      DateTime? // Moment où l'entretien a démarré
+  tempsFin        DateTime? // Moment où l'entretien a été finalisé
+  tempsPause      Int?      // Temps total en pause (en secondes)
+  enPause         Boolean   @default(false) // Si le timer est actuellement en pause
+  dernierePause   DateTime? // Moment où la dernière pause a commencé
+  
 }

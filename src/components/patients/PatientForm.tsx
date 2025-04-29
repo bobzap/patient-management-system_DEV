@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Patient } from '@/types';
 import { calculerAge, calculerAnciennete } from '@/utils/calculations';
 import { useLists } from '@/hooks/useLists';
+import { toast } from 'sonner';
 
 interface PatientFormProps {
   patient?: Patient; // Optionnel : présent en mode édition, absent en mode création
@@ -25,6 +26,9 @@ interface InputFieldProps {
   options?: string[];
   placeholder?: string;
 }
+
+
+
 
 const STEPS: StepProps[] = [
   {
@@ -110,7 +114,8 @@ export const PatientForm = ({ patient, onSubmit, onCancel }: PatientFormProps) =
   const { lists, isLoading: listsLoading, error: listsError } = useLists();
   const [currentStep, setCurrentStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
+  const [possibleDuplicates, setPossibleDuplicates] = useState<Patient[]>([]);
+const [showDuplicatesWarning, setShowDuplicatesWarning] = useState(false);
 
   const [formData, setFormData] = useState(() => {
     if (patient) {
@@ -129,6 +134,7 @@ export const PatientForm = ({ patient, onSubmit, onCancel }: PatientFormProps) =
       age: 0,
       etatCivil: '',
       poste: '',
+      numeroLigne: '', // Ajoutez ce champ ici
       manager: '',
       zone: '',
       horaire: '',
@@ -143,6 +149,13 @@ export const PatientForm = ({ patient, onSubmit, onCancel }: PatientFormProps) =
     };
   });
 
+  const [showNumeroLigne, setShowNumeroLigne] = useState(formData.poste === 'Opérateur SB');
+
+  useEffect(() => {
+    setShowNumeroLigne(formData.poste === 'Opérateur SB');
+  }, [formData.poste]);
+
+
   if (listsLoading) {
     return (
       <div className="flex justify-center items-center h-screen">
@@ -156,6 +169,18 @@ export const PatientForm = ({ patient, onSubmit, onCancel }: PatientFormProps) =
     
     setFormData(prev => {
       const newData = { ...prev, [name]: value };
+
+          // Vérification de doublons sur le nom
+    if (name === 'nom' && value.length >= 2) {
+      checkForDuplicates(value);
+    }
+      // Gestion spéciale pour le poste "Opérateur SB"
+      if (name === 'poste') {
+        setShowNumeroLigne(value === 'Opérateur SB');
+        if (value !== 'Opérateur SB') {
+          newData.numeroLigne = ''; // Réinitialiser si un autre poste est sélectionné
+        }
+      }
       
       // Calculer l'âge si la date de naissance change
       if (name === 'dateNaissance') {
@@ -170,6 +195,36 @@ export const PatientForm = ({ patient, onSubmit, onCancel }: PatientFormProps) =
       return newData;
     });
   };
+
+
+// Ajoutez cette fonction après handleChange
+const checkForDuplicates = async (nom: string) => {
+  if (!nom || nom.length < 2) return;
+  
+  try {
+    const response = await fetch(`/api/patients/check-duplicates?nom=${encodeURIComponent(nom)}`);
+    const result = await response.json();
+    
+    if (result.data && result.data.length > 0) {
+      // Filtrer pour exclure le patient actuel en mode édition
+      const filteredDuplicates = patient 
+        ? result.data.filter(p => p.id !== patient.id) 
+        : result.data;
+        
+      if (filteredDuplicates.length > 0) {
+        setPossibleDuplicates(filteredDuplicates);
+        setShowDuplicatesWarning(true);
+      } else {
+        setShowDuplicatesWarning(false);
+      }
+    } else {
+      setShowDuplicatesWarning(false);
+    }
+  } catch (error) {
+    console.error('Erreur lors de la vérification des doublons:', error);
+  }
+};
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -191,7 +246,7 @@ export const PatientForm = ({ patient, onSubmit, onCancel }: PatientFormProps) =
     }
   };
 
-
+  
   
     // Modifier le titre selon le mode
     const isEditMode = !!patient;
@@ -250,7 +305,7 @@ export const PatientForm = ({ patient, onSubmit, onCancel }: PatientFormProps) =
                 type="select"
                 value={formData.civilites}
                 onChange={handleChange}
-                required
+                
                 options={lists['civilites'] || []}
               />
               <InputField
@@ -259,7 +314,7 @@ export const PatientForm = ({ patient, onSubmit, onCancel }: PatientFormProps) =
                 type="select"
                 value={formData.etatCivil}
                 onChange={handleChange}
-                required
+                
                 options={lists['etatsCivils'] || []}
               />
               <InputField
@@ -269,6 +324,31 @@ export const PatientForm = ({ patient, onSubmit, onCancel }: PatientFormProps) =
                 onChange={handleChange}
                 required
               />
+
+              {/* Avertissement de doublons */}
+{showDuplicatesWarning && (
+  <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+    <p className="text-yellow-800 font-medium">
+      Attention! {possibleDuplicates.length} employé(s) avec un nom similaire déjà existant(s)
+    </p>
+    <ul className="mt-2 text-sm">
+      {possibleDuplicates.map(p => (
+        <li key={p.id} className="text-gray-700">
+          {p.civilites} {p.nom} {p.prenom}, {p.poste} ({p.departement})
+        </li>
+      ))}
+    </ul>
+    <div className="mt-3 flex justify-end">
+      <button 
+        type="button"
+        onClick={() => setShowDuplicatesWarning(false)}
+        className="text-xs bg-white px-3 py-1 rounded border border-gray-300 hover:bg-gray-50"
+      >
+        Continuer quand même
+      </button>
+    </div>
+  </div>
+)}
               <InputField
                 label="Prénom"
                 name="prenom"
@@ -282,7 +362,7 @@ export const PatientForm = ({ patient, onSubmit, onCancel }: PatientFormProps) =
                 type="date"
                 value={formData.dateNaissance}
                 onChange={handleChange}
-                required
+                
               />
               {formData.age > 0 && (
                 <div className="flex items-center bg-blue-50 rounded-lg px-4 py-3">
@@ -302,16 +382,30 @@ export const PatientForm = ({ patient, onSubmit, onCancel }: PatientFormProps) =
                 type="select"
                 value={formData.poste}
                 onChange={handleChange}
-                required
+                
                 options={lists['postes'] || []}
               />
+
+{showNumeroLigne && (
+  <InputField
+    label="N° de ligne"
+    name="numeroLigne"
+    value={formData.numeroLigne || ''}
+    onChange={handleChange}
+    placeholder="Ex: A12, B45..."
+  />
+)}
+
+
+
+
               <InputField
                 label="Manager"
                 name="manager"
                 type="select"
                 value={formData.manager}
                 onChange={handleChange}
-                required
+                
                 options={lists['managers'] || []}
               />
 
@@ -321,7 +415,7 @@ export const PatientForm = ({ patient, onSubmit, onCancel }: PatientFormProps) =
                 type="select"
                 value={formData.zone}
                 onChange={handleChange}
-                required
+                
                 options={lists['zones'] || []}
               />
               <InputField
@@ -330,7 +424,7 @@ export const PatientForm = ({ patient, onSubmit, onCancel }: PatientFormProps) =
                 type="select"
                 value={formData.departement}
                 onChange={handleChange}
-                required
+                
                 options={lists['dpt'] || []}
               />
               <InputField
@@ -339,7 +433,7 @@ export const PatientForm = ({ patient, onSubmit, onCancel }: PatientFormProps) =
                 type="select"
                 value={formData.contrat}
                 onChange={handleChange}
-                required
+                
                 options={lists['contrats'] || []}
               />
               <InputField
@@ -348,7 +442,7 @@ export const PatientForm = ({ patient, onSubmit, onCancel }: PatientFormProps) =
                 type="select"
                 value={formData.tauxActivite}
                 onChange={handleChange}
-                required
+                
                 options={lists['tauxOccupation'] || []}
               />
               <InputField
@@ -357,7 +451,7 @@ export const PatientForm = ({ patient, onSubmit, onCancel }: PatientFormProps) =
                 type="date"
                 value={formData.dateEntree}
                 onChange={handleChange}
-                required
+                
               />
 
 <InputField
@@ -366,7 +460,7 @@ export const PatientForm = ({ patient, onSubmit, onCancel }: PatientFormProps) =
   type="select"
   value={formData.horaire}
   onChange={handleChange}
-  required
+  
   options={lists['horaires'] || []}
 />
               <InputField
@@ -375,7 +469,7 @@ export const PatientForm = ({ patient, onSubmit, onCancel }: PatientFormProps) =
                 type="select"
                 value={formData.typeTransport}
                 onChange={handleChange}
-                required
+                
                 options={lists['transport'] || []}
               />
               <div className="grid grid-cols-2 gap-4">
@@ -384,7 +478,7 @@ export const PatientForm = ({ patient, onSubmit, onCancel }: PatientFormProps) =
                   name="tempsTrajetAller"
                   value={formData.tempsTrajetAller}
                   onChange={handleChange}
-                  required
+                  
                   placeholder="En minutes"
                 />
                 <InputField
@@ -392,7 +486,7 @@ export const PatientForm = ({ patient, onSubmit, onCancel }: PatientFormProps) =
                   name="tempsTrajetRetour"
                   value={formData.tempsTrajetRetour}
                   onChange={handleChange}
-                  required
+                  
                   placeholder="En minutes"
                 />
               </div>

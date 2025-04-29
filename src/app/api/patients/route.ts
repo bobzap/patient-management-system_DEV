@@ -18,6 +18,7 @@ export async function POST(req: Request) {
         age: data.age,
         etatCivil: data.etatCivil,
         poste: data.poste,
+        numeroLigne: data.poste === 'Opérateur SB' ? data.numeroLigne : null,
         manager: data.manager,
         zone: data.zone,
         horaire: data.horaire || '',

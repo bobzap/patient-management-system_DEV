@@ -27,6 +27,7 @@ export interface Patient {
   age: number;
   etatCivil: string;
   poste: string;
+  numeroLigne?: string; // Nouveau champ optionnel
   manager: string;
   zone: string;
   horaire?: string;

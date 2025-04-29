@@ -77,6 +77,56 @@ export const EntretienList = ({
   };
 
 
+  const formatDuration = (seconds: number): string => {
+    if (!seconds || seconds <= 0) return '00:00:00';
+    
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    
+    return [
+      hours.toString().padStart(2, '0'),
+      minutes.toString().padStart(2, '0'),
+      secs.toString().padStart(2, '0')
+    ].join(':');
+  };
+
+
+  const calculateDuration = (entretien: any): number => {
+    // Si pas de temps de début, retourner 0
+    if (!entretien.tempsDebut) return 0;
+    
+    const debut = new Date(entretien.tempsDebut);
+    let fin;
+    
+    // Si l'entretien est finalisé, utiliser tempsFin
+    if (entretien.tempsFin) {
+      fin = new Date(entretien.tempsFin);
+    } 
+    // Sinon, utiliser la date actuelle
+    else {
+      fin = new Date();
+    }
+    
+    // Calculer la différence en secondes
+    let durationSeconds = Math.floor((fin.getTime() - debut.getTime()) / 1000);
+    
+    // Soustraire le temps de pause si disponible
+    if (entretien.tempsPause) {
+      durationSeconds -= entretien.tempsPause;
+    }
+    
+    // Si en pause et qu'il y a une dernière pause, soustraire ce temps aussi
+    if (entretien.enPause && entretien.dernierePause) {
+      const dernierePause = new Date(entretien.dernierePause);
+      const pauseDuration = Math.floor((fin.getTime() - dernierePause.getTime()) / 1000);
+      durationSeconds -= pauseDuration;
+    }
+    
+    return Math.max(0, durationSeconds);
+  };
+
+
   return (
     <div className="bg-white rounded-lg shadow">
       <div className="p-4 flex justify-between items-center border-b">
@@ -93,23 +143,26 @@ export const EntretienList = ({
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Date
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  N°
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Dernière modification
-                </th>
-                <th className="px-6 py-3"></th>
-              </tr>
-            </thead>
+          <thead className="bg-gray-50">
+  <tr>
+    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+      Date
+    </th>
+    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+      N°
+    </th>
+    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+      Status
+    </th>
+    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+      Durée
+    </th>
+    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+      Dernière modification
+    </th>
+    <th className="px-6 py-3"></th>
+  </tr>
+</thead>
             <tbody className="divide-y divide-gray-200">
               {entretiens.map((entretien) => (
                 <tr 
@@ -124,6 +177,15 @@ export const EntretienList = ({
                     {entretien.numeroEntretien}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
+
+                  <div className="font-mono text-sm text-gray-900">
+    {formatDuration(calculateDuration(entretien))}
+  </div>
+  {entretien.enPause && (
+    <span className="text-xs px-2 py-0.5 bg-yellow-100 text-yellow-800 rounded-full ml-2">
+      En pause
+    </span>
+  )}
   <span className={`px-2 py-1 text-xs font-medium rounded-full
     ${entretien.statusInfo ? entretien.statusInfo.className : (
       entretien.status === 'brouillon' 
