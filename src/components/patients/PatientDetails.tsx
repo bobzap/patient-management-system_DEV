@@ -168,9 +168,6 @@ const handleEntretienSelect = (entretienId: number, readOnly: boolean) => {
     />;
   }
 
- // Dans src/components/patients/PatientDetails.tsx
-// Dans src/components/patients/PatientDetails.tsx
-
 // Dans src/components/patients/PatientDetails.tsx
 
 if (showEntretien) {
@@ -179,35 +176,14 @@ if (showEntretien) {
     entretienId={selectedEntretienId}
     isReadOnly={isReadOnly}
     onClose={async () => {
-      console.log("onClose appelé depuis PatientDetails");
+      console.log("Fermeture d'entretien depuis PatientDetails");
       
-      // Si on a un ID d'entretien
-      if (selectedEntretienId) {
-        try {
-          console.log("PatientDetails - tentative de mise en pause forcée");
-          
-          // Appel de l'API dédiée
-          const response = await fetch(`/api/entretiens/force-pause/${selectedEntretienId}`, {
-            method: 'POST'
-          });
-          
-          const result = await response.json();
-          console.log("PatientDetails - Résultat mise en pause:", result);
-          
-          if (result.success) {
-            console.log("PatientDetails - Mise en pause réussie!");
-          } else {
-            console.error("PatientDetails - Échec de la mise en pause:", result.error);
-          }
-        } catch (error) {
-          console.error("PatientDetails - Erreur lors de la mise en pause:", error);
-        }
-      }
-      
-      // Fermer l'entretien
+      // Mettre à jour l'état pour fermer l'entretien
       setShowEntretien(false);
       setSelectedEntretienId(null);
       setIsReadOnly(true);
+      
+      // Rafraîchir la liste des entretiens
       setRefreshEntretiens(prev => prev + 1);
     }}
   />;

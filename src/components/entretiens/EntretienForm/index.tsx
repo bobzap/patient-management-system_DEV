@@ -160,26 +160,28 @@ const [timerStarted, setTimerStarted] = useState(false);
     setSections(updatedSections);
   };
 
-// 3. Ajoutez une fonction pour gérer la mise à jour du temps
+// Gestionnaire de mise à jour du temps
 const handleTimeUpdate = useCallback((seconds: number) => {
   setTimerSeconds(seconds);
 }, []);
 
-// 4. Ajoutez une fonction pour gérer le changement d'état de pause
+
+// Gestionnaire de changement d'état de pause
 const handlePauseChange = useCallback((isPaused: boolean) => {
+  console.log(`Timer - Changement d'état de pause: ${isPaused ? 'pause' : 'reprise'}`);
   setTimerPaused(isPaused);
   
-  // Si c'est un entretien existant, mettre à jour l'état de pause dans la base de données
+  // Mettre à jour l'état de pause en base de données si c'est un entretien existant
   if (entretienId) {
     fetch(`/api/entretiens/${entretienId}/timer`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ enPause: isPaused, tempsCourant: timerSeconds })
+      body: JSON.stringify({ enPause: isPaused })
     }).catch(error => {
       console.error('Erreur lors de la mise à jour du timer:', error);
     });
   }
-}, [entretienId, timerSeconds]);
+}, [entretienId]);
 
 
   // src/components/entretiens/EntretienForm/index.tsx
@@ -500,14 +502,13 @@ const arrangeWindowsEvenly = () => {
     );
   };
 
-  // Effet pour charger les données d'un entretien existant
-  // Dans EntretienForm/index.tsx
+  // Effet pour charger les données de l'entretien
 useEffect(() => {
   if (entretienId) {
     // Charger un entretien existant
     const fetchEntretien = async () => {
       try {
-        console.log("Chargement de l'entretien:", entretienId);
+        console.log(`Chargement de l'entretien ${entretienId}`);
         const response = await fetch(`/api/entretiens/${entretienId}`);
         
         if (!response.ok) {
@@ -520,13 +521,13 @@ useEffect(() => {
           throw new Error('Données non trouvées');
         }
         
-        console.log("Données de l'entretien chargées:", {
+        console.log(`Entretien ${entretienId} chargé:`, {
           status: result.data.status,
+          enPause: result.data.enPause,
           tempsDebut: result.data.tempsDebut,
           tempsFin: result.data.tempsFin,
-          enPause: result.data.enPause,
-          dernierePause: result.data.dernierePause,
-          tempsPause: result.data.tempsPause
+          tempsPause: result.data.tempsPause,
+          dernierePause: result.data.dernierePause
         });
         
         // Traiter les données d'entretien
@@ -562,47 +563,36 @@ useEffect(() => {
             elapsedSeconds -= result.data.tempsPause;
           }
           
-          // Si en pause et qu'il y a une dernière pause
+          // Si en pause et qu'il y a une dernière pause, soustraire ce temps aussi
           if (result.data.enPause && result.data.dernierePause) {
             const dernierePause = new Date(result.data.dernierePause);
             const pauseDuration = Math.floor((now.getTime() - dernierePause.getTime()) / 1000);
             elapsedSeconds -= pauseDuration;
           }
           
-          console.log("Temps calculé:", {
-            elapsedSeconds,
-            tempsPause: result.data.tempsPause,
-            enPause: result.data.enPause
-          });
-          
+          console.log(`Timer - Temps calculé: ${elapsedSeconds}s`);
           setTimerSeconds(Math.max(0, elapsedSeconds));
           
-          // Déterminer l'état de pause initial :
-          // 1. Si on est en lecture seule (isReadOnly), respecter l'état de pause existant
-          // 2. Si on est en édition (!isReadOnly) :
-          //    a. Si c'est un entretien en brouillon, le timer démarre automatiquement
-          //    b. Si c'est un entretien finalisé/archivé, le timer reste en pause
-          const shouldStartPaused = 
-            isReadOnly || // En mode lecture seule : rester en pause
-            result.data.status === 'finalise' || // Entretien finalisé : rester en pause 
-            result.data.status === 'archive'; // Entretien archivé : rester en pause
+          // Déterminer l'état de pause initial
+          const shouldBePaused = 
+            isReadOnly || // En mode lecture seule, toujours en pause
+            result.data.status === 'finalise' || // Entretiens finalisés toujours en pause
+            result.data.status === 'archive'; // Entretiens archivés toujours en pause
           
-          // Définir l'état de pause local
-          setTimerPaused(shouldStartPaused);
+          console.log(`Timer - État de pause initial: ${shouldBePaused ? 'pause' : 'actif'}`);
+          setTimerPaused(shouldBePaused);
           setTimerStarted(true);
           
-          // Si l'entretien est en brouillon, était en pause, mais qu'on est en mode édition,
-          // alors le sortir automatiquement de pause dans la base de données
-          if (result.data.status === 'brouillon' && result.data.enPause && !isReadOnly) {
-            console.log("Sortie automatique de pause pour un entretien en brouillon en mode édition");
-            
-            // Mettre à jour l'état dans la base de données
+          // Si on est en mode édition d'un entretien en brouillon qui était en pause,
+          // le sortir automatiquement de pause
+          if (result.data.status === 'brouillon' && !isReadOnly && result.data.enPause) {
+            console.log(`Timer - Sortie automatique de pause pour l'entretien ${entretienId}`);
             fetch(`/api/entretiens/${entretienId}/timer`, {
               method: 'PUT',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ enPause: false })
             }).catch(error => {
-              console.error('Erreur lors de la sortie de pause du timer:', error);
+              console.error('Erreur lors de la sortie de pause:', error);
             });
           }
         }
@@ -620,7 +610,7 @@ useEffect(() => {
     setTimerPaused(false);
     setTimerSeconds(0);
     
-    // Pour un nouvel entretien, récupérer le numéro suivant
+    // Récupérer le prochain numéro d'entretien
     const fetchNextEntretienNumber = async () => {
       try {
         const response = await fetch(`/api/patients/${patient.id}/entretiens`);
@@ -645,39 +635,36 @@ useEffect(() => {
 
     fetchNextEntretienNumber();
   }
-}, [entretienId, patient.id, isReadOnly]); // Ajout de isReadOnly comme dépendance
+}, [entretienId, patient.id, isReadOnly]);
 
-// Dans src/components/entretiens/EntretienForm/index.tsx
-
-// Ajouter cet useEffect à la fin des autres useEffect
+// Effet pour assurer la mise en pause à la fermeture
 useEffect(() => {
   return () => {
-    // Fonction de nettoyage exécutée au démontage du composant
-    console.log("Nettoyage - composant EntretienForm démonté");
+    console.log("Démontage du composant EntretienForm");
     
-    // Tentative directe de mise en pause au démontage
-    if (entretienId && entretienData.status === 'brouillon') {
-      console.log("Nettoyage - tentative de mise en pause");
-      
-      // Utiliser l'API de pause forcée
-      fetch(`/api/entretiens/force-pause/${entretienId}`, {
-        method: 'POST'
+    // Si on a un entretien en brouillon non pausé, le mettre en pause
+    if (entretienId && entretienData.status === 'brouillon' && !timerPaused) {
+      console.log(`Timer - Mise en pause de l'entretien ${entretienId} au démontage`);
+      fetch(`/api/entretiens/${entretienId}/timer`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enPause: true })
       }).catch(error => {
-        console.error("Erreur lors de la mise en pause au démontage:", error);
+        console.error('Erreur lors de la mise en pause au démontage:', error);
       });
     }
   };
-}, [entretienId, entretienData.status]);
+}, [entretienId, entretienData.status, timerPaused]);
 
-// Dans EntretienForm
 
-// src/components/entretiens/EntretienForm/index.tsx
 
-const saveEntretien = async (shouldClose = false) => {
+// Fonction pour sauvegarder l'entretien
+const saveEntretien = async () => {
   try {
-    console.log("Sauvegarde d'entretien avec fermeture =", shouldClose);
+    console.log(`Sauvegarde de l'entretien ${entretienId || 'nouveau'}`);
     
     // Préparation des données
+    const now = new Date();
     const entretienToSave = {
       patientId: patient.id,
       numeroEntretien: entretienData.numeroEntretien,
@@ -687,14 +674,15 @@ const saveEntretien = async (shouldClose = false) => {
         examenClinique: entretienData.examenClinique,
         imaa: entretienData.imaa,
         conclusion: entretienData.conclusion
-      }),
-      // Action spécifique pour indiquer la sauvegarde suivie de fermeture
-      action: shouldClose ? 'saveThenClose' : 'saveOnly',
-      // Données du timer
-      tempsDebut: entretienId ? undefined : new Date().toISOString(),
-      enPause: shouldClose, // Mise en pause automatique si on ferme après sauvegarde
-      tempsCourant: timerSeconds
+      })
     };
+    
+    // Si c'est un nouvel entretien, ajouter les données du timer
+    if (!entretienId) {
+      entretienToSave.tempsDebut = now.toISOString();
+      entretienToSave.enPause = false;
+      entretienToSave.tempsPause = 0;
+    }
     
     // URL et méthode selon création ou modification
     const url = entretienId ? 
@@ -717,79 +705,52 @@ const saveEntretien = async (shouldClose = false) => {
     const result = await response.json();
     console.log("Sauvegarde réussie:", result);
     
+    // Si c'est un nouvel entretien, mettre à jour l'ID local
+    if (!entretienId && result.data && result.data.id) {
+      // On pourrait rediriger vers l'entretien avec l'ID nouvellement créé
+      // ou mettre à jour l'état local
+      console.log(`Nouvel entretien créé avec ID: ${result.data.id}`);
+    }
+    
     toast.success(entretienId ? 
       'Entretien mis à jour avec succès' : 
       'Entretien créé avec succès'
     );
-    
-    // Si on doit fermer après sauvegarde
-    if (shouldClose && onClose) {
-      onClose();
-    }
   } catch (error) {
-    console.error("Erreur lors de la sauvegarde:", error);
+    console.error('Erreur lors de la sauvegarde:', error);
     toast.error('Une erreur est survenue lors de la sauvegarde');
   }
 };
 
 
-
-// src/components/entretiens/EntretienForm/index.tsx
-
-// Assurez-vous que cette fonction est déclarée avec useCallback pour éviter les re-rendus inutiles
-// src/components/entretiens/EntretienForm/index.tsx
-
-// Dans src/components/entretiens/EntretienForm/index.tsx
-
-// src/components/entretiens/EntretienForm/index.tsx
-
+// Fonction pour fermer l'entretien (avec mise en pause automatique)
 const handleCloseEntretien = useCallback(async () => {
-  console.log("Fermeture d'entretien appelée");
+  console.log("Fermeture d'entretien demandée");
   
-  // Si on a un entretien existant, le sauvegarder avec la mise en pause
-  if (entretienId) {
-    // Pour un entretien existant, le sauvegarder avec enPause=true
-    await saveEntretien(true);
-  } else {
-    // Pour un nouvel entretien pas encore sauvegardé
-    // Mettre en pause avant de créer, puis fermer
-    const entretienToSave = {
-      patientId: patient.id,
-      numeroEntretien: entretienData.numeroEntretien,
-      status: 'brouillon',
-      donneesEntretien: JSON.stringify({
-        santeTravail: entretienData.santeTravail,
-        examenClinique: entretienData.examenClinique,
-        imaa: entretienData.imaa,
-        conclusion: entretienData.conclusion
-      }),
-      action: 'saveThenClose',
-      enPause: true, // Important: mettre en pause dès la création
-      tempsCourant: timerSeconds
-    };
-    
+  // Si c'est un entretien existant en brouillon, le mettre en pause avant de fermer
+  if (entretienId && entretienData.status === 'brouillon' && !timerPaused) {
     try {
-      const response = await fetch('/api/entretiens', {
-        method: 'POST',
+      console.log(`Timer - Mise en pause de l'entretien ${entretienId} avant fermeture`);
+      const response = await fetch(`/api/entretiens/${entretienId}/timer`, {
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(entretienToSave)
+        body: JSON.stringify({ enPause: true })
       });
       
-      const result = await response.json();
-      console.log("Création et mise en pause réussies:", result);
-      
-      toast.success('Entretien créé et sauvegardé');
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`Erreur lors de la mise en pause: ${errorText}`);
+      }
     } catch (error) {
-      console.error("Erreur lors de la création:", error);
-      toast.error('Erreur lors de la sauvegarde');
+      console.error('Erreur lors de la mise en pause:', error);
     }
   }
   
-  // Utiliser onClose qui est passé en prop
+  // Appeler la fonction de fermeture passée en prop
   if (onClose) {
     onClose();
   }
-}, [entretienId, entretienData, timerSeconds, patient.id, onClose, saveEntretien]);
+}, [entretienId, entretienData.status, timerPaused, onClose]);
 
 
 
@@ -823,23 +784,22 @@ const handleCloseEntretien = useCallback(async () => {
   {/* Barre de navigation supérieure */}
   <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
     {/* Boutons de navigation - côté gauche */}
-    <div className="flex items-center gap-3">
-    {/* Bouton de retour */}
-<button
-  onClick={() => {
-    console.log("Bouton retour cliqué");
-    handleCloseEntretien();
-  }}
-  className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
->
-  <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-  </svg>
-  Sauvegarder et Retourner
-</button>
-    </div>
-              
-              {/* Actions principales - côté droit */}
+    {/* Boutons de navigation - côté gauche */}
+<div className="flex items-center gap-3">
+  {onClose && (
+    <button
+      onClick={handleCloseEntretien}
+      className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+    >
+      <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+      </svg>
+      Retour au dossier
+    </button>
+  )}
+</div>
+
+{/* Actions principales - côté droit */}
 <div className="flex items-center gap-3">
   <button
     onClick={resetSizes}
@@ -857,42 +817,34 @@ const handleCloseEntretien = useCallback(async () => {
       Fermer
     </button>
   ) : (
-    <>
-      <button 
-        onClick={() => saveEntretien(false)} // Sauvegarder sans fermer
-        className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
-      >
-        Sauvegarder
-      </button>
-      <button 
-        onClick={() => saveEntretien(true)} // Sauvegarder et fermer
-        className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors"
-      >
-        Sauvegarder et Fermer
-      </button>
-    </>
+    <button 
+      onClick={saveEntretien}
+      className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+    >
+      Sauvegarder
+    </button>
   )}
 </div>
             </div>
           
             {/* Informations du patient et statut */}
-            <div className="mt-4 pt-4 border-t border-gray-200">
-              <div className="flex flex-wrap justify-between items-start gap-4">
-                <div>
-                  <h2 className="text-xl font-bold text-blue-900">
-                    {entretienId 
-                      ? `${isReadOnly ? 'Consultation' : 'Modification'} de l'entretien n°${entretienData.numeroEntretien}` 
-                      : 'Nouvel entretien'} - {patient.civilites} {patient.nom} {patient.prenom}
-                  </h2>
-                  <div className="mt-1 text-sm text-gray-600">
-                    {patient.age} ans • {patient.poste} • {patient.departement}
-                  </div>
-                  <div className="mt-1 text-sm text-gray-600">
-                    Ancienneté : {patient.anciennete} • Horaire : {patient.horaire}
-                  </div>
-                </div>
+<div className="mt-4 pt-4 border-t border-gray-200">
+  <div className="flex flex-wrap justify-between items-start gap-4">
+    <div>
+      <h2 className="text-xl font-bold text-blue-900">
+        {entretienId 
+          ? `${isReadOnly ? 'Consultation' : 'Modification'} de l'entretien n°${entretienData.numeroEntretien}` 
+          : 'Nouvel entretien'} - {patient.civilites} {patient.nom} {patient.prenom}
+      </h2>
+      <div className="mt-1 text-sm text-gray-600">
+        {patient.age} ans • {patient.poste} • {patient.departement}
+      </div>
+      <div className="mt-1 text-sm text-gray-600">
+        Ancienneté : {patient.anciennete} • Horaire : {patient.horaire}
+      </div>
+    </div>
 
-                 {/* Timer */}
+    {/* Timer */}
     {timerStarted && (
       <div className="flex-shrink-0">
         <Timer 
@@ -900,28 +852,29 @@ const handleCloseEntretien = useCallback(async () => {
           isPaused={timerPaused}
           onPauseChange={handlePauseChange}
           onTimeUpdate={handleTimeUpdate}
-          isReadOnly={isReadOnly}
+          isReadOnly={isReadOnly || entretienData.status !== 'brouillon'}
           className="border border-gray-200"
         />
       </div>
     )}
 
-                {/* Sélecteur de statut - visible seulement en mode édition */}
-                {!isReadOnly && (
-                  <div className="flex items-center gap-2">
-                    <label className="text-sm font-medium text-gray-700">Statut :</label>
-                    <select
-                      value={entretienData.status}
-                      onChange={(e) => setEntretienData(prev => ({ ...prev, status: e.target.value }))}
-                      className="px-3 py-2 text-sm bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option value="brouillon">Brouillon</option>
-                      <option value="finalise">Finalisé</option>
-                      <option value="archive">Archivé</option>
-                    </select>
-                  </div>
-                )}
-              </div>
+    {/* Sélecteur de statut */}
+    {!isReadOnly && (
+      <div className="flex items-center gap-2">
+        <label className="text-sm font-medium text-gray-700">Statut :</label>
+        <select
+          value={entretienData.status}
+          onChange={(e) => setEntretienData(prev => ({ ...prev, status: e.target.value }))}
+          className="px-3 py-2 text-sm bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="brouillon">Brouillon</option>
+          <option value="finalise">Finalisé</option>
+          <option value="archive">Archivé</option>
+        </select>
+      </div>
+    )}
+  </div>
+              
               
               {/* Indicateur de mode lecture seule - si applicable */}
               {isReadOnly && (

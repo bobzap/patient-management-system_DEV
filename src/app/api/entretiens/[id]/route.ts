@@ -38,6 +38,7 @@ export async function GET(
   }
 }
 
+// src/app/api/entretiens/[id]/route.ts - Fonction PUT pour mettre à jour un entretien
 
 export async function PUT(request: NextRequest) {
   const id = request.url.split('/').pop();
@@ -48,9 +49,9 @@ export async function PUT(request: NextRequest) {
 
   try {
     const data = await request.json();
-    console.log("API - données entretien reçues:", { id, data });
+    console.log(`API entretiens - Mise à jour de l'entretien ${id}:`, data);
     
-    // Récupérer l'entretien actuel pour avoir l'état précédent
+    // Récupérer l'entretien actuel
     const currentEntretien = await prisma.entretien.findUnique({
       where: { id: Number(id) }
     });
@@ -68,33 +69,10 @@ export async function PUT(request: NextRequest) {
       dateModification: new Date()
     };
     
-    // Gestion du timer
-    if (data.enPause !== undefined) {
-      updateData.enPause = data.enPause;
-    }
-    
-    // Si on finalise ou archive, mettre le temps de fin
-    if (data.status === 'finalise' || data.status === 'archive') {
+    // Si le statut change de brouillon à finalisé/archivé, figer le timer
+    if (data.status !== 'brouillon' && currentEntretien.status === 'brouillon') {
       updateData.tempsFin = new Date();
-    }
-    
-    // Si on revient à brouillon depuis un état finalisé/archivé, retirer le temps de fin
-    if (data.status === 'brouillon' && 
-        (currentEntretien.status === 'finalise' || currentEntretien.status === 'archive')) {
-      updateData.tempsFin = null;
-    }
-    
-    // Gestion des pauses
-    if (data.enPause && !currentEntretien.enPause) {
-      // On vient de mettre en pause
-      updateData.dernierePause = new Date();
-    } 
-    else if (!data.enPause && currentEntretien.enPause && currentEntretien.dernierePause) {
-      // On vient de sortir de pause, calculer le temps de pause
-      const pauseStart = new Date(currentEntretien.dernierePause);
-      const pauseDuration = Math.floor((new Date().getTime() - pauseStart.getTime()) / 1000);
-      updateData.tempsPause = (currentEntretien.tempsPause || 0) + pauseDuration;
-      updateData.dernierePause = null;
+      updateData.enPause = true;
     }
     
     // Mettre à jour l'entretien
@@ -106,10 +84,10 @@ export async function PUT(request: NextRequest) {
       }
     });
 
-    console.log("API - entretien mis à jour avec succès:", entretien.id);
+    console.log(`API entretiens - Entretien ${id} mis à jour`);
     return NextResponse.json({ data: entretien });
   } catch (error) {
-    console.error("API - erreur:", error);
+    console.error("API entretiens - Erreur de mise à jour:", error);
     return NextResponse.json(
       { error: 'Erreur lors de la mise à jour de l\'entretien' },
       { status: 500 }

@@ -1,15 +1,16 @@
 // src/components/ui/timer.tsx
+'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Play, Pause, Clock } from 'lucide-react';
 
 interface TimerProps {
-  initialTime?: number;
-  isPaused?: boolean;
-  onPauseChange?: (isPaused: boolean) => void;
-  onTimeUpdate?: (totalSeconds: number) => void;
+  initialTime?: number; // Temps initial en secondes
+  isPaused?: boolean;   // État initial (en pause ou non)
+  onPauseChange?: (isPaused: boolean) => void; // Callback quand l'état de pause change
+  onTimeUpdate?: (totalSeconds: number) => void; // Callback pour mettre à jour le temps écoulé
   className?: string;
-  isReadOnly?: boolean;
+  isReadOnly?: boolean; // Mode consultation
 }
 
 export function Timer({
@@ -24,25 +25,20 @@ export function Timer({
   const [paused, setPaused] = useState<boolean>(isPaused);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Utiliser useEffect pour mettre à jour l'état paused lorsque isPaused change
-  // Au lieu de le faire directement dans le rendu
+  // Mettre à jour l'état local quand isPaused change
   useEffect(() => {
-    console.log("Timer - isPaused a changé:", isPaused);
     setPaused(isPaused);
   }, [isPaused]);
 
-  // Utiliser useEffect pour mettre à jour seconds lorsque initialTime change
+  // Mettre à jour le temps quand initialTime change
   useEffect(() => {
-    console.log("Timer - initialTime a changé:", initialTime);
     setSeconds(initialTime);
   }, [initialTime]);
 
-  // Gérer le timer
+  // Effet pour gérer le timer (démarrer/arrêter)
   useEffect(() => {
-    console.log("Timer - état du timer:", { paused, seconds });
-    
+    // Si le timer n'est pas en pause, démarrer un intervalle
     if (!paused) {
-      console.log("Timer - démarrage");
       intervalRef.current = setInterval(() => {
         setSeconds(prev => {
           const newValue = prev + 1;
@@ -50,14 +46,15 @@ export function Timer({
           return newValue;
         });
       }, 1000);
-    } else if (intervalRef.current) {
-      console.log("Timer - arrêt");
+    } 
+    // Si le timer est en pause et qu'un intervalle existe, le nettoyer
+    else if (intervalRef.current) {
       clearInterval(intervalRef.current);
     }
 
+    // Nettoyage au démontage ou avant re-exécution
     return () => {
       if (intervalRef.current) {
-        console.log("Timer - nettoyage");
         clearInterval(intervalRef.current);
       }
     };
@@ -68,8 +65,6 @@ export function Timer({
     if (isReadOnly) return;
     
     const newPausedState = !paused;
-    console.log("Timer - basculement manuel:", { actuel: paused, nouveau: newPausedState });
-    
     setPaused(newPausedState);
     if (onPauseChange) onPauseChange(newPausedState);
   };
@@ -88,9 +83,7 @@ export function Timer({
   };
 
   return (
-    <div
-      className={`flex items-center gap-3 bg-white rounded-lg shadow-sm p-2 ${className}`}
-    >
+    <div className={`flex items-center gap-3 bg-white rounded-lg shadow-sm p-2 ${className}`}>
       <div className="flex items-center gap-1 text-gray-700">
         <Clock size={16} />
         <span className="text-sm font-medium">Durée:</span>
@@ -108,7 +101,7 @@ export function Timer({
               ? 'bg-green-100 text-green-700 hover:bg-green-200' 
               : 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
           } transition-colors`}
-          title={paused ? 'Démarrer' : 'Pause'}
+          title={paused ? 'Démarrer' : 'Mettre en pause'}
         >
           {paused ? <Play size={14} /> : <Pause size={14} />}
         </button>
