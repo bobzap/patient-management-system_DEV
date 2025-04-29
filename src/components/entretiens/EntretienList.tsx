@@ -1,9 +1,10 @@
-// src/components/entretiens/EntretienList.tsx (modifications seulement)
+// src/components/entretiens/EntretienList.tsx
+
 'use client';
 
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { ConfirmDialog } from '@/components/ui/confirm-dialog'; // Importer le nouveau composant
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 
 interface EntretienListProps {
   patientId: number;
@@ -23,7 +24,6 @@ export const EntretienList = ({
 
   const [entretiens, setEntretiens] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  // États pour la boîte de dialogue de confirmation
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [entretienToDelete, setEntretienToDelete] = useState<number | null>(null);
 
@@ -44,13 +44,11 @@ export const EntretienList = ({
     fetchEntretiens();
   }, [patientId, refreshTrigger]);
 
-  // Remplaçons la fonction handleDelete existante
   const handleDelete = (entretienId: number) => {
     setEntretienToDelete(entretienId);
     setShowConfirmDialog(true);
   };
 
-  // Ajoutons une fonction pour confirmer la suppression
   const confirmDelete = async () => {
     if (entretienToDelete === null) return;
     
@@ -76,7 +74,6 @@ export const EntretienList = ({
     }
   };
 
-
   const formatDuration = (seconds: number): string => {
     if (!seconds || seconds <= 0) return '00:00:00';
     
@@ -91,47 +88,61 @@ export const EntretienList = ({
     ].join(':');
   };
 
+  const calculateDuration = (entretien: any): number => {
+    // Si pas de temps de début, retourner 0
+    if (!entretien.tempsDebut) return 0;
+    
+    const debut = new Date(entretien.tempsDebut);
+    let fin;
+    
+    // Si l'entretien est finalisé ou archivé et a un tempsFin, utiliser tempsFin
+    if ((entretien.status === 'finalise' || entretien.status === 'archive') && entretien.tempsFin) {
+      fin = new Date(entretien.tempsFin);
+    } 
+    // Sinon, utiliser la date actuelle
+    else {
+      fin = new Date();
+    }
+    
+    // Calculer la différence en secondes
+    let durationSeconds = Math.floor((fin.getTime() - debut.getTime()) / 1000);
+    
+    // Soustraire le temps de pause si disponible
+    if (entretien.tempsPause) {
+      durationSeconds -= entretien.tempsPause;
+    }
+    
+    // Si en pause et qu'il y a une dernière pause, soustraire ce temps aussi
+    if (entretien.enPause && entretien.dernierePause) {
+      const dernierePause = new Date(entretien.dernierePause);
+      const pauseDuration = Math.floor((fin.getTime() - dernierePause.getTime()) / 1000);
+      durationSeconds -= pauseDuration;
+    }
+    
+    return Math.max(0, durationSeconds);
+  };
+  
+  const getStatusStyle = (status: string) => {
+    switch (status) {
+      case 'finalise': return 'bg-green-100 text-green-800';
+      case 'archive': return 'bg-gray-100 text-gray-800';
+      default: return 'bg-yellow-100 text-yellow-800';
+    }
+  };
 
- // Dans EntretienList.tsx
-
-const calculateDuration = (entretien: any): number => {
-  // Si pas de temps de début, retourner 0
-  if (!entretien.tempsDebut) return 0;
-  
-  const debut = new Date(entretien.tempsDebut);
-  let fin;
-  
-  // Si l'entretien est finalisé ou archivé et a un tempsFin, utiliser tempsFin
-  if ((entretien.status === 'finalise' || entretien.status === 'archive') && entretien.tempsFin) {
-    fin = new Date(entretien.tempsFin);
-  } 
-  // Sinon, utiliser la date actuelle
-  else {
-    fin = new Date();
-  }
-  
-  // Calculer la différence en secondes
-  let durationSeconds = Math.floor((fin.getTime() - debut.getTime()) / 1000);
-  
-  // Soustraire le temps de pause si disponible
-  if (entretien.tempsPause) {
-    durationSeconds -= entretien.tempsPause;
-  }
-  
-  // Si en pause et qu'il y a une dernière pause, soustraire ce temps aussi
-  if (entretien.enPause && entretien.dernierePause) {
-    const dernierePause = new Date(entretien.dernierePause);
-    const pauseDuration = Math.floor((fin.getTime() - dernierePause.getTime()) / 1000);
-    durationSeconds -= pauseDuration;
-  }
-  
-  return Math.max(0, durationSeconds);
-};
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'finalise': return 'Finalisé';
+      case 'archive': return 'Archivé';
+      default: return 'Brouillon';
+    }
+  };
 
   return (
     <div className="bg-white rounded-lg shadow">
       <div className="p-4 flex justify-between items-center border-b">
         <h2 className="text-lg font-semibold text-gray-900">Historique des entretiens</h2>
+        
         
       </div>
 
@@ -144,32 +155,34 @@ const calculateDuration = (entretien: any): number => {
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full">
-          <thead className="bg-gray-50">
-  <tr>
-    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-      Date
-    </th>
-    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-      N°
-    </th>
-    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-      Status
-    </th>
-    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-      Durée
-    </th>
-    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-      Dernière modification
-    </th>
-    <th className="px-6 py-3"></th>
-  </tr>
-</thead>
-            <tbody className="divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Date
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  N°
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Durée
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Status
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Dernière modification
+                </th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200 bg-white">
               {entretiens.map((entretien) => (
                 <tr 
                   key={entretien.id}
-                  className="hover:bg-gray-50 cursor-pointer"
-                  onClick={() => onEntretienSelect(entretien.id)}
+                  className="hover:bg-gray-50"
+                  // Supprimez le onClick ici pour désactiver le clic sur la ligne
                 >
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {new Date(entretien.dateCreation).toLocaleDateString()}
@@ -178,66 +191,45 @@ const calculateDuration = (entretien: any): number => {
                     {entretien.numeroEntretien}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-  <div className="font-mono text-sm text-gray-900">
-    {formatDuration(calculateDuration(entretien))}
-  </div>
-  
-  {/* Indiquer clairement si l'entretien est en pause */}
-  {entretien.enPause && entretien.status === 'brouillon' && (
-    <span className="text-xs px-2 py-0.5 bg-yellow-100 text-yellow-800 rounded-full ml-2">
-      En pause
-    </span>
-  )}
-  
-  <span className={`inline-flex px-2 py-0.5 text-xs font-medium rounded-full ${
-    entretien.status === 'brouillon' 
-      ? 'bg-yellow-100 text-yellow-800'
-      : entretien.status === 'finalise'
-        ? 'bg-green-100 text-green-800'
-        : 'bg-gray-100 text-gray-800'
-  }`}>
-    {entretien.status === 'brouillon' 
-      ? 'Brouillon'
-      : entretien.status === 'finalise'
-        ? 'Finalisé'
-        : 'Archivé'}
-  </span>
-</td>
+                    <div className="font-mono text-sm text-gray-900">
+                      {formatDuration(calculateDuration(entretien))}
+                    </div>
+                    
+                    {/* Indiquer clairement si l'entretien est en pause */}
+                    {entretien.enPause && entretien.status === 'brouillon' && (
+                      <span className="text-xs px-2 py-0.5 bg-yellow-100 text-yellow-800 rounded-full ml-2">
+                        En pause
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`inline-flex px-2 py-0.5 text-xs font-medium rounded-full ${getStatusStyle(entretien.status)}`}>
+                      {getStatusText(entretien.status)}
+                    </span>
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {new Date(entretien.dateModification).toLocaleString()}
                   </td>
                   
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-  <div className="flex items-center justify-end gap-2">
-    <button 
-      onClick={(e) => {
-        e.stopPropagation();
-        onEntretienSelect(entretien.id, true); // true pour le mode consultation
-      }}
-      className="text-blue-600 hover:text-blue-900 px-2 py-1"
-    >
-      Voir
-    </button>
-    <button 
-      onClick={(e) => {
-        e.stopPropagation();
-        onEntretienSelect(entretien.id, false); // false pour le mode édition
-      }}
-      className="text-green-600 hover:text-green-900 px-2 py-1"
-      title={entretien.status !== 'brouillon' ? 'Remettre en brouillon pour modification' : 'Modifier'}
-    >
-      {entretien.status !== 'brouillon' ? 'Rouvrir' : 'Modifier'}
-    </button>
-    <button 
-      onClick={(e) => {
-        e.stopPropagation();
-        handleDelete(entretien.id);
-      }}
-      className="text-red-600 hover:text-red-900 px-2 py-1"
-    >
-      Supprimer
-    </button>
-  </div>
+  <button 
+    onClick={() => onEntretienSelect(entretien.id, true)} // Mode consultation
+    className="text-blue-600 hover:text-blue-900 px-2 py-1"
+  >
+    Voir
+  </button>
+  <button 
+    onClick={() => onEntretienSelect(entretien.id, false)} // Mode édition
+    className="text-green-600 hover:text-green-900 px-2 py-1"
+  >
+    {entretien.status !== 'brouillon' ? 'Rouvrir' : 'Modifier'}
+  </button>
+  <button 
+    onClick={() => handleDelete(entretien.id)}
+    className="text-red-600 hover:text-red-900 px-2 py-1"
+  >
+    Supprimer
+  </button>
 </td>
                 </tr>
               ))}
@@ -246,7 +238,7 @@ const calculateDuration = (entretien: any): number => {
         </div>
       )}
 
-<ConfirmDialog
+      <ConfirmDialog
         isOpen={showConfirmDialog}
         onClose={() => setShowConfirmDialog(false)}
         onConfirm={confirmDelete}
@@ -256,7 +248,6 @@ const calculateDuration = (entretien: any): number => {
         cancelText="Annuler"
         variant="danger"
       />
-    
     </div>
   );
 };

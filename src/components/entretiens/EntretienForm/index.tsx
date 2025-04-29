@@ -1,7 +1,7 @@
 // src/components/entretiens/EntretienForm/index.tsx
 'use client';
 
-import React, { useState, useEffect, useCallback  } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { toast } from 'sonner';
 import { Patient } from '@/types';
 import { TabBar } from './TabBar';
@@ -18,6 +18,7 @@ import { ZoomIn, ZoomOut } from 'lucide-react';
 import { Timer } from '@/components/ui/timer';
 import { useEntretienTimer } from '@/hooks/useEntretienTimer';
 
+// Interfaces et types
 interface EntretienData {
   numeroEntretien: number;
   status: string;
@@ -28,6 +29,16 @@ interface EntretienData {
   examenClinique: any;
   imaa: any;
   conclusion: any;
+}
+
+interface EntretienToSave {
+  patientId: number;
+  numeroEntretien: number;
+  status: string;
+  donneesEntretien: string;
+  tempsDebut?: string;
+  enPause?: boolean;
+  tempsPause?: number;
 }
 
 interface Section {
@@ -44,11 +55,11 @@ interface Section {
 interface EntretienFormProps {
   patient: Patient;
   entretienId?: number | null;
-  isReadOnly?: boolean; // Prop pour le mode consultation
+  isReadOnly?: boolean;
   onClose?: () => void;
 }
 
-// Après les interfaces et avant export const EntretienForm
+// Données initiales
 const initialVecuTravailData: VecuTravailData = {
   motifVisite: { motif: '', commentaires: '' },
   postesOccupes: '',
@@ -86,238 +97,61 @@ const initialModeVieData: ModeVieData = {
   }
 };
 
+const initialSections: Section[] = [
+  { 
+    id: 'sante', 
+    title: 'SANTÉ AU TRAVAIL', 
+    color: 'bg-amber-50', 
+    width: 900, 
+    height: 500, 
+    zIndex: 1, 
+    position: 0,
+    isMinimized: true
+  },
+  { 
+    id: 'examen', 
+    title: 'EXAMEN CLINIQUE', 
+    color: 'bg-purple-50', 
+    width: 900, 
+    height: 500, 
+    zIndex: 1, 
+    position: 1,
+    isMinimized: true
+  },
+  { 
+    id: 'imaa', 
+    title: 'IMAA', 
+    color: 'bg-green-50', 
+    width: 900, 
+    height: 500, 
+    zIndex: 1, 
+    position: 2,
+    isMinimized: true
+  },
+  { 
+    id: 'conclusion', 
+    title: 'CONCLUSION', 
+    color: 'bg-pink-50', 
+    width: 900, 
+    height: 500, 
+    zIndex: 1, 
+    position: 3,
+    isMinimized: true
+  }
+];
+
+// Le composant principal
 export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClose }: EntretienFormProps) => {
-  // États
+  // État pour suivre l'ID de l'entretien localement (après sauvegarde initiale)
+  const [localEntretienId, setLocalEntretienId] = useState<number | null>(entretienId || null);
+  
+  // États UI
   const [focusedSection, setFocusedSection] = useState<string | null>(null);
   const [maxZIndex, setMaxZIndex] = useState(1);
   const [globalZoom, setGlobalZoom] = useState(100);
-  // Modifications à apporter au fichier src/components/entretiens/EntretienForm/index.tsx
-
-  const { 
-    seconds, 
-    isPaused, 
-    isStarted, 
-    formatTime, 
-    togglePause, 
-    forcePause 
-  } = useEntretienTimer({
-    entretienId: entretienId || null,
-    isReadOnly,
-    status: entretienData.status,
-    initialSeconds: timerSeconds,
-    initialPaused: timerPaused
-  });
-
-  const [sections, setSections] = useState<Section[]>([
-    { 
-      id: 'sante', 
-      title: 'SANTÉ AU TRAVAIL', 
-      color: 'bg-amber-50', 
-      width: 900, 
-      height: 500, 
-      zIndex: 1, 
-      position: 0,
-      isMinimized: true
-    },
-    { 
-      id: 'examen', 
-      title: 'EXAMEN CLINIQUE', 
-      color: 'bg-purple-50', 
-      width: 900, 
-      height: 500, 
-      zIndex: 1, 
-      position: 1,
-      isMinimized: true
-    },
-    { 
-      id: 'imaa', 
-      title: 'IMAA', 
-      color: 'bg-green-50', 
-      width: 900, 
-      height: 500, 
-      zIndex: 1, 
-      position: 2,
-      isMinimized: true
-    },
-    { 
-      id: 'conclusion', 
-      title: 'CONCLUSION', 
-      color: 'bg-pink-50', 
-      width: 900, 
-      height: 500, 
-      zIndex: 1, 
-      position: 3,
-      isMinimized: true
-    }
-  ]);
-
-  // Fonction remplaçant handleDragEnd
-  const updateSectionOrder = (sectionId: string, newPosition: number) => {
-    // Obtenir les indices actuels
-    const currentIndex = sections.findIndex(s => s.id === sectionId);
-    if (currentIndex === -1 || newPosition === currentIndex) return;
-    
-    // Créer une copie des sections
-    const newSections = [...sections];
-    const [movedSection] = newSections.splice(currentIndex, 1);
-    newSections.splice(newPosition, 0, movedSection);
-    
-    // Mettre à jour les positions
-    const updatedSections = newSections.map((section, index) => ({
-      ...section,
-      position: index
-    }));
-    
-    setSections(updatedSections);
-  };
-
-// Gestionnaire de mise à jour du temps
-const handleTimeUpdate = useCallback((seconds: number) => {
-  setTimerSeconds(seconds);
-}, []);
-
-
-// Gestionnaire de changement d'état de pause
-const handlePauseChange = useCallback((isPaused: boolean) => {
-  console.log(`Timer - Changement d'état de pause: ${isPaused ? 'pause' : 'reprise'}`);
-  setTimerPaused(isPaused);
+  const [sections, setSections] = useState<Section[]>(initialSections);
   
-  // Mettre à jour l'état de pause en base de données si c'est un entretien existant
-  if (entretienId) {
-    fetch(`/api/entretiens/${entretienId}/timer`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ enPause: isPaused })
-    }).catch(error => {
-      console.error('Erreur lors de la mise à jour du timer:', error);
-    });
-  }
-}, [entretienId]);
-
-
-  // src/components/entretiens/EntretienForm/index.tsx
-// Modifiez la fonction arrangeWindowsVertically
-const arrangeWindowsVertically = () => {
-  // Récupérer les sections non minimisées
-  const visibleSections = sections.filter(s => !s.isMinimized);
-  
-  if (visibleSections.length === 0) return;
-  
-  // Obtenir les dimensions réelles du conteneur
-  const container = document.querySelector('.max-w-\\[98\\%\\]');
-  if (!container) return;
-  
-  const containerRect = container.getBoundingClientRect();
-  const containerWidth = containerRect.width - 40; // Marge de 20px de chaque côté
-  const containerHeight = window.innerHeight - containerRect.top - 150; // Hauteur disponible
-  
-  // Largeur pour chaque section (répartie équitablement)
-  const sectionMargin = 20;
-  const totalMargins = sectionMargin * (visibleSections.length - 1);
-  const optimalWidth = Math.max(400, (containerWidth - totalMargins) / visibleSections.length);
-  
-  // Hauteur adaptative, utilisant plus d'espace vertical
-  const optimalHeight = Math.max(550, containerHeight - 100);
-  
-  // Mettre à jour chaque section
-  const updatedSections = sections.map(section => {
-    if (section.isMinimized) return section;
-    
-    // L'index dans les sections visibles
-    const visibleIndex = visibleSections.findIndex(s => s.id === section.id);
-    
-    // Calculer la position horizontale
-    const leftPosition = visibleIndex * (optimalWidth + sectionMargin);
-    
-    // Mise à jour du style qui sera appliqué directement à l'élément
-    if (section.id) {
-      const element = document.querySelector(`[data-section-id="${section.id}"]`);
-      if (element instanceof HTMLElement) {
-        element.style.left = `${leftPosition}px`;
-        element.style.top = '20px';
-        element.style.width = `${optimalWidth}px`;
-        element.style.height = `${optimalHeight}px`;
-      }
-    }
-    
-    return {
-      ...section,
-      width: optimalWidth,
-      height: optimalHeight,
-      position: visibleIndex
-    };
-  });
-  
-  setSections(updatedSections);
-};
-
-const arrangeWindowsEvenly = () => {
-  // Récupérer les sections non minimisées
-  const visibleSections = sections.filter(s => !s.isMinimized);
- 
-  if (visibleSections.length === 0) return;
- 
-  // Obtenir les dimensions réelles du conteneur
-  const container = document.querySelector('.max-w-\\[98\\%\\]');
-  if (!container) return;
-  
-  const containerRect = container.getBoundingClientRect();
-  const containerWidth = containerRect.width - 40; // Marge de 20px de chaque côté
-  const containerHeight = window.innerHeight - containerRect.top - 150; // Hauteur disponible
- 
-  // Déterminer le nombre optimal de colonnes et lignes
-  const columns = visibleSections.length <= 2 ? Math.min(visibleSections.length, 2) : 2;
-  const rows = Math.ceil(visibleSections.length / columns);
- 
-  // Calculer les dimensions optimales avec des marges entre les sections
-  const sectionMargin = 20;
-  const totalHorizontalMargins = sectionMargin * (columns - 1);
-  const totalVerticalMargins = sectionMargin * (rows - 1);
- 
-  // Dimensions plus grandes pour chaque section
-  const optimalWidth = Math.max(450, (containerWidth - totalHorizontalMargins) / columns);
-  const optimalHeight = Math.max(400, (containerHeight - totalVerticalMargins) / rows);
- 
-  // Mettre à jour chaque section
-  const updatedSections = sections.map(section => {
-    if (section.isMinimized) return section;
-   
-    // L'index dans les sections visibles
-    const visibleIndex = visibleSections.findIndex(s => s.id === section.id);
-   
-    // Calculer la position en grille
-    const rowIndex = Math.floor(visibleIndex / columns);
-    const colIndex = visibleIndex % columns;
-   
-    const leftPosition = colIndex * (optimalWidth + sectionMargin);
-    const topPosition = rowIndex * (optimalHeight + sectionMargin);
-   
-    // Mise à jour du style qui sera appliqué directement à l'élément
-    if (section.id) {
-      const element = document.querySelector(`[data-section-id="${section.id}"]`);
-      if (element instanceof HTMLElement) {
-        element.style.left = `${leftPosition}px`;
-        element.style.top = `${topPosition}px`;
-        element.style.width = `${optimalWidth}px`;
-        element.style.height = `${optimalHeight}px`;
-      }
-    }
-   
-    return {
-      ...section,
-      width: optimalWidth,
-      height: optimalHeight,
-      position: visibleIndex
-    };
-  });
- 
-  setSections(updatedSections);
-};
-
-
-
-
-
+  // État de l'entretien
   const [entretienData, setEntretienData] = useState<EntretienData>({
     numeroEntretien: 1,
     status: 'brouillon',
@@ -329,94 +163,391 @@ const arrangeWindowsEvenly = () => {
     imaa: {},
     conclusion: defaultConclusionData
   });
-
-  // Gestionnaires d'événements
-  const handleMinimize = (id: string) => {
+  
+  // État pour initialiser le timer
+  const [initialTimerState, setInitialTimerState] = useState({
+    initialSeconds: 0,
+    initialPaused: entretienId ? true : false
+  });
+  
+  // Hook pour la gestion du timer
+  const { 
+    seconds, 
+    isPaused, 
+    isStarted, 
+    formatTime, 
+    togglePause, 
+    forcePause 
+  } = useEntretienTimer({
+    entretienId: localEntretienId || entretienId || null,
+    isReadOnly,
+    status: entretienData.status,
+    initialSeconds: initialTimerState.initialSeconds,
+    initialPaused: initialTimerState.initialPaused
+  });
+  
+  // Effet pour synchroniser localEntretienId avec entretienId
+  useEffect(() => {
+    if (entretienId) {
+      setLocalEntretienId(entretienId);
+    }
+  }, [entretienId]);
+  
+  // Fonction de sauvegarde optimisée
+  const saveEntretien = useCallback(async () => {
+    try {
+      const currentId = localEntretienId || entretienId;
+      console.log(`Sauvegarde de l'entretien ${currentId || 'nouveau'}`);
+      
+      // Préparation des données
+      const now = new Date();
+      const entretienToSave: EntretienToSave = {
+        patientId: patient.id,
+        numeroEntretien: entretienData.numeroEntretien,
+        status: entretienData.status,
+        donneesEntretien: JSON.stringify({
+          santeTravail: entretienData.santeTravail,
+          examenClinique: entretienData.examenClinique,
+          imaa: entretienData.imaa,
+          conclusion: entretienData.conclusion
+        })
+      };
+      
+      // Si c'est un nouvel entretien, ajouter les données du timer
+      if (!currentId) {
+        entretienToSave.tempsDebut = now.toISOString();
+        entretienToSave.enPause = false;
+        entretienToSave.tempsPause = 0;
+      }
+      
+      // URL et méthode selon création ou modification
+      const url = currentId ? 
+        `/api/entretiens/${currentId}` : 
+        '/api/entretiens';
+      
+      const method = currentId ? 'PUT' : 'POST';
+      
+      // Envoi de la requête
+      const response = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(entretienToSave)
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Erreur HTTP ${response.status}: ${errorText}`);
+      }
+      
+      const result = await response.json();
+      console.log("Sauvegarde réussie:", result);
+      
+      // Si c'est un nouvel entretien, mettre à jour l'ID local
+      if (!currentId && result.data && result.data.id) {
+        const newEntretienId = result.data.id;
+        console.log(`Nouvel entretien créé avec ID: ${newEntretienId}`);
+        
+        // Mettre à jour l'état local
+        setLocalEntretienId(newEntretienId);
+        
+        toast.success('Entretien créé avec succès');
+        return newEntretienId;
+      } else {
+        toast.success('Entretien mis à jour avec succès');
+        return currentId;
+      }
+    } catch (error) {
+      console.error('Erreur lors de la sauvegarde:', error);
+      toast.error(`Erreur: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+      return null;
+    }
+  }, [localEntretienId, entretienId, patient.id, entretienData]);
+  
+  // Fonction optimisée pour fermer l'entretien
+  const handleCloseEntretien = useCallback(async () => {
+    console.log("Fermeture d'entretien demandée");
+    const currentId = localEntretienId || entretienId;
+    
+    // Pour un nouvel entretien ou un entretien non sauvegardé avec des modifications
+    if (!currentId && !isPaused) {
+      const shouldSave = window.confirm("Voulez-vous sauvegarder cet entretien avant de quitter?");
+      
+      if (shouldSave) {
+        const savedId = await saveEntretien();
+        
+        if (savedId) {
+          try {
+            console.log(`Entretien sauvegardé avec l'ID ${savedId}, mise en pause`);
+            const pauseResponse = await fetch(`/api/entretiens/${savedId}/timer`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ enPause: true })
+            });
+            
+            if (!pauseResponse.ok) {
+              console.error("Erreur lors de la mise en pause:", await pauseResponse.text());
+            }
+          } catch (error) {
+            console.error("Erreur réseau lors de la mise en pause:", error);
+          }
+        }
+      }
+    } 
+    // Pour un entretien existant
+    else if (currentId && !isPaused && entretienData.status === 'brouillon') {
+      try {
+        console.log(`Mise en pause forcée de l'entretien ${currentId} avant fermeture`);
+        
+        // Appel API explicite
+        const pauseResponse = await fetch(`/api/entretiens/${currentId}/timer`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ enPause: true })
+        });
+        
+        if (!pauseResponse.ok) {
+          console.error("Erreur lors de la mise en pause:", await pauseResponse.text());
+        } else {
+          console.log("API - Entretien mis en pause avec succès");
+        }
+        
+        // Utiliser aussi forcePause du hook pour mise à jour locale
+        await forcePause();
+      } catch (error) {
+        console.error("Erreur lors de la mise en pause:", error);
+      }
+    }
+    
+    // Attente courte pour s'assurer que les requêtes réseau ont eu le temps de se terminer
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    if (onClose) {
+      onClose();
+    }
+  }, [localEntretienId, entretienId, isPaused, entretienData.status, saveEntretien, forcePause, onClose]);
+  
+  // Effet pour assurer la mise en pause au démontage
+  useEffect(() => {
+    return () => {
+      const currentId = localEntretienId || entretienId;
+      
+      if (currentId && !isPaused && entretienData.status === 'brouillon') {
+        console.log(`Démontage - Mise en pause forcée de l'entretien ${currentId}`);
+        
+        // Appel synchrone pour s'assurer qu'il s'exécute même pendant le démontage
+        fetch(`/api/entretiens/${currentId}/timer`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ enPause: true })
+        }).catch(error => {
+          console.error("Erreur lors de la mise en pause au démontage:", error);
+        });
+      }
+    };
+  }, [localEntretienId, entretienId, isPaused, entretienData.status]);
+  
+  // Fonctions de gestion des sections
+  const updateSectionOrder = useCallback((sectionId: string, newPosition: number) => {
+    // Obtenir les indices actuels
+    const currentIndex = sections.findIndex(s => s.id === sectionId);
+    if (currentIndex === -1 || newPosition === currentIndex) return;
+    
+    // Créer une copie des sections et réordonner
+    const newSections = [...sections];
+    const [movedSection] = newSections.splice(currentIndex, 1);
+    newSections.splice(newPosition, 0, movedSection);
+    
+    // Mettre à jour les positions
+    setSections(newSections.map((section, index) => ({
+      ...section,
+      position: index
+    })));
+  }, [sections]);
+  
+  // Gestion de l'affichage des sections
+  const arrangeWindowsVertically = useCallback(() => {
+    // Récupérer les sections non minimisées
+    const visibleSections = sections.filter(s => !s.isMinimized);
+    
+    if (visibleSections.length === 0) return;
+    
+    // Obtenir les dimensions réelles du conteneur
+    const container = document.querySelector('.max-w-\\[98\\%\\]');
+    if (!container) return;
+    
+    const containerRect = container.getBoundingClientRect();
+    const containerWidth = containerRect.width - 40;
+    const containerHeight = window.innerHeight - containerRect.top - 150;
+    
+    // Calculer les dimensions optimales
+    const sectionMargin = 20;
+    const totalMargins = sectionMargin * (visibleSections.length - 1);
+    const optimalWidth = Math.max(400, (containerWidth - totalMargins) / visibleSections.length);
+    const optimalHeight = Math.max(550, containerHeight - 100);
+    
+    // Mettre à jour chaque section
+    setSections(prev => prev.map(section => {
+      if (section.isMinimized) return section;
+      
+      // Calculer la position
+      const visibleIndex = visibleSections.findIndex(s => s.id === section.id);
+      const leftPosition = visibleIndex * (optimalWidth + sectionMargin);
+      
+      // Appliquer directement les styles au DOM
+      const element = document.querySelector(`[data-section-id="${section.id}"]`);
+      if (element instanceof HTMLElement) {
+        element.style.left = `${leftPosition}px`;
+        element.style.top = '20px';
+        element.style.width = `${optimalWidth}px`;
+        element.style.height = `${optimalHeight}px`;
+      }
+      
+      return {
+        ...section,
+        width: optimalWidth,
+        height: optimalHeight,
+        position: visibleIndex
+      };
+    }));
+  }, [sections]);
+  
+  const arrangeWindowsEvenly = useCallback(() => {
+    // Récupérer les sections non minimisées
+    const visibleSections = sections.filter(s => !s.isMinimized);
+    
+    if (visibleSections.length === 0) return;
+    
+    // Obtenir les dimensions du conteneur
+    const container = document.querySelector('.max-w-\\[98\\%\\]');
+    if (!container) return;
+    
+    const containerRect = container.getBoundingClientRect();
+    const containerWidth = containerRect.width - 40;
+    const containerHeight = window.innerHeight - containerRect.top - 150;
+    
+    // Calculer la grille optimale
+    const columns = visibleSections.length <= 2 ? Math.min(visibleSections.length, 2) : 2;
+    const rows = Math.ceil(visibleSections.length / columns);
+    
+    const sectionMargin = 20;
+    const totalHorizontalMargins = sectionMargin * (columns - 1);
+    const totalVerticalMargins = sectionMargin * (rows - 1);
+    
+    const optimalWidth = Math.max(450, (containerWidth - totalHorizontalMargins) / columns);
+    const optimalHeight = Math.max(400, (containerHeight - totalVerticalMargins) / rows);
+    
+    // Mettre à jour chaque section
+    setSections(prev => prev.map(section => {
+      if (section.isMinimized) return section;
+      
+      // Calculer la position
+      const visibleIndex = visibleSections.findIndex(s => s.id === section.id);
+      const rowIndex = Math.floor(visibleIndex / columns);
+      const colIndex = visibleIndex % columns;
+      
+      const leftPosition = colIndex * (optimalWidth + sectionMargin);
+      const topPosition = rowIndex * (optimalHeight + sectionMargin);
+      
+      // Appliquer directement les styles au DOM
+      const element = document.querySelector(`[data-section-id="${section.id}"]`);
+      if (element instanceof HTMLElement) {
+        element.style.left = `${leftPosition}px`;
+        element.style.top = `${topPosition}px`;
+        element.style.width = `${optimalWidth}px`;
+        element.style.height = `${optimalHeight}px`;
+      }
+      
+      return {
+        ...section,
+        width: optimalWidth,
+        height: optimalHeight,
+        position: visibleIndex
+      };
+    }));
+  }, [sections]);
+  
+  const resetSizes = useCallback(() => {
+    // Minimiser toutes les sections
+    setSections(prev => prev.map(section => ({
+      ...section,
+      isMinimized: true
+    })));
+    
+    setMaxZIndex(1);
+    setFocusedSection(null);
+  }, []);
+  
+  // Gestion des sections
+  const handleMinimize = useCallback((id: string) => {
     setSections(prev => prev.map(section =>
       section.id === id ? { ...section, isMinimized: true } : section
     ));
+    
     if (focusedSection === id) {
       setFocusedSection(null);
     }
-  };
-
-  const handleMaximize = (id: string) => {
+  }, [focusedSection]);
+  
+  const handleMaximize = useCallback((id: string) => {
     setSections(prev => prev.map(section =>
       section.id === id ? { ...section, isMinimized: false } : section
     ));
-  };
-
-  const handleToggleFocus = (id: string) => {
-    setFocusedSection(focusedSection === id ? null : id);
-  };
-
-  const bringToFront = (id: string) => {
+  }, []);
+  
+  const handleToggleFocus = useCallback((id: string) => {
+    setFocusedSection(prev => prev === id ? null : id);
+  }, []);
+  
+  const bringToFront = useCallback((id: string) => {
     const newZIndex = maxZIndex + 1;
     setMaxZIndex(newZIndex);
-    setSections(prev =>
-      prev.map(section =>
-        section.id === id ? { ...section, zIndex: newZIndex } : section
-      )
-    );
-  }
-
-  const handleResize = (id: string, size: { width: number; height: number }) => {
-    bringToFront(id);
-    setSections(prev =>
-      prev.map(section =>
-        section.id === id 
-          ? { ...section, width: size.width, height: size.height }
-          : section
-      )
-    );
-  };
-
-  // Ajustez le resetSizes pour réinitialiser les sections
-  // Fonction améliorée pour réinitialiser complètement les sections
-  const resetSizes = () => {
-    // Minimiser toutes les sections
-    const defaultSections = sections.map(section => ({
-      ...section,
-      isMinimized: true
-    }));
+    
+    setSections(prev => prev.map(section =>
+      section.id === id ? { ...section, zIndex: newZIndex } : section
+    ));
+  }, [maxZIndex]);
   
-    setSections(defaultSections);
-    setMaxZIndex(1);
-    setFocusedSection(null);
-  };
-
+  const handleResize = useCallback((id: string, size: { width: number; height: number }) => {
+    bringToFront(id);
+    
+    setSections(prev => prev.map(section =>
+      section.id === id 
+        ? { ...section, width: size.width, height: size.height }
+        : section
+    ));
+  }, [bringToFront]);
+  
   // Gestionnaires de mise à jour des sections
-  const handleSanteTravailChange = (newData: { vecuTravail: VecuTravailData; modeVie: ModeVieData }) => {
+  const handleSanteTravailChange = useCallback((newData: { vecuTravail: VecuTravailData; modeVie: ModeVieData }) => {
     setEntretienData(prev => ({
       ...prev,
       santeTravail: newData
     }));
-  };
-
-  const handleExamenCliniqueChange = (newData: any) => {
+  }, []);
+  
+  const handleExamenCliniqueChange = useCallback((newData: any) => {
     setEntretienData(prev => ({
       ...prev,
       examenClinique: newData
     }));
-  };
-
-  const handleImaaChange = (newData: any) => {
+  }, []);
+  
+  const handleImaaChange = useCallback((newData: any) => {
     setEntretienData(prev => ({
       ...prev,
       imaa: newData
     }));
-  };
-
-  // Correction du gestionnaire pour la Conclusion
-  const handleConclusionChange = (newData: any) => {
+  }, []);
+  
+  const handleConclusionChange = useCallback((newData: any) => {
     setEntretienData(prev => ({
       ...prev,
       conclusion: newData
     }));
-  };
-
+  }, []);
+  
   // Fonction pour rendre le contenu de chaque section
-  const renderSectionContent = (sectionId: string) => {
+  const renderSectionContent = useCallback((sectionId: string) => {
     switch (sectionId) {
       case 'sante':
         return (
@@ -435,7 +566,7 @@ const arrangeWindowsEvenly = () => {
             isReadOnly={isReadOnly}
           />
         );
-
+        
       case 'imaa':
         return (
           <IMAA 
@@ -444,7 +575,7 @@ const arrangeWindowsEvenly = () => {
             isReadOnly={isReadOnly}
           />
         );
-
+        
       case 'conclusion':
         return (
           <Conclusion 
@@ -453,23 +584,22 @@ const arrangeWindowsEvenly = () => {
             isReadOnly={isReadOnly}
           />
         );
-
+        
       default:
         return null;
     }
-  };
-
+  }, [entretienData, handleSanteTravailChange, handleExamenCliniqueChange, handleImaaChange, handleConclusionChange, isReadOnly]);
+  
   // Fonction pour rendre les sections
-  const renderSections = () => {
+  const renderSections = useCallback(() => {
     const visibleSections = sections.filter(s => !s.isMinimized);
-    const zoomFactor = 1 / (window.outerWidth / window.innerWidth);
-
+    
     return (
       <div 
         className="max-w-[98%] mx-auto"
         style={{
-          height: '80vh',  // Utilise 80% de la hauteur de la fenêtre
-          overflow: 'auto', // Scrollable si nécessaire
+          height: '80vh',
+          overflow: 'auto',
           position: 'relative',
           padding: '20px'
         }}
@@ -492,7 +622,6 @@ const arrangeWindowsEvenly = () => {
                   width: `${section.width}px`,
                   height: `${section.height}px`,
                   zIndex: section.zIndex,
-                  // Les positions sont gérées par les fonctions de mise en page
                 }}
               >
                 <ResizableSection
@@ -511,261 +640,137 @@ const arrangeWindowsEvenly = () => {
         )}
       </div>
     );
-  };
-
+  }, [sections, focusedSection, handleMinimize, handleMaximize, handleToggleFocus, handleResize, bringToFront, renderSectionContent]);
+  
   // Effet pour charger les données de l'entretien
-useEffect(() => {
-  if (entretienId) {
-    // Charger un entretien existant
-    const fetchEntretien = async () => {
-      try {
-        console.log(`Chargement de l'entretien ${entretienId}`);
-        const response = await fetch(`/api/entretiens/${entretienId}`);
-        
-        if (!response.ok) {
-          throw new Error(`Erreur HTTP ${response.status}`);
-        }
-        
-        const result = await response.json();
-        
-        if (!result.data) {
-          throw new Error('Données non trouvées');
-        }
-        
-        console.log(`Entretien ${entretienId} chargé:`, {
-          status: result.data.status,
-          enPause: result.data.enPause,
-          tempsDebut: result.data.tempsDebut,
-          tempsFin: result.data.tempsFin,
-          tempsPause: result.data.tempsPause,
-          dernierePause: result.data.dernierePause
-        });
-        
-        // Traiter les données d'entretien
-        let donnees = {};
-        if (typeof result.data.donneesEntretien === 'string') {
-          donnees = JSON.parse(result.data.donneesEntretien);
-        } else {
-          donnees = result.data.donneesEntretien || {};
-        }
-        
-        // Mise à jour de l'état
-        setEntretienData({
-          numeroEntretien: result.data.numeroEntretien,
-          status: result.data.status,
-          santeTravail: donnees.santeTravail || {
-            vecuTravail: initialVecuTravailData,
-            modeVie: initialModeVieData
-          },
-          examenClinique: donnees.examenClinique || defaultExamenCliniqueData,
-          imaa: donnees.imaa || {},
-          conclusion: donnees.conclusion || defaultConclusionData
-        });
-
-        // Charger les données du timer
-        if (result.data.tempsDebut) {
-          // Calculer le temps écoulé
-          const debut = new Date(result.data.tempsDebut);
-          const now = new Date();
-          let elapsedSeconds = Math.floor((now.getTime() - debut.getTime()) / 1000);
+  useEffect(() => {
+    if (entretienId) {
+      // Charger un entretien existant
+      const fetchEntretien = async () => {
+        try {
+          console.log(`Chargement de l'entretien ${entretienId}`);
+          const response = await fetch(`/api/entretiens/${entretienId}`);
           
-          // Soustraire le temps de pause si disponible
-          if (result.data.tempsPause) {
-            elapsedSeconds -= result.data.tempsPause;
+          if (!response.ok) {
+            throw new Error(`Erreur HTTP ${response.status}`);
           }
           
-          // Si en pause et qu'il y a une dernière pause, soustraire ce temps aussi
-          if (result.data.enPause && result.data.dernierePause) {
-            const dernierePause = new Date(result.data.dernierePause);
-            const pauseDuration = Math.floor((now.getTime() - dernierePause.getTime()) / 1000);
-            elapsedSeconds -= pauseDuration;
+          const result = await response.json();
+          
+          if (!result.data) {
+            throw new Error('Données non trouvées');
           }
           
-          console.log(`Timer - Temps calculé: ${elapsedSeconds}s`);
-          setTimerSeconds(Math.max(0, elapsedSeconds));
+          console.log(`Entretien ${entretienId} chargé:`, {
+            status: result.data.status,
+            enPause: result.data.enPause,
+            tempsDebut: result.data.tempsDebut,
+            tempsFin: result.data.tempsFin,
+            tempsPause: result.data.tempsPause,
+            dernierePause: result.data.dernierePause
+          });
           
-          // Déterminer l'état de pause initial
-          const shouldBePaused = 
-            isReadOnly || // En mode lecture seule, toujours en pause
-            result.data.status === 'finalise' || // Entretiens finalisés toujours en pause
-            result.data.status === 'archive'; // Entretiens archivés toujours en pause
+          // Traiter les données d'entretien
+          let donnees = {};
+          if (typeof result.data.donneesEntretien === 'string') {
+            donnees = JSON.parse(result.data.donneesEntretien);
+          } else {
+            donnees = result.data.donneesEntretien || {};
+          }
           
-          console.log(`Timer - État de pause initial: ${shouldBePaused ? 'pause' : 'actif'}`);
-          setTimerPaused(shouldBePaused);
-          setTimerStarted(true);
+          // Mise à jour de l'état
+          setEntretienData({
+            numeroEntretien: result.data.numeroEntretien,
+            status: result.data.status,
+            santeTravail: donnees.santeTravail || {
+              vecuTravail: initialVecuTravailData,
+              modeVie: initialModeVieData
+            },
+            examenClinique: donnees.examenClinique || defaultExamenCliniqueData,
+            imaa: donnees.imaa || {},
+            conclusion: donnees.conclusion || defaultConclusionData
+          });
           
-          // Si on est en mode édition d'un entretien en brouillon qui était en pause,
-          // le sortir automatiquement de pause
-          if (result.data.status === 'brouillon' && !isReadOnly && result.data.enPause) {
-            console.log(`Timer - Sortie automatique de pause pour l'entretien ${entretienId}`);
-            fetch(`/api/entretiens/${entretienId}/timer`, {
-              method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ enPause: false })
-            }).catch(error => {
-              console.error('Erreur lors de la sortie de pause:', error);
+          // Charger les données du timer
+          if (result.data.tempsDebut) {
+            // Calculer le temps écoulé
+            const debut = new Date(result.data.tempsDebut);
+            const now = new Date();
+            let elapsedSeconds = Math.floor((now.getTime() - debut.getTime()) / 1000);
+            
+            // Soustraire le temps de pause si disponible
+            if (result.data.tempsPause) {
+              elapsedSeconds -= result.data.tempsPause;
+            }
+            
+            // Si en pause et qu'il y a une dernière pause, soustraire ce temps aussi
+            if (result.data.enPause && result.data.dernierePause) {
+              const dernierePause = new Date(result.data.dernierePause);
+              const pauseDuration = Math.floor((now.getTime() - dernierePause.getTime()) / 1000);
+              elapsedSeconds -= pauseDuration;
+            }
+            
+            // Déterminer l'état de pause initial
+            const shouldBePaused = 
+              isReadOnly || // En mode lecture seule, toujours en pause
+              result.data.status === 'finalise' || // Entretiens finalisés toujours en pause
+              result.data.status === 'archive' || // Entretiens archivés toujours en pause
+              result.data.enPause; // Respecter l'état de pause enregistré
+            
+            console.log(`Timer - Configuration initiale: ${Math.max(0, elapsedSeconds)}s, pause: ${shouldBePaused}`);
+            
+            // Mettre à jour l'état initial du timer
+            setInitialTimerState({
+              initialSeconds: Math.max(0, elapsedSeconds),
+              initialPaused: shouldBePaused
             });
           }
+        } catch (error) {
+          console.error('Erreur lors du chargement des données:', error);
+          toast.error('Erreur lors du chargement des données');
         }
-      } catch (error) {
-        console.error('Erreur lors du chargement des données:', error);
-        toast.error('Erreur lors du chargement des données');
-      }
-    };
-
-    fetchEntretien();
-  } else {
-    // Pour un nouvel entretien
-    console.log("Initialisation d'un nouvel entretien");
-    setTimerStarted(true);
-    setTimerPaused(false);
-    setTimerSeconds(0);
-    
-    // Récupérer le prochain numéro d'entretien
-    const fetchNextEntretienNumber = async () => {
-      try {
-        const response = await fetch(`/api/patients/${patient.id}/entretiens`);
-        const result = await response.json();
-        
-        // Calculer le prochain numéro
-        let nextNumber = 1;
-        if (result.success && result.data && result.data.length > 0) {
-          const maxNumber = Math.max(...result.data.map(e => e.numeroEntretien || 0));
-          nextNumber = maxNumber + 1;
-        }
-        
-        // Mettre à jour l'état
-        setEntretienData(prev => ({
-          ...prev,
-          numeroEntretien: nextNumber
-        }));
-      } catch (error) {
-        // Silencieux en cas d'erreur, garder le numéro par défaut
-      }
-    };
-
-    fetchNextEntretienNumber();
-  }
-}, [entretienId, patient.id, isReadOnly]);
-
-// Effet pour assurer la mise en pause à la fermeture
-useEffect(() => {
-  return () => {
-    console.log("Démontage du composant EntretienForm");
-    
-    // Si on a un entretien en brouillon non pausé, le mettre en pause
-    if (entretienId && entretienData.status === 'brouillon' && !timerPaused) {
-      console.log(`Timer - Mise en pause de l'entretien ${entretienId} au démontage`);
-      fetch(`/api/entretiens/${entretienId}/timer`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ enPause: true })
-      }).catch(error => {
-        console.error('Erreur lors de la mise en pause au démontage:', error);
-      });
-    }
-  };
-}, [entretienId, entretienData.status, timerPaused]);
-
-
-
-// Fonction pour sauvegarder l'entretien
-const saveEntretien = async () => {
-  try {
-    console.log(`Sauvegarde de l'entretien ${entretienId || 'nouveau'}`);
-    
-    // Préparation des données
-    const now = new Date();
-    const entretienToSave = {
-      patientId: patient.id,
-      numeroEntretien: entretienData.numeroEntretien,
-      status: entretienData.status,
-      donneesEntretien: JSON.stringify({
-        santeTravail: entretienData.santeTravail,
-        examenClinique: entretienData.examenClinique,
-        imaa: entretienData.imaa,
-        conclusion: entretienData.conclusion
-      })
-    };
-    
-    // Si c'est un nouvel entretien, ajouter les données du timer
-    if (!entretienId) {
-      entretienToSave.tempsDebut = now.toISOString();
-      entretienToSave.enPause = false;
-      entretienToSave.tempsPause = 0;
-    }
-    
-    // URL et méthode selon création ou modification
-    const url = entretienId ? 
-      `/api/entretiens/${entretienId}` : 
-      '/api/entretiens';
-    
-    const method = entretienId ? 'PUT' : 'POST';
-    
-    // Envoi de la requête
-    const response = await fetch(url, {
-      method,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(entretienToSave)
-    });
-    
-    if (!response.ok) {
-      throw new Error(`Erreur HTTP: ${response.status}`);
-    }
-    
-    const result = await response.json();
-    console.log("Sauvegarde réussie:", result);
-    
-    // Si c'est un nouvel entretien, mettre à jour l'ID local
-    if (!entretienId && result.data && result.data.id) {
-      // On pourrait rediriger vers l'entretien avec l'ID nouvellement créé
-      // ou mettre à jour l'état local
-      console.log(`Nouvel entretien créé avec ID: ${result.data.id}`);
-    }
-    
-    toast.success(entretienId ? 
-      'Entretien mis à jour avec succès' : 
-      'Entretien créé avec succès'
-    );
-  } catch (error) {
-    console.error('Erreur lors de la sauvegarde:', error);
-    toast.error('Une erreur est survenue lors de la sauvegarde');
-  }
-};
-
-
-// Fonction pour fermer l'entretien (avec mise en pause automatique)
-const handleCloseEntretien = useCallback(async () => {
-  console.log("Fermeture d'entretien demandée");
-  
-  // Si c'est un entretien existant en brouillon, le mettre en pause avant de fermer
-  if (entretienId && entretienData.status === 'brouillon' && !timerPaused) {
-    try {
-      console.log(`Timer - Mise en pause de l'entretien ${entretienId} avant fermeture`);
-      const response = await fetch(`/api/entretiens/${entretienId}/timer`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ enPause: true })
+      };
+      
+      fetchEntretien();
+    } else {
+      // Pour un nouvel entretien
+      console.log("Initialisation d'un nouvel entretien");
+      
+      // Initialiser le timer
+      setInitialTimerState({
+        initialSeconds: 0,
+        initialPaused: false // Démarrer automatiquement pour un nouvel entretien
       });
       
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`Erreur lors de la mise en pause: ${errorText}`);
-      }
-    } catch (error) {
-      console.error('Erreur lors de la mise en pause:', error);
+      // Récupérer le prochain numéro d'entretien
+      const fetchNextEntretienNumber = async () => {
+        try {
+          const response = await fetch(`/api/patients/${patient.id}/entretiens`);
+          const result = await response.json();
+          
+          // Calculer le prochain numéro
+          let nextNumber = 1;
+          if (result.success && result.data && result.data.length > 0) {
+            const maxNumber = Math.max(...result.data.map(e => e.numeroEntretien || 0));
+            nextNumber = maxNumber + 1;
+          }
+          
+          // Mettre à jour l'état
+          setEntretienData(prev => ({
+            ...prev,
+            numeroEntretien: nextNumber
+          }));
+        } catch (error) {
+          // Silencieux en cas d'erreur
+          console.warn('Erreur lors de la récupération du numéro d\'entretien:', error);
+        }
+      };
+      
+      fetchNextEntretienNumber();
     }
-  }
+  }, [entretienId, patient.id, isReadOnly]);
+
   
-  // Appeler la fonction de fermeture passée en prop
-  await forcePause(); // Force la pause avant de fermer
-  if (onClose) {
-    onClose();
-  }
-}, [entretienId, entretienData.status, timerPaused, onClose]);
-
-
-
   return (
     <div>
       {/* Boutons de zoom global */}
@@ -856,18 +861,16 @@ const handleCloseEntretien = useCallback(async () => {
       </div>
     </div>
 
-    {/* Timer */}
-    {isStarted && (
-  <div className="flex-shrink-0">
-    <Timer 
-      seconds={seconds}
-      isPaused={isPaused}
-      onTogglePause={togglePause}
-      isReadOnly={isReadOnly || entretienData.status !== 'brouillon'}
-      className="border border-gray-200"
-    />
-  </div>
-)}
+    {/* Timer - Toujours afficher le timer, sans condition sur isStarted */}
+<div className="flex-shrink-0">
+  <Timer 
+    seconds={seconds}
+    isPaused={isPaused}
+    onTogglePause={togglePause}
+    isReadOnly={isReadOnly || entretienData.status !== 'brouillon'}
+    className="border border-gray-200"
+  />
+</div>
 
     {/* Sélecteur de statut */}
     {!isReadOnly && (

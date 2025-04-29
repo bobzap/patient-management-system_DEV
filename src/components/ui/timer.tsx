@@ -1,4 +1,4 @@
-// src/components/ui/timer.tsx (version simplifiée)
+// src/components/ui/timer.tsx
 'use client';
 
 import React from 'react';

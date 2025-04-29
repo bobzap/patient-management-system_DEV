@@ -16,13 +16,32 @@ export function useEntretienTimer({
   initialSeconds = 0,
   initialPaused = false
 }: UseEntretienTimerProps) {
+  // Initialiser seconds avec initialSeconds
   const [seconds, setSeconds] = useState<number>(initialSeconds);
-  const [isPaused, setIsPaused] = useState<boolean>(initialPaused || isReadOnly || status !== 'brouillon');
-  const [isStarted, setIsStarted] = useState<boolean>(!!entretienId || initialSeconds > 0);
+  
+  // Initialiser isPaused en fonction des paramètres
+  const [isPaused, setIsPaused] = useState<boolean>(
+    initialPaused || isReadOnly || status !== 'brouillon'
+  );
+  
+  // Toujours démarrer le timer pour un nouvel entretien ou s'il y a des secondes initiales
+  const [isStarted, setIsStarted] = useState<boolean>(true); // Toujours démarrer à true pour afficher le timer
+
+  // Effet pour mettre à jour les états quand les props changent
+  useEffect(() => {
+    console.log("useEntretienTimer - Mise à jour des props:", {
+      initialSeconds, initialPaused, isReadOnly, status
+    });
+    
+    setSeconds(initialSeconds);
+    setIsPaused(initialPaused || isReadOnly || status !== 'brouillon');
+  }, [initialSeconds, initialPaused, isReadOnly, status]);
 
   // Mettre à jour l'API quand l'état de pause change
   const updatePauseState = useCallback(async (newPausedState: boolean) => {
     if (!entretienId) return;
+    
+    console.log(`updatePauseState - Entretien ${entretienId} - Pause: ${newPausedState}`);
     
     try {
       const response = await fetch(`/api/entretiens/${entretienId}/timer`, {
@@ -33,6 +52,8 @@ export function useEntretienTimer({
       
       if (!response.ok) {
         console.error('Erreur lors de la mise à jour de l\'état de pause:', await response.text());
+      } else {
+        console.log(`Entretien ${entretienId} - État de pause mis à jour: ${newPausedState}`);
       }
     } catch (error) {
       console.error('Erreur réseau lors de la mise à jour de l\'état de pause:', error);
@@ -41,25 +62,40 @@ export function useEntretienTimer({
 
   // Pause forcée (utilisée lors de la navigation)
   const forcePause = useCallback(async () => {
-    if (isPaused || !entretienId) return;
+    console.log(`forcePause - Entretien ${entretienId} - Actuel: ${isPaused}, Status: ${status}`);
     
+    if (isPaused || !entretienId || status !== 'brouillon') {
+      console.log("Pas besoin de mettre en pause (déjà en pause ou pas un brouillon)");
+      return;
+    }
+    
+    console.log(`Mise en pause forcée de l'entretien ${entretienId}`);
     setIsPaused(true);
     await updatePauseState(true);
-  }, [entretienId, isPaused, updatePauseState]);
+  }, [entretienId, isPaused, status, updatePauseState]);
 
   // Toggle l'état de pause
   const togglePause = useCallback(async () => {
-    if (isReadOnly || status !== 'brouillon') return;
+    console.log(`togglePause - Entretien ${entretienId} - État actuel: ${isPaused}`);
+    
+    if (isReadOnly || status !== 'brouillon') {
+      console.log("Mode lecture seule ou non brouillon - Pas de changement d'état");
+      return;
+    }
     
     const newPausedState = !isPaused;
+    console.log(`Changement d'état de pause: ${isPaused ? 'reprise' : 'pause'}`);
     setIsPaused(newPausedState);
     await updatePauseState(newPausedState);
-  }, [isPaused, isReadOnly, status, updatePauseState]);
+  }, [isPaused, isReadOnly, status, entretienId, updatePauseState]);
 
   // Effet pour gérer le timer
   useEffect(() => {
+    console.log(`Effet timer - isStarted: ${isStarted}, isPaused: ${isPaused}, isReadOnly: ${isReadOnly}`);
+    
     // Toujours en pause pour les entretiens en lecture seule ou non brouillons
     if (isReadOnly || status !== 'brouillon') {
+      console.log("Mode lecture seule ou non brouillon - Timer en pause");
       setIsPaused(true);
       return;
     }
@@ -67,13 +103,17 @@ export function useEntretienTimer({
     let intervalId: NodeJS.Timeout | null = null;
     
     if (isStarted && !isPaused) {
+      console.log("Démarrage du timer");
       intervalId = setInterval(() => {
         setSeconds(prev => prev + 1);
       }, 1000);
+    } else {
+      console.log(`Timer non démarré - isStarted: ${isStarted}, isPaused: ${isPaused}`);
     }
     
     return () => {
       if (intervalId) {
+        console.log("Nettoyage de l'intervalle timer");
         clearInterval(intervalId);
       }
     };
@@ -82,8 +122,13 @@ export function useEntretienTimer({
   // Effect pour forcer la pause à la sortie du composant
   useEffect(() => {
     return () => {
+      console.log(`Démontage du hook timer - Entretien ${entretienId} - isPaused: ${isPaused}`);
+      
       if (entretienId && !isPaused && status === 'brouillon') {
-        updatePauseState(true);
+        console.log(`Mise en pause de l'entretien ${entretienId} au démontage du hook`);
+        updatePauseState(true).catch(error => {
+          console.error("Erreur lors de la mise en pause au démontage:", error);
+        });
       }
     };
   }, [entretienId, isPaused, status, updatePauseState]);
