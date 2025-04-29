@@ -1,5 +1,4 @@
-// src/app/api/entretiens/[id]/timer/route.ts
-
+// src/app/api/entretiens/[id]/timer/route.ts (version simplifiée)
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
@@ -15,7 +14,6 @@ export async function PUT(
   
   try {
     const data = await request.json();
-    console.log(`API timer - Mise à jour pour entretien ${entretienId}:`, data);
     
     // Récupérer l'entretien actuel
     const entretien = await prisma.entretien.findUnique({
@@ -28,7 +26,6 @@ export async function PUT(
     
     // Vérifier si l'entretien est finalisé ou archivé
     if (entretien.status !== 'brouillon') {
-      // On ne modifie pas l'état du timer pour un entretien finalisé ou archivé
       return NextResponse.json({ 
         success: false, 
         error: 'Impossible de modifier le timer d\'un entretien finalisé ou archivé' 
@@ -39,18 +36,16 @@ export async function PUT(
     const updateData: any = {};
     const now = new Date();
     
-    // Gestion du changement d'état de pause
+    // Gérer le changement d'état de pause
     if (data.enPause !== undefined && data.enPause !== entretien.enPause) {
       updateData.enPause = data.enPause;
       
       // Si on met en pause
       if (data.enPause) {
-        console.log(`API timer - Mise en pause de l'entretien ${entretienId}`);
         updateData.dernierePause = now;
       }
       // Si on sort de la pause
       else if (entretien.dernierePause) {
-        console.log(`API timer - Sortie de pause de l'entretien ${entretienId}`);
         // Calculer la durée de la pause
         const dernierePause = new Date(entretien.dernierePause);
         const pauseDuration = Math.floor((now.getTime() - dernierePause.getTime()) / 1000);
@@ -61,32 +56,10 @@ export async function PUT(
       }
     }
     
-    // Si le statut change à finalisé ou archivé, figer le timer
-    if (data.status && data.status !== 'brouillon' && entretien.status === 'brouillon') {
-      console.log(`API timer - Finalisation de l'entretien ${entretienId}`);
-      updateData.tempsFin = now;
-      updateData.enPause = true;
-    }
-    
-    // Si aucune mise à jour n'est nécessaire
-    if (Object.keys(updateData).length === 0) {
-      return NextResponse.json({ 
-        success: true, 
-        data: entretien,
-        message: "Aucune modification nécessaire"
-      });
-    }
-    
     // Mise à jour de l'entretien
     const updatedEntretien = await prisma.entretien.update({
       where: { id: parseInt(entretienId) },
       data: updateData
-    });
-    
-    console.log(`API timer - Entretien ${entretienId} mis à jour:`, {
-      enPause: updatedEntretien.enPause,
-      dernierePause: updatedEntretien.dernierePause,
-      tempsPause: updatedEntretien.tempsPause
     });
     
     return NextResponse.json({ 

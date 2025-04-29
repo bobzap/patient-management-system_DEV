@@ -16,6 +16,7 @@ import type { ModeVieData } from '../sections/SanteAuTravail/ModeVie';
 import { IMAA } from '../sections/IMAA';
 import { ZoomIn, ZoomOut } from 'lucide-react';
 import { Timer } from '@/components/ui/timer';
+import { useEntretienTimer } from '@/hooks/useEntretienTimer';
 
 interface EntretienData {
   numeroEntretien: number;
@@ -92,10 +93,20 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
   const [globalZoom, setGlobalZoom] = useState(100);
   // Modifications à apporter au fichier src/components/entretiens/EntretienForm/index.tsx
 
-// Ajoutez après les autres useState
-const [timerSeconds, setTimerSeconds] = useState(0);
-const [timerPaused, setTimerPaused] = useState(false);
-const [timerStarted, setTimerStarted] = useState(false);
+  const { 
+    seconds, 
+    isPaused, 
+    isStarted, 
+    formatTime, 
+    togglePause, 
+    forcePause 
+  } = useEntretienTimer({
+    entretienId: entretienId || null,
+    isReadOnly,
+    status: entretienData.status,
+    initialSeconds: timerSeconds,
+    initialPaused: timerPaused
+  });
 
   const [sections, setSections] = useState<Section[]>([
     { 
@@ -747,6 +758,7 @@ const handleCloseEntretien = useCallback(async () => {
   }
   
   // Appeler la fonction de fermeture passée en prop
+  await forcePause(); // Force la pause avant de fermer
   if (onClose) {
     onClose();
   }
@@ -845,18 +857,17 @@ const handleCloseEntretien = useCallback(async () => {
     </div>
 
     {/* Timer */}
-    {timerStarted && (
-      <div className="flex-shrink-0">
-        <Timer 
-          initialTime={timerSeconds}
-          isPaused={timerPaused}
-          onPauseChange={handlePauseChange}
-          onTimeUpdate={handleTimeUpdate}
-          isReadOnly={isReadOnly || entretienData.status !== 'brouillon'}
-          className="border border-gray-200"
-        />
-      </div>
-    )}
+    {isStarted && (
+  <div className="flex-shrink-0">
+    <Timer 
+      seconds={seconds}
+      isPaused={isPaused}
+      onTogglePause={togglePause}
+      isReadOnly={isReadOnly || entretienData.status !== 'brouillon'}
+      className="border border-gray-200"
+    />
+  </div>
+)}
 
     {/* Sélecteur de statut */}
     {!isReadOnly && (

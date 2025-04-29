@@ -1,74 +1,24 @@
-// src/components/ui/timer.tsx
+// src/components/ui/timer.tsx (version simplifiée)
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React from 'react';
 import { Play, Pause, Clock } from 'lucide-react';
 
 interface TimerProps {
-  initialTime?: number; // Temps initial en secondes
-  isPaused?: boolean;   // État initial (en pause ou non)
-  onPauseChange?: (isPaused: boolean) => void; // Callback quand l'état de pause change
-  onTimeUpdate?: (totalSeconds: number) => void; // Callback pour mettre à jour le temps écoulé
+  seconds: number;
+  isPaused: boolean;
+  onTogglePause: () => void;
+  isReadOnly?: boolean;
   className?: string;
-  isReadOnly?: boolean; // Mode consultation
 }
 
 export function Timer({
-  initialTime = 0,
-  isPaused = false,
-  onPauseChange,
-  onTimeUpdate,
-  className = '',
-  isReadOnly = false
+  seconds,
+  isPaused,
+  onTogglePause,
+  isReadOnly = false,
+  className = ''
 }: TimerProps) {
-  const [seconds, setSeconds] = useState<number>(initialTime);
-  const [paused, setPaused] = useState<boolean>(isPaused);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Mettre à jour l'état local quand isPaused change
-  useEffect(() => {
-    setPaused(isPaused);
-  }, [isPaused]);
-
-  // Mettre à jour le temps quand initialTime change
-  useEffect(() => {
-    setSeconds(initialTime);
-  }, [initialTime]);
-
-  // Effet pour gérer le timer (démarrer/arrêter)
-  useEffect(() => {
-    // Si le timer n'est pas en pause, démarrer un intervalle
-    if (!paused) {
-      intervalRef.current = setInterval(() => {
-        setSeconds(prev => {
-          const newValue = prev + 1;
-          if (onTimeUpdate) onTimeUpdate(newValue);
-          return newValue;
-        });
-      }, 1000);
-    } 
-    // Si le timer est en pause et qu'un intervalle existe, le nettoyer
-    else if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-    }
-
-    // Nettoyage au démontage ou avant re-exécution
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
-    };
-  }, [paused, onTimeUpdate]);
-
-  // Fonction pour basculer l'état de pause
-  const togglePause = () => {
-    if (isReadOnly) return;
-    
-    const newPausedState = !paused;
-    setPaused(newPausedState);
-    if (onPauseChange) onPauseChange(newPausedState);
-  };
-
   // Formater le temps (HH:MM:SS)
   const formatTime = (totalSeconds: number): string => {
     const hours = Math.floor(totalSeconds / 3600);
@@ -95,19 +45,19 @@ export function Timer({
       
       {!isReadOnly && (
         <button
-          onClick={togglePause}
+          onClick={onTogglePause}
           className={`p-2 rounded-full ${
-            paused 
+            isPaused 
               ? 'bg-green-100 text-green-700 hover:bg-green-200' 
               : 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
           } transition-colors`}
-          title={paused ? 'Démarrer' : 'Mettre en pause'}
+          title={isPaused ? 'Démarrer' : 'Mettre en pause'}
         >
-          {paused ? <Play size={14} /> : <Pause size={14} />}
+          {isPaused ? <Play size={14} /> : <Pause size={14} />}
         </button>
       )}
       
-      {paused && (
+      {isPaused && (
         <span className="text-xs px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full">
           En pause
         </span>
