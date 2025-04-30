@@ -266,25 +266,32 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
   }, [localEntretienId, entretienId, patient.id, entretienData]);
   
   // Fonction optimisée pour fermer l'entretien
-  const handleCloseEntretien = useCallback(() => {
+  const handleCloseEntretien = useCallback(async () => {
     console.log("Fermeture d'entretien demandée");
     const currentId = localEntretienId || entretienId;
     
-    // Pour un nouvel entretien ou un entretien non sauvegardé avec des modifications
-    if (!currentId && !isPaused) {
-      // Afficher la boîte de dialogue personnalisée au lieu de window.confirm
-      setShowSaveConfirmDialog(true);
-      return; // Important: arrêter l'exécution ici
-    } 
-    // Pour un entretien existant, mettre en pause puis quitter
-    else if (currentId && !isPaused && entretienData.status === 'brouillon') {
-      // Mettre en pause avant de quitter
-      forcePause();
-    }
-    
-    // Pour tous les autres cas, fermer directement
-    if (onClose) {
-      onClose();
+    try {
+      // Pour un nouvel entretien ou un entretien non sauvegardé avec des modifications
+      if (!currentId && !isPaused) {
+        // Afficher la boîte de dialogue personnalisée
+        setShowSaveConfirmDialog(true);
+        return; // Important: arrêter l'exécution ici
+      } 
+      // Pour un entretien existant, mettre en pause puis quitter
+      else if (currentId && !isPaused && entretienData.status === 'brouillon') {
+        // Mettre en pause avant de quitter
+        await forcePause();
+        console.log("Entretien mis en pause avec succès");
+      }
+      
+      // Pour tous les autres cas, fermer directement
+      if (onClose) {
+        onClose();
+      }
+    } catch (error) {
+      console.error("Erreur lors de la fermeture de l'entretien:", error);
+      // Fermer quand même en cas d'erreur de mise en pause
+      if (onClose) onClose();
     }
   }, [localEntretienId, entretienId, isPaused, entretienData.status, forcePause, onClose]);
   

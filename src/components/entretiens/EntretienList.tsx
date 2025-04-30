@@ -31,6 +31,7 @@ export const EntretienList = ({
     // Charger les entretiens du patient
     const fetchEntretiens = async () => {
       try {
+        setIsLoading(true);
         const response = await fetch(`/api/patients/${patientId}/entretiens`);
         const data = await response.json();
         setEntretiens(data.data || []);
@@ -40,8 +41,10 @@ export const EntretienList = ({
         setIsLoading(false);
       }
     };
-
+  
+    // Toujours recharger les données quand refreshTrigger change
     fetchEntretiens();
+    
   }, [patientId, refreshTrigger]);
 
   const handleDelete = (entretienId: number) => {
@@ -49,30 +52,48 @@ export const EntretienList = ({
     setShowConfirmDialog(true);
   };
 
-  const confirmDelete = async () => {
-    if (entretienToDelete === null) return;
+  // Dans src/components/entretiens/EntretienList.tsx
+
+const confirmDelete = async () => {
+  if (entretienToDelete === null) return;
+  
+  try {
+    const response = await fetch(`/api/entretiens/${entretienToDelete}`, {
+      method: 'DELETE',
+    });
     
-    try {
-      const response = await fetch(`/api/entretiens/${entretienToDelete}`, {
-        method: 'DELETE',
-      });
+    if (response.ok) {
+      // Fermer la boîte de dialogue AVANT de manipuler les données
+      setShowConfirmDialog(false);
+      setEntretienToDelete(null);
       
-      if (response.ok) {
-        toast.success('Entretien supprimé avec succès');
-        
-        // Mettre à jour la liste des entretiens localement
-        setEntretiens(prev => prev.filter(e => e.id !== entretienToDelete));
-        
-        // Si un callback onDelete est fourni, l'appeler pour notifier le parent
-        if (onDelete) onDelete(entretienToDelete);
-      } else {
-        toast.error('Erreur lors de la suppression');
-      }
-    } catch (error) {
-      console.error('Erreur:', error);
-      toast.error('Une erreur est survenue');
+      // Mise à jour locale de la liste des entretiens
+      setEntretiens(prev => prev.filter(e => e.id !== entretienToDelete));
+      
+      // Notification de succès
+      toast.success('Entretien supprimé avec succès');
+      
+      // Notification au parent si callback fourni
+      if (onDelete) onDelete(entretienToDelete);
+    } else {
+      // Gérer l'erreur
+      const errorData = await response.text();
+      console.error('Erreur de suppression:', errorData);
+      toast.error('Erreur lors de la suppression');
+      
+      // Fermer quand même la boîte de dialogue en cas d'erreur
+      setShowConfirmDialog(false);
+      setEntretienToDelete(null);
     }
-  };
+  } catch (error) {
+    console.error('Erreur:', error);
+    toast.error('Une erreur est survenue');
+    
+    // Fermer quand même la boîte de dialogue en cas d'erreur
+    setShowConfirmDialog(false);
+    setEntretienToDelete(null);
+  }
+};
 
   const formatDuration = (seconds: number): string => {
     if (!seconds || seconds <= 0) return '00:00:00';
