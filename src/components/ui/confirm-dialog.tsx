@@ -54,11 +54,6 @@ export function ConfirmDialog({
     }
   };
 
-  const handleConfirm = () => {
-    onConfirm();
-    onClose();
-  };
-
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
       <div className="text-center">
@@ -88,7 +83,7 @@ export function ConfirmDialog({
             className={`px-4 py-2 text-sm font-medium text-white rounded-lg 
                        focus:outline-none focus:ring-2 focus:ring-offset-2
                        transition-colors ${variantStyles[variant].button}`}
-            onClick={handleConfirm}
+            onClick={onConfirm}
           >
             {confirmText}
           </button>

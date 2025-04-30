@@ -17,6 +17,7 @@ import { IMAA } from '../sections/IMAA';
 import { ZoomIn, ZoomOut } from 'lucide-react';
 import { Timer } from '@/components/ui/timer';
 import { useEntretienTimer } from '@/hooks/useEntretienTimer';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 
 // Interfaces et types
 interface EntretienData {
@@ -150,6 +151,7 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
   const [maxZIndex, setMaxZIndex] = useState(1);
   const [globalZoom, setGlobalZoom] = useState(100);
   const [sections, setSections] = useState<Section[]>(initialSections);
+  const [showSaveConfirmDialog, setShowSaveConfirmDialog] = useState(false);
   
   // État de l'entretien
   const [entretienData, setEntretienData] = useState<EntretienData>({
@@ -264,68 +266,67 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
   }, [localEntretienId, entretienId, patient.id, entretienData]);
   
   // Fonction optimisée pour fermer l'entretien
-  const handleCloseEntretien = useCallback(async () => {
+  const handleCloseEntretien = useCallback(() => {
     console.log("Fermeture d'entretien demandée");
     const currentId = localEntretienId || entretienId;
     
     // Pour un nouvel entretien ou un entretien non sauvegardé avec des modifications
     if (!currentId && !isPaused) {
-      const shouldSave = window.confirm("Voulez-vous sauvegarder cet entretien avant de quitter?");
-      
-      if (shouldSave) {
-        const savedId = await saveEntretien();
-        
-        if (savedId) {
-          try {
-            console.log(`Entretien sauvegardé avec l'ID ${savedId}, mise en pause`);
-            const pauseResponse = await fetch(`/api/entretiens/${savedId}/timer`, {
-              method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ enPause: true })
-            });
-            
-            if (!pauseResponse.ok) {
-              console.error("Erreur lors de la mise en pause:", await pauseResponse.text());
-            }
-          } catch (error) {
-            console.error("Erreur réseau lors de la mise en pause:", error);
-          }
-        }
-      }
+      // Afficher la boîte de dialogue personnalisée au lieu de window.confirm
+      setShowSaveConfirmDialog(true);
+      return; // Important: arrêter l'exécution ici
     } 
-    // Pour un entretien existant
+    // Pour un entretien existant, mettre en pause puis quitter
     else if (currentId && !isPaused && entretienData.status === 'brouillon') {
+      // Mettre en pause avant de quitter
+      forcePause();
+    }
+    
+    // Pour tous les autres cas, fermer directement
+    if (onClose) {
+      onClose();
+    }
+  }, [localEntretienId, entretienId, isPaused, entretienData.status, forcePause, onClose]);
+  
+  // Ajoutez cette fonction pour gérer la confirmation
+  const handleConfirmSave = useCallback(async () => {
+    // Fermer la boîte de dialogue
+    setShowSaveConfirmDialog(false);
+    
+    // Sauvegarder l'entretien
+    const savedId = await saveEntretien();
+    
+    if (savedId) {
       try {
-        console.log(`Mise en pause forcée de l'entretien ${currentId} avant fermeture`);
-        
-        // Appel API explicite
-        const pauseResponse = await fetch(`/api/entretiens/${currentId}/timer`, {
+        console.log(`Entretien sauvegardé avec l'ID ${savedId}, mise en pause`);
+        await fetch(`/api/entretiens/${savedId}/timer`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ enPause: true })
         });
-        
-        if (!pauseResponse.ok) {
-          console.error("Erreur lors de la mise en pause:", await pauseResponse.text());
-        } else {
-          console.log("API - Entretien mis en pause avec succès");
-        }
-        
-        // Utiliser aussi forcePause du hook pour mise à jour locale
-        await forcePause();
       } catch (error) {
-        console.error("Erreur lors de la mise en pause:", error);
+        console.error("Erreur lors de la mise en pause après sauvegarde:", error);
       }
     }
     
-    // Attente courte pour s'assurer que les requêtes réseau ont eu le temps de se terminer
-    await new Promise(resolve => setTimeout(resolve, 100));
-    
+    // Fermer l'entretien
     if (onClose) {
       onClose();
     }
-  }, [localEntretienId, entretienId, isPaused, entretienData.status, saveEntretien, forcePause, onClose]);
+  }, [saveEntretien, onClose]);
   
+  // Ajoutez cette fonction pour gérer l'annulation
+  const handleCancelSave = useCallback(() => {
+    // Fermer la boîte de dialogue
+    setShowSaveConfirmDialog(false);
+    
+    // Fermer l'entretien sans sauvegarder
+    if (onClose) {
+      onClose();
+    }
+  }, [onClose]);
+
+
   // Effet pour assurer la mise en pause au démontage
   useEffect(() => {
     return () => {
@@ -841,11 +842,11 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
       Sauvegarder
     </button>
   )}
-</div>
+      </div>
             </div>
           
             {/* Informations du patient et statut */}
-<div className="mt-4 pt-4 border-t border-gray-200">
+            <div className="mt-4 pt-4 border-t border-gray-200">
   <div className="flex flex-wrap justify-between items-start gap-4">
     <div>
       <h2 className="text-xl font-bold text-blue-900">
@@ -949,13 +950,30 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
     </svg>
     <span className="text-xs mt-1">Réinitialiser</span>
   </button>
-</div>
+            </div>
           </div>
 
           {/* Sections - Utilisation de la fonction renderSections */}
           {renderSections()}
         </div>
       </div>
+
+
+
+
+    
+      <ConfirmDialog
+  isOpen={showSaveConfirmDialog}
+  onClose={() => setShowSaveConfirmDialog(false)}
+  onConfirm={handleConfirmSave}
+  title="Sauvegarder l'entretien"
+  message="Voulez-vous sauvegarder cet entretien avant de quitter ?"
+  confirmText="Sauvegarder"
+  cancelText="Quitter sans sauvegarder"
+  variant="info"
+/>
+    
+    
     </div>
   );
 };
