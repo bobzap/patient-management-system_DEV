@@ -2,6 +2,7 @@
 import { PrismaClient } from '@prisma/client'
 import { initialLists } from './data/initial-lists'
 import { initialFormConfig } from './seeds/formConfig'
+import { initialRisquesProfessionnels } from './seeds/risquesProfessionnels'
 
 const prisma = new PrismaClient()
 
@@ -127,14 +128,41 @@ async function seedFormConfiguration() {
   }
 }
 
+async function seedRisquesProfessionnels() {
+  console.log('Début de l\'initialisation des risques professionnels...')
+  
+  try {
+    // Vérifier les risques existants
+    const existingCount = await prisma.risqueProfessionnel.count();
+    
+    if (existingCount > 0) {
+      console.log(`${existingCount} risques professionnels déjà présents, initialisation ignorée.`);
+      return;
+    }
+    
+    // Créer les risques initiaux
+    await prisma.risqueProfessionnel.createMany({
+      data: initialRisquesProfessionnels
+    });
+    
+    console.log(`${initialRisquesProfessionnels.length} risques professionnels créés.`);
+  } catch (error) {
+    console.error('Erreur lors de l\'initialisation des risques professionnels:', error);
+    throw error;
+  }
+}
+
 async function main() {
   // Initialiser les listes d'abord
-  await seedLists()
+  await seedLists();
   
   // Puis initialiser la configuration du formulaire
-  await seedFormConfiguration()
+  await seedFormConfiguration();
   
-  console.log('Initialisation complète terminée.')
+  // Initialiser les risques professionnels
+  await seedRisquesProfessionnels();
+  
+  console.log('Initialisation complète terminée.');
 }
 
 main()
@@ -145,44 +173,3 @@ main()
   .finally(async () => {
     await prisma.$disconnect()
   })
-
-
-  import { initialRisquesProfessionnels } from './seeds/risquesProfessionnels';
-
-  async function seedRisquesProfessionnels() {
-    console.log('Début de l\'initialisation des risques professionnels...');
-    
-    try {
-      // Vérifier les risques existants
-      const existingCount = await prisma.risqueProfessionnel.count();
-      
-      if (existingCount > 0) {
-        console.log(`${existingCount} risques professionnels déjà présents, initialisation ignorée.`);
-        return;
-      }
-      
-      // Créer les risques initiaux
-      await prisma.risqueProfessionnel.createMany({
-        data: initialRisquesProfessionnels
-      });
-      
-      console.log(`${initialRisquesProfessionnels.length} risques professionnels créés.`);
-    } catch (error) {
-      console.error('Erreur lors de l\'initialisation des risques professionnels:', error);
-      throw error;
-    }
-  }
-  
-  // Dans la fonction main, ajoutez l'appel à seedRisquesProfessionnels:
-  async function main() {
-    // Initialiser les listes d'abord
-    await seedLists();
-    
-    // Puis initialiser la configuration du formulaire
-    await seedFormConfiguration();
-    
-    // Initialiser les risques professionnels
-    await seedRisquesProfessionnels();
-    
-    console.log('Initialisation complète terminée.');
-  }

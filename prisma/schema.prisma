@@ -150,6 +150,7 @@ model Entretien {
   
 }
 
+// prisma/schema.prisma
 model RisqueProfessionnel {
   id           Int      @id @default(autoincrement())
   nom          String
