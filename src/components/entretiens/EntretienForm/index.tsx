@@ -316,11 +316,12 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
   }, [saveEntretien, onClose]);
   
   // Ajoutez cette fonction pour gérer l'annulation
+  // Dans le composant EntretienForm, modifiez la fonction handleCancelSave
   const handleCancelSave = useCallback(() => {
     // Fermer la boîte de dialogue
     setShowSaveConfirmDialog(false);
     
-    // Fermer l'entretien sans sauvegarder
+    // Fermer l'entretien directement sans sauvegarder
     if (onClose) {
       onClose();
     }
@@ -966,10 +967,13 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
   isOpen={showSaveConfirmDialog}
   onClose={() => setShowSaveConfirmDialog(false)}
   onConfirm={handleConfirmSave}
+  onCancel={() => setShowSaveConfirmDialog(false)} // Bouton pour annuler et revenir à l'entretien
+  onThirdOption={handleCancelSave} // Fonction pour quitter sans sauvegarder
   title="Sauvegarder l'entretien"
   message="Voulez-vous sauvegarder cet entretien avant de quitter ?"
   confirmText="Sauvegarder"
-  cancelText="Quitter sans sauvegarder"
+  cancelText="Annuler" 
+  thirdOptionText="Quitter sans sauvegarder"
   variant="info"
 />
     

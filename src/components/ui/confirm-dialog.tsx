@@ -1,4 +1,5 @@
-// src/components/ui/confirm-dialog.tsx
+// Chemin: src/components/ui/confirm-dialog.tsx
+
 import React from 'react';
 import { Modal } from './modal';
 
@@ -6,10 +7,13 @@ interface ConfirmDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: () => void;
+  onCancel?: () => void; // Optionnel pour la compatibilité
   title: string;
   message: string;
   confirmText?: string;
   cancelText?: string;
+  thirdOptionText?: string;
+  onThirdOption?: () => void;
   variant?: 'danger' | 'warning' | 'info';
 }
 
@@ -17,10 +21,13 @@ export function ConfirmDialog({
   isOpen,
   onClose,
   onConfirm,
+  onCancel,
   title,
   message,
   confirmText = 'Confirmer',
   cancelText = 'Annuler',
+  thirdOptionText,
+  onThirdOption,
   variant = 'danger'
 }: ConfirmDialogProps) {
   
@@ -54,6 +61,14 @@ export function ConfirmDialog({
     }
   };
 
+  const handleCancel = () => {
+    if (onCancel) {
+      onCancel();
+    } else {
+      onClose();
+    }
+  };
+
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
       <div className="text-center">
@@ -73,10 +88,23 @@ export function ConfirmDialog({
             className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 
                      rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 
                      focus:ring-gray-500 transition-colors"
-            onClick={onClose}
+            onClick={handleCancel}
           >
             {cancelText}
           </button>
+          
+          {/* Troisième option si fournie */}
+          {thirdOptionText && onThirdOption && (
+            <button
+              type="button"
+              className="px-4 py-2 text-sm font-medium text-gray-900 bg-gray-200 border border-gray-300 
+                       rounded-lg hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 
+                       focus:ring-gray-500 transition-colors"
+              onClick={onThirdOption}
+            >
+              {thirdOptionText}
+            </button>
+          )}
           
           <button
             type="button"

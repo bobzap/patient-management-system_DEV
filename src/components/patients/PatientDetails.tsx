@@ -31,6 +31,10 @@ const [refreshEntretiens, setRefreshEntretiens] = useState(0);
 const [isReadOnly, setIsReadOnly] = useState(true);
 const [entretiens, setEntretiens] = useState([]);
 const [entretiensLoaded, setEntretiensLoaded] = useState(false);
+const [lastBiometricData, setLastBiometricData] = useState({
+  tension: '',
+  poids: ''
+});
 
 
 
@@ -45,6 +49,7 @@ const handleEntretienDelete = () => {
 
 
 
+
 useEffect(() => {
   const fetchEntretiens = async () => {
     if (!patient?.id) return;
@@ -56,6 +61,35 @@ useEffect(() => {
       if (result.success && result.data) {
         console.log('Entretiens chargés:', result.data);
         setEntretiens(result.data);
+        
+        // Récupérer le dernier entretien
+        if (result.data.length > 0) {
+          const lastEntretien = result.data[0]; // Le premier est le plus récent
+          
+          // Charger les données détaillées de cet entretien
+          const entretienResponse = await fetch(`/api/entretiens/${lastEntretien.id}`);
+          const entretienResult = await entretienResponse.json();
+          
+          if (entretienResult.success && entretienResult.data) {
+            // Extraire les données biométriques
+            try {
+              const donneesEntretien = JSON.parse(entretienResult.data.donneesEntretien);
+              
+              if (donneesEntretien.examenClinique && donneesEntretien.examenClinique.biometrie) {
+                const biometrie = donneesEntretien.examenClinique.biometrie;
+                setLastBiometricData({
+                  tension: biometrie.tension || '',
+                  poids: biometrie.poids || ''
+                });
+                console.log('Données biométriques trouvées:', biometrie);
+              } else {
+                console.log('Pas de données biométriques dans cet entretien');
+              }
+            } catch (e) {
+              console.error('Erreur lors du parsing des données d\'entretien:', e);
+            }
+          }
+        }
       }
     } catch (error) {
       console.error('Erreur lors du chargement des entretiens:', error);
@@ -64,15 +98,12 @@ useEffect(() => {
     }
   };
 
+  
+
   if (!entretiensLoaded) {
     fetchEntretiens();
   }
-}, [patient?.id, entretiensLoaded]);
-
-
-
-// Fonction de sélection d'entretien modifiée
-// src/components/patients/PatientDetails.tsx
+}, [patient?.id, entretiensLoaded, refreshEntretiens]);
 
 // Fonction de sélection d'entretien modifiée
 const handleEntretienSelect = (entretienId: number, readOnly: boolean) => {
@@ -425,7 +456,7 @@ return (
         {/* Colonne latérale - 1/3 */}
         <div className="lg:col-span-1 space-y-6">
           {/* Dernier entretien */}
-<div className="bg-white rounded-xl shadow-lg p-6">
+          <div className="bg-white rounded-xl shadow-lg p-6">
   <div className="flex justify-between items-center mb-4">
     <h3 className="text-lg font-semibold text-blue-900">Dernier entretien</h3>
     <span className="px-3 py-1 rounded-full bg-blue-100 text-blue-800 text-sm font-semibold">
@@ -437,26 +468,47 @@ return (
     <div>
       <p className="text-sm font-medium text-gray-600">Date</p>
       <p className="text-base font-semibold text-gray-900 mt-1">
-  {entretiens?.length > 0 && entretiens[0]?.dateCreation
-    ? new Date(entretiens[0].dateCreation).toLocaleDateString('fr-FR')
-    : 'Aucun entretien'}
-</p>
+        {entretiens?.length > 0 && entretiens[0]?.dateCreation
+          ? new Date(entretiens[0].dateCreation).toLocaleDateString('fr-FR')
+          : 'Aucun entretien'}
+      </p>
     </div>
+    
     {entretiens?.length > 0 && entretiens[0]?.status && (
-  <div>
-    <p className="text-sm font-medium text-gray-600">Statut</p>
-    <div className="mt-1">
-      <span className={`inline-flex px-2 py-1 rounded-full text-sm font-medium ${
-        entretiens[0].status === 'finalise' ? 'bg-green-100 text-green-800' : 
-        entretiens[0].status === 'archive' ? 'bg-gray-100 text-gray-800' : 
-        'bg-yellow-100 text-yellow-800'
-      }`}>
-        {entretiens[0].status === 'finalise' ? 'Finalisé' : 
-         entretiens[0].status === 'archive' ? 'Archivé' : 'Brouillon'}
-      </span>
-    </div>
-  </div>
-)}
+      <div>
+        <p className="text-sm font-medium text-gray-600">Statut</p>
+        <div className="mt-1">
+          <span className={`inline-flex px-2 py-1 rounded-full text-sm font-medium ${
+            entretiens[0].status === 'finalise' ? 'bg-green-100 text-green-800' : 
+            entretiens[0].status === 'archive' ? 'bg-gray-100 text-gray-800' : 
+            'bg-yellow-100 text-yellow-800'
+          }`}>
+            {entretiens[0].status === 'finalise' ? 'Finalisé' : 
+            entretiens[0].status === 'archive' ? 'Archivé' : 'Brouillon'}
+          </span>
+        </div>
+      </div>
+    )}
+    
+    {/* Nouvelles sections pour afficher la tension et le poids */}
+    {lastBiometricData.tension && (
+      <div>
+        <p className="text-sm font-medium text-gray-600">Tension</p>
+        <p className="text-base font-semibold text-gray-900 mt-1">
+          {lastBiometricData.tension} mmHg
+        </p>
+      </div>
+    )}
+    
+    {lastBiometricData.poids && (
+      <div>
+        <p className="text-sm font-medium text-gray-600">Poids</p>
+        <p className="text-base font-semibold text-gray-900 mt-1">
+          {lastBiometricData.poids} kg
+        </p>
+      </div>
+    )}
+    
     {entretiens.length > 0 && entretiens[0].numeroEntretien && (
       <div>
         <p className="text-sm font-medium text-gray-600">N° d'entretien</p>
@@ -465,6 +517,7 @@ return (
         </p>
       </div>
     )}
+    
     {patient.typeEntretien && (
       <div>
         <p className="text-sm font-medium text-gray-600">Type</p>
