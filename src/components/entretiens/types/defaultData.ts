@@ -157,20 +157,19 @@ export const defaultExamenCliniqueData = {
 
 
 
-  export const defaultConclusionData = {
-    // Dans defaultConclusionData
-prevention: {
-  conseilsDonnes: '',
-  troublesLiesTravail: [],
-  risquesProfessionnels: []
-},
-    limitation: {
-      hasLimitation: false,
-      dureeType: 'temporaire' as const,
-      dureeJours: 0,
-      commentaire: ''
-    },
-    actions: {
+export const defaultConclusionData = {
+  prevention: {
+    conseilsDonnes: '',
+    troublesLiesTravail: [],
+    risquesProfessionnels: [] // Assurez-vous que cette ligne existe
+  },
+  limitation: {
+    hasLimitation: false,
+    dureeType: 'temporaire',
+    dureeJours: 0,
+    commentaire: ''
+  },
+  actions: {
       orientation: {
         selected: [],
         commentaire: ''
