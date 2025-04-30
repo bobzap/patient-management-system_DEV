@@ -222,38 +222,16 @@ export const PatientDetails = ({ patient, onEdit, onDelete }: PatientDetailsProp
 
   // src/components/patients/PatientDetails.tsx - Return complet
 return (
+
+
   <div className="p-6 max-w-7xl mx-auto">
     {/* En-tête du dossier avec navigation */}
 
-    <div className="bg-white rounded-xl shadow-lg mb-6">
-  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6"> {/* Ajout du dégradé ici */}
-    {/* Barre supérieure avec navigation et actions principales */}
-    <div className="flex justify-between items-center mb-6">
-      <div className="flex items-center gap-2">
-        <div className="h-16 w-16 rounded-full bg-blue-100 flex items-center justify-center">
-          <span className="text-xl font-bold text-blue-900">
-            {`${patient.prenom[0]}${patient.nom[0]}`}
-          </span>
-        </div>
-        <div>
-          <h2 className="text-2xl font-bold text-blue-900">
-            {`${patient.civilites} ${patient.nom} ${patient.prenom}`}
-          </h2>
-          <div className="flex items-center gap-3 mt-1">
-            <span className="text-gray-600">{patient.age} ans</span>
-            <span className="text-gray-300">•</span>
-            <span className="px-2.5 py-1 rounded-full bg-blue-100 text-blue-800 text-sm font-medium">
-              {patient.departement}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/*</div>
+    
     <div className="bg-white rounded-xl shadow-lg mb-6">
       <div className="p-6">
         {/* Barre supérieure avec navigation et actions principales */}
-       {/* <div className="flex justify-between items-center mb-6">
+        <div className="flex justify-between items-center mb-6">
           <div className="flex items-center gap-2">
             <div className="h-16 w-16 rounded-full bg-blue-100 flex items-center justify-center">
               <span className="text-xl font-bold text-blue-900">
@@ -272,7 +250,18 @@ return (
                 </span>
               </div>
             </div>
-          </div> */}
+          </div> 
+
+
+
+
+
+      
+
+
+
+
+
           
           {/* Actions regroupées */}
           <div className="flex items-center gap-3">
