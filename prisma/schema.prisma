@@ -149,3 +149,12 @@ model Entretien {
   dernierePause   DateTime? // Moment où la dernière pause a commencé
   
 }
+
+model RisqueProfessionnel {
+  id           Int      @id @default(autoincrement())
+  nom          String
+  lien         String   // URL vers la ressource
+  estFavori    Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}

@@ -1,9 +1,15 @@
 // src/components/entretiens/types/ConclusionTypes.ts
 
+// Modifiez PreventionData pour inclure les risques professionnels
 export interface PreventionData {
-    conseilsDonnes: string;
-    troublesLiesTravail: string[];
-  }
+  conseilsDonnes: string;
+  troublesLiesTravail: string[];
+  risquesProfessionnels: Array<{
+    id: number;
+    nom: string;
+    lien: string;
+  }>;
+}
   
   export interface LimitationData {
     hasLimitation: boolean;
@@ -62,3 +68,5 @@ export interface ConclusionData {
   limitation: Record<string, any>;
   actions: Record<string, any>;
 }
+
+

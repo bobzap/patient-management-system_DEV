@@ -4,22 +4,22 @@
 import { useState, useEffect } from 'react';
 import { ListManager } from '@/components/admin/ListManager';
 import { FormBuilder } from '@/components/admin/FormBuilder';
-import { List, Settings } from 'lucide-react';
+import { RisquesProfessionnels } from '@/components/admin/RisquesProfessionnels';
+import { List, Settings, AlertCircle } from 'lucide-react';
 
-console.log("Avant le composant AdminPage"); // Log avant le composant
+console.log("Avant le composant AdminPage");
 
 export default function AdminPage() {
-  console.log("Début du composant AdminPage"); // Log au début du composant
+  console.log("Début du composant AdminPage");
   
-  const [activeSection, setActiveSection] = useState<'lists' | 'forms'>('lists');
+  const [activeSection, setActiveSection] = useState<'lists' | 'forms' | 'risques'>('lists');
   
   useEffect(() => {
     console.log("AdminPage: Section active:", activeSection);
   }, [activeSection]);
 
-  console.log("Avant le return"); // Log avant le return
+  console.log("Avant le return");
   
-
   return (
     <div className="space-y-6">
       {/* Sous-navigation */}
@@ -47,6 +47,17 @@ export default function AdminPage() {
             <Settings className="w-5 h-5 mr-2" />
             Configuration des Formulaires
           </button>
+          <button
+            onClick={() => setActiveSection('risques')}
+            className={`flex items-center px-4 py-2 rounded-md transition-colors ${
+              activeSection === 'risques'
+                ? 'bg-blue-50 text-blue-700'
+                : 'text-gray-600 hover:bg-gray-50'
+            }`}
+          >
+            <AlertCircle className="w-5 h-5 mr-2" />
+            Risques Professionnels
+          </button>
         </div>
       </div>
 
@@ -54,9 +65,13 @@ export default function AdminPage() {
       <div className="bg-white rounded-lg shadow-sm">
         {activeSection === 'lists' ? (
           <ListManager />
-        ) : (
+        ) : activeSection === 'forms' ? (
           <div className="p-6">
             <FormBuilder />
+          </div>
+        ) : (
+          <div className="p-6">
+            <RisquesProfessionnels />
           </div>
         )}
       </div>

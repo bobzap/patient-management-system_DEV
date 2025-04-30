@@ -51,7 +51,25 @@ export interface BiometrieData {
       description: string;
       commentaires: string;
     };
-  }
+      // Nouveaux champs pour les antécédents familiaux
+  familiaux: {
+    existence: boolean;
+    pere: string;
+    mere: string;
+    autres: string;
+  };
+  // Nouveaux champs pour les antécédents professionnels
+  professionnels: {
+    existence: boolean;
+    postes: Array<{
+      posteOccupe: string;
+      dateDebut: string;
+      dateFin: string;
+      entreprise: string;
+    }>;
+  };
+}
+ 
   
   export interface TraitementsData {
     medicaments: {

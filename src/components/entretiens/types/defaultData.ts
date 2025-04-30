@@ -68,80 +68,102 @@ export const defaultVecuTravailData = {
 
 
 
-  export const defaultExamenCliniqueData = {
-    biometrie: {
-      taille: '',
-      poids: '',
-      tension: '',
-      pouls: '',
-      temperature: '',
-      glycemie: '',
-      saturation: '',
-      imc: ''
+  // src/components/entretiens/types/defaultData.ts
+
+export const defaultExamenCliniqueData = {
+  biometrie: {
+    taille: '',
+    poids: '',
+    tension: '',
+    pouls: '',
+    temperature: '',
+    glycemie: '',
+    saturation: '',
+    imc: ''
+  },
+  appareils: {
+    yeuxAnnexes: {
+      bilanOPH: false,
+      commentairesORL: '',
+      commentairesOPH: ''
     },
-    appareils: {
-      yeuxAnnexes: {
-        bilanOPH: false,
-        commentairesORL: '',
-        commentairesOPH: ''
-      },
-      cardioPulmonaire: {
-        bilanCardio: false,
-        commentaires: ''
-      },
-      appareilDigestif: {
-        commentaires: ''
-      },
-      uroGenital: {
-        suiviGyneco: false,
-        commentaires: ''
-      },
-      osteoArticulaire: {
-        plainteEvoquee: false,
-        commentairesDouleurs: ''
-      },
-      neuroPsy: {
-        sommeilBon: false,
-        commentaires: ''
-      },
-      endocrinoMetabolisme: {
-        dernierBilan: ''
-      }
+    cardioPulmonaire: {
+      bilanCardio: false,
+      commentaires: ''
     },
-    antecedents: {
-      medicaux: {
-        existence: false,
-        description: '',
-        commentaires: ''
-      },
-      chirurgicaux: {
-        existence: false,
-        description: '',
-        commentaires: ''
-      }
+    appareilDigestif: {
+      commentaires: ''
     },
-    traitements: {
-      medicaments: {
-        existence: false,
-        description: '',
-        commentaires: ''
-      },
-      vaccination: {
-        aJour: false,
-        commentaires: ''
-      }
+    uroGenital: {
+      suiviGyneco: false,
+      commentaires: ''
+    },
+    osteoArticulaire: {
+      plainteEvoquee: false,
+      commentairesDouleurs: ''
+    },
+    neuroPsy: {
+      sommeilBon: false,
+      commentaires: ''
+    },
+    endocrinoMetabolisme: {
+      dernierBilan: ''
     }
-  };
+  },
+  antecedents: {
+    medicaux: {
+      existence: false,
+      description: '',
+      commentaires: ''
+    },
+    chirurgicaux: {
+      existence: false,
+      description: '',
+      commentaires: ''
+    },
+    // Nouveaux champs
+    familiaux: {
+      existence: false,
+      pere: '',
+      mere: '',
+      autres: ''
+    },
+    professionnels: {
+      existence: false,
+      postes: [
+        {
+          posteOccupe: '',
+          dateDebut: '',
+          dateFin: '',
+          entreprise: ''
+        }
+      ]
+    }
+  }, // Ajout de la virgule manquante ici
+  traitements: {
+    medicaments: {
+      existence: false,
+      description: '',
+      commentaires: ''
+    },
+    vaccination: {
+      aJour: false,
+      commentaires: ''
+    }
+  }
+};
 
 
 
 
 
   export const defaultConclusionData = {
-    prevention: {
-      conseilsDonnes: '',
-      troublesLiesTravail: []
-    },
+    // Dans defaultConclusionData
+prevention: {
+  conseilsDonnes: '',
+  troublesLiesTravail: [],
+  risquesProfessionnels: []
+},
     limitation: {
       hasLimitation: false,
       dureeType: 'temporaire' as const,
