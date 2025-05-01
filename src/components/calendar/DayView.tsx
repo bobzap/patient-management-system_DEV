@@ -166,9 +166,15 @@ export const DayView: React.FC<DayViewProps> = ({
                 onClick={(e) => {
                   e.stopPropagation();
                   // Créer un événement à cette demi-heure
-                  const newDate = new Date(currentDate);
-                  newDate.setHours(hour, 30, 0, 0);
-                  onSelectSlot(newDate);
+                  const selectedDay = new Date(day);
+                  console.log('Jour sélectionné brut:', day);
+                  console.log('Jour sélectionné Date:', selectedDay);
+                  
+                  // Définir sur midi du jour sélectionné
+                  selectedDay.setHours(12, 0, 0, 0);
+                  console.log('Jour formaté pour événement:', selectedDay);
+                  
+                  onSelectSlot(selectedDay);
                 }}
               ></div>
             </div>

@@ -70,8 +70,9 @@ model Patient {
   dateCreation    String?
 
   // Timestamps
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  calendarEvents CalendarEvent[]
 
   entretiens Entretien[]
 }
@@ -126,8 +127,9 @@ model FormField {
 }
 
 model Entretien {
-  id              Int     @id @default(autoincrement())
-  patient         Patient @relation(fields: [patientId], references: [id])
+  id              Int             @id @default(autoincrement())
+  calendarEvents  CalendarEvent[]
+  patient         Patient         @relation(fields: [patientId], references: [id])
   patientId       Int
   numeroEntretien Int
 
@@ -141,60 +143,58 @@ model Entretien {
   // Données des sections
   donneesEntretien String // Stocké comme TEXT mais contiendra du JSON
 
-    // Nouveaux champs pour le timer
-  tempsDebut      DateTime? // Moment où l'entretien a démarré
-  tempsFin        DateTime? // Moment où l'entretien a été finalisé
-  tempsPause      Int?      // Temps total en pause (en secondes)
-  enPause         Boolean   @default(false) // Si le timer est actuellement en pause
-  dernierePause   DateTime? // Moment où la dernière pause a commencé
-  
+  // Nouveaux champs pour le timer
+  tempsDebut    DateTime? // Moment où l'entretien a démarré
+  tempsFin      DateTime? // Moment où l'entretien a été finalisé
+  tempsPause    Int? // Temps total en pause (en secondes)
+  enPause       Boolean   @default(false) // Si le timer est actuellement en pause
+  dernierePause DateTime? // Moment où la dernière pause a commencé
 }
 
 // prisma/schema.prisma
 model RisqueProfessionnel {
-  id           Int      @id @default(autoincrement())
-  nom          String
-  lien         String   // URL vers la ressource
-  estFavori    Boolean  @default(false)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id        Int      @id @default(autoincrement())
+  nom       String
+  lien      String // URL vers la ressource
+  estFavori Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
-
 
 model CalendarEvent {
   id          Int      @id @default(autoincrement())
-  title       String   // Titre de l'événement
-  description String?  // Description facultative
+  title       String // Titre de l'événement
+  description String? // Description facultative
   startDate   DateTime // Date et heure de début
   endDate     DateTime // Date et heure de fin
   allDay      Boolean  @default(false) // Événement sur toute la journée?
-  
+
   // Type d'événement (entretien, visite médicale, rappel, etc.)
-  eventType   String
-  
+  eventType String
+
   // Statut de l'événement (planifié, effectué, annulé, reporté)
-  status      String   @default("planifie")
-  
+  status String @default("planifie")
+
   // Lien avec un patient (facultatif)
-  patientId   Int?
-  patient     Patient? @relation(fields: [patientId], references: [id])
-  
+  patientId Int?
+  patient   Patient? @relation(fields: [patientId], references: [id])
+
   // Lien avec un entretien (facultatif)
   entretienId Int?
   entretien   Entretien? @relation(fields: [entretienId], references: [id], onDelete: SetNull)
-  
+
   // Métadonnées (par exemple, couleur d'affichage, notifications, etc.)
-  metadata    String?   // JSON stocké sous forme de texte
-  
+  metadata String? // JSON stocké sous forme de texte
+
   // Champs pour le suivi et l'audit
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  createdBy   String?   // Nom de l'utilisateur ayant créé l'événement
-  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy String? // Nom de l'utilisateur ayant créé l'événement
+
   // Récurrence (pour les événements répétitifs)
-  recurrence      String?  // Pattern de récurrence au format JSON
-  parentEventId   Int?     // ID de l'événement parent en cas de récurrence
-  
+  recurrence    String? // Pattern de récurrence au format JSON
+  parentEventId Int? // ID de l'événement parent en cas de récurrence
+
   @@index([patientId])
   @@index([entretienId])
   @@index([startDate, endDate])

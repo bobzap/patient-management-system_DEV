@@ -1,4 +1,5 @@
-//src\app\api\patients\[id]\entretiens\route.ts
+// src/app/api/patients/[id]/entretiens/route.ts
+// Modifions cette partie pour corriger l'erreur
 
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
@@ -25,7 +26,6 @@ function getStatusStyle(status: string) {
   }
 }
 
-// Une seule fonction GET
 export async function GET(
   request: Request,
   { params }: { params: { id: string } }
@@ -33,10 +33,8 @@ export async function GET(
   try {
     const patientId = parseInt(params.id);
     
-    
-    
     if (isNaN(patientId)) {
-      return NextResponse.json({ error: 'ID patient invalide' }, { status: 400 });
+      return NextResponse.json({ success: false, error: 'ID patient invalide' }, { status: 400 });
     }
 
     // Récupérer les entretiens du patient
@@ -44,8 +42,6 @@ export async function GET(
       where: { patientId },
       orderBy: { dateCreation: 'desc' },
     });
-
-    
 
     // Ajouter les styles de statut
     const formattedEntretiens = entretiens.map(entretien => ({
@@ -58,7 +54,7 @@ export async function GET(
       data: formattedEntretiens
     });
   } catch (error) {
-    
+    console.error('Erreur lors de la récupération des entretiens:', error);
     return NextResponse.json(
       { success: false, error: 'Erreur serveur' },
       { status: 500 }

@@ -10,7 +10,6 @@ import { EventModal } from './EventModal';
 import { toast } from 'sonner';
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addMonths, addWeeks, addDays } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { Calendar } from './Calendar';
 
 
 // Définition des types
@@ -37,7 +36,7 @@ export type CalendarEvent = {
 
 type CalendarViewType = 'month' | 'week' | 'day';
 
-export const Calendar: React.FC = () => {
+const Calendar: React.FC = () => {
   // États
   const [view, setView] = useState<CalendarViewType>('month');
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -52,6 +51,12 @@ export const Calendar: React.FC = () => {
   const [filterEventType, setFilterEventType] = useState<string>('');
   const [filterStatus, setFilterStatus] = useState<string>('');
   const [filterDepartment, setFilterDepartment] = useState<string>('');
+
+  // Fonction pour sélectionner un événement
+  const handleSelectEvent = (event: CalendarEvent) => {
+    setSelectedEvent(event);
+    setShowEventModal(true);
+  };
 
   // Charger les types d'événements et statuts
   useEffect(() => {
@@ -88,7 +93,6 @@ export const Calendar: React.FC = () => {
     fetchLists();
   }, []);
 
-  // Fonction pour récupérer les événements pour la période donnée
   const fetchEvents = useCallback(async () => {
     setIsLoading(true);
     
@@ -111,39 +115,99 @@ export const Calendar: React.FC = () => {
         endDateStr = format(currentDate, 'yyyy-MM-dd');
       }
       
-      // Construire l'URL avec les filtres
-      let url = `/api/calendar?startDate=${startDateStr}&endDate=${endDateStr}`;
+      // Tableau pour stocker tous les événements
+      let allEvents = [];
       
-      if (filterEventType) {
-        url += `&eventType=${encodeURIComponent(filterEventType)}`;
-      }
-      
-      if (filterStatus) {
-        url += `&status=${encodeURIComponent(filterStatus)}`;
-      }
-      
-      // Obtenir les événements
-      const response = await fetch(url);
-      const data = await response.json();
-      
-      if (data.success) {
-        // Convertir les dates string en objets Date
-        const formattedEvents = data.data.map((event: any) => ({
-          ...event,
-          startDate: new Date(event.startDate),
-          endDate: new Date(event.endDate)
-        }));
+      // 1. Récupérer les événements manuels du calendrier
+      try {
+        // Construire l'URL avec les filtres
+        let url = `/api/calendar?startDate=${startDateStr}&endDate=${endDateStr}`;
         
-        // Filtrer par département si nécessaire
-        const filteredEvents = filterDepartment 
-          ? formattedEvents.filter((event: any) => 
-              event.patient && event.patient.departement === filterDepartment)
-          : formattedEvents;
+        if (filterEventType) {
+          url += `&eventType=${encodeURIComponent(filterEventType)}`;
+        }
         
-        setEvents(filteredEvents);
-      } else {
-        toast.error('Erreur lors du chargement des événements');
+        if (filterStatus) {
+          url += `&status=${encodeURIComponent(filterStatus)}`;
+        }
+        
+        console.log('Fetching calendar events:', url);
+        const calendarResponse = await fetch(url);
+        
+        if (calendarResponse.ok) {
+          const calendarData = await calendarResponse.json();
+          
+          if (calendarData.success) {
+            // Convertir les dates string en objets Date
+            const calendarEvents = calendarData.data.map((event: any) => ({
+              ...event,
+              startDate: new Date(event.startDate),
+              endDate: new Date(event.endDate),
+              source: 'calendar' // Marquer comme événement manuel
+            }));
+            
+            console.log(`${calendarEvents.length} événements calendrier récupérés`);
+            allEvents = [...calendarEvents];
+          }
+        }
+      } catch (error) {
+        console.error('Erreur lors de la récupération des événements calendrier:', error);
+        // On continue pour récupérer les autres sources d'événements
       }
+      
+      // 2. Récupérer les dates des entretiens
+      try {
+        console.log('Fetching entretien dates');
+        const entretienResponse = await fetch('/api/entretiens/dates');
+        
+        if (entretienResponse.ok) {
+          const entretienData = await entretienResponse.json();
+          
+          if (entretienData.success) {
+            const entretienEvents = entretienData.data;
+            console.log(`${entretienEvents.length} dates d'entretiens récupérées`);
+            allEvents = [...allEvents, ...entretienEvents];
+          } else {
+            console.warn('Problème lors de la récupération des dates d\'entretien:', entretienData.error);
+          }
+        }
+      } catch (error) {
+        console.error('Erreur lors de la récupération des dates d\'entretien:', error);
+        // On continue avec les événements déjà récupérés
+      }
+      
+      // 3. Récupérer également les événements temporaires
+      try {
+        console.log('Fetching temporary events');
+        const tempResponse = await fetch('/api/calendar-temp');
+        
+        if (tempResponse.ok) {
+          const tempData = await tempResponse.json();
+          
+          if (tempData.success && Array.isArray(tempData.data)) {
+            const tempEvents = tempData.data.map((event: any) => ({
+              ...event,
+              startDate: new Date(event.startDate),
+              endDate: new Date(event.endDate),
+              source: 'temp'
+            }));
+            
+            console.log(`${tempEvents.length} événements temporaires récupérés`);
+            allEvents = [...allEvents, ...tempEvents];
+          }
+        }
+      } catch (error) {
+        console.error('Erreur lors de la récupération des événements temporaires:', error);
+      }
+      
+      // Filtrer par département si nécessaire
+      const filteredEvents = filterDepartment
+        ? allEvents.filter((event: any) =>
+            event.patient && event.patient.departement === filterDepartment)
+        : allEvents;
+      
+      console.log(`${filteredEvents.length} événements à afficher au total`);
+      setEvents(filteredEvents);
     } catch (error) {
       console.error('Erreur lors du chargement des événements:', error);
       toast.error('Erreur lors du chargement des événements');
@@ -152,6 +216,30 @@ export const Calendar: React.FC = () => {
     }
   }, [currentDate, view, filterEventType, filterStatus, filterDepartment]);
 
+
+
+  function createLocalDate(year: number, month: number, day: number, hour = 12, minute = 0) {
+    // Crée une date locale sans décalage de fuseau horaire
+    const date = new Date();
+    date.setFullYear(year);
+    date.setMonth(month - 1); // Les mois sont indexés à partir de 0
+    date.setDate(day);
+    date.setHours(hour, minute, 0, 0);
+    return date;
+  }
+  
+  // Puis utilisez-la lors de la sélection d'une date
+  const handleDayClick = (day: Date) => {
+    const localDate = createLocalDate(
+      day.getFullYear(),
+      day.getMonth() + 1,
+      day.getDate(),
+      12, // Midi par défaut
+      0
+    );
+    onSelectSlot(localDate);
+  };
+  
   // Charger les événements lorsque la date ou la vue change
   useEffect(() => {
     fetchEvents();
@@ -182,10 +270,11 @@ export const Calendar: React.FC = () => {
     setCurrentDate(new Date());
   };
 
-  // src/components/calendar/Calendar.tsx (suite)
-
-  // Gestion des événements (suite)
+  // Gestion des événements
   const handleSelectSlot = (date: Date) => {
+    console.log('handleSelectSlot reçoit:', date);
+    
+    // Passer directement la date sans manipulation
     setSelectedDate(date);
     setSelectedEvent(null);
     setShowEventModal(true);
@@ -197,59 +286,78 @@ export const Calendar: React.FC = () => {
     setSelectedDate(null);
   };
 
-  const handleSaveEvent = async (eventData: Partial<CalendarEvent>) => {
-    try {
-      let response;
-      
-      if (selectedEvent) {
-        // Mise à jour d'un événement existant
-        response = await fetch(`/api/calendar/${selectedEvent.id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(eventData)
-        });
-      } else {
-        // Création d'un nouvel événement
-        response = await fetch('/api/calendar', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(eventData)
-        });
-      }
-      
-      const data = await response.json();
-      
-      if (data.success) {
-        toast.success(selectedEvent ? 'Événement mis à jour' : 'Événement créé');
-        handleCloseModal();
-        fetchEvents(); // Recharger les événements
-      } else {
-        toast.error(data.error || 'Erreur lors de l\'enregistrement');
-      }
-    } catch (error) {
-      console.error('Erreur lors de l\'enregistrement:', error);
-      toast.error('Erreur lors de l\'enregistrement');
-    }
-  };
+  // Dans Calendar.tsx, modifier la fonction handleSaveEvent
 
+const handleSaveEvent = async (eventData: Partial<CalendarEvent>) => {
+  try {
+    let response;
+    
+    if (selectedEvent) {
+      // Mise à jour d'un événement existant
+      response = await fetch(`/api/calendar/${selectedEvent.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(eventData)
+      });
+    } else {
+      // Création d'un nouvel événement - utiliser l'API temporaire
+      response = await fetch('/api/calendar-temp', {  // Modifier ici pour utiliser l'API temporaire
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(eventData)
+      });
+    }
+    
+    // S'assurer que la réponse est valide avant de tenter de la parser
+    if (!response.ok) {
+      throw new Error(`Erreur HTTP: ${response.status} ${response.statusText}`);
+    }
+    
+    // Lire le texte de la réponse pour débogage
+    const responseText = await response.text();
+    console.log('Réponse brute:', responseText);
+    
+    // Parser la réponse JSON
+    let data;
+    try {
+      data = JSON.parse(responseText);
+    } catch (e) {
+      throw new Error(`Impossible de parser la réponse: ${responseText}`);
+    }
+    
+    if (data.success) {
+      toast.success(selectedEvent ? 'Événement mis à jour' : 'Événement créé');
+      handleCloseModal();
+      fetchEvents(); // Recharger les événements
+    } else {
+      toast.error(data.error || 'Erreur lors de l\'enregistrement');
+    }
+  } catch (error) {
+    console.error('Erreur lors de l\'enregistrement:', error);
+    toast.error(`Erreur: ${error.message}`);
+  }
+};
   const handleDeleteEvent = async (eventId: number) => {
     try {
-      const response = await fetch(`/api/calendar/${eventId}`, {
-        method: 'DELETE'
-      });
+      const tempResponse = await fetch('/api/calendar-temp');
       
-      const data = await response.json();
-      
-      if (data.success) {
-        toast.success('Événement supprimé');
-        handleCloseModal();
-        fetchEvents(); // Recharger les événements
-      } else {
-        toast.error(data.error || 'Erreur lors de la suppression');
+      if (tempResponse.ok) {
+        const tempData = await tempResponse.json();
+        
+        if (tempData.success && Array.isArray(tempData.data)) {
+          const tempEvents = tempData.data.map((event: any) => ({
+            ...event,
+            startDate: new Date(event.startDate),
+            endDate: new Date(event.endDate),
+            source: 'temp'
+          }));
+          
+          console.log(`${tempEvents.length} événements temporaires récupérés`);
+          allEvents = [...allEvents, ...tempEvents];
+        }
       }
     } catch (error) {
-      console.error('Erreur lors de la suppression:', error);
-      toast.error('Erreur lors de la suppression');
+      console.error('Erreur lors de la récupération des événements temporaires:', error);
     }
   };
 
@@ -378,21 +486,22 @@ export const Calendar: React.FC = () => {
   );
 };
 
+export default Calendar;
+
+// Composant wrapper pour la page du calendrier
 export const CalendarPage: React.FC = () => {
-    return (
-      <div className="p-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex justify-between items-center mb-6">
-            <h1 className="text-2xl font-bold text-blue-900">Calendrier</h1>
-            <p className="text-gray-600">Planifiez et gérez vos rendez-vous et rappels</p>
-          </div>
-          
-          <div className="bg-white rounded-xl shadow-lg p-4 h-[calc(100vh-140px)]">
-            <Calendar />
-          </div>
+  return (
+    <div className="p-6">
+      <div className="max-w-7xl mx-auto">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold text-blue-900">Calendrier</h1>
+          <p className="text-gray-600">Planifiez et gérez vos rendez-vous et rappels</p>
+        </div>
+        
+        <div className="bg-white rounded-xl shadow-lg p-4 h-[calc(100vh-140px)]">
+          <Calendar />
         </div>
       </div>
-    );
-  };
-
-export default Calendar;
+    </div>
+  );
+};

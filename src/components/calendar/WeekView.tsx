@@ -196,9 +196,15 @@ export const WeekView: React.FC<WeekViewProps> = ({
                     className="h-20 border-b border-gray-200"
                     onClick={() => {
                       // Créer un événement à cette heure précise
-                      const newDate = new Date(day);
-                      newDate.setHours(hour, 0, 0, 0);
-                      onSelectSlot(newDate);
+                      const selectedDay = new Date(day);
+                      console.log('Jour sélectionné brut:', day);
+                      console.log('Jour sélectionné Date:', selectedDay);
+                      
+                      // Définir sur midi du jour sélectionné
+                      selectedDay.setHours(12, 0, 0, 0);
+                      console.log('Jour formaté pour événement:', selectedDay);
+                      
+                      onSelectSlot(selectedDay);
                     }}
                   >
                     {/* Sous-divisions 30 minutes */}

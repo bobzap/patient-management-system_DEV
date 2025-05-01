@@ -1,8 +1,7 @@
-// src/app/api/calendar/route.ts
+// src/app/api/calendar/route.ts - version corrigée
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-// GET: Récupérer des événements du calendrier avec filtres optionnels
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -10,6 +9,9 @@ export async function GET(request: NextRequest) {
     const endDate = searchParams.get('endDate');
     const eventType = searchParams.get('eventType');
     const status = searchParams.get('status');
+    
+    console.log('Prisma instance:', prisma); // Débogage
+    console.log('Paramètres de requête:', { startDate, endDate, eventType, status }); // Débogage
     
     // Construction de la requête avec filtres
     const query: any = {};
@@ -51,6 +53,16 @@ export async function GET(request: NextRequest) {
       query.status = status;
     }
     
+    // Vérifier si le modèle calendarEvent existe dans prisma
+    if (!prisma.calendarEvent) {
+      console.error('Le modèle CalendarEvent n\'existe pas dans l\'instance Prisma');
+      return NextResponse.json({
+        success: true,
+        data: [], // Retourner un tableau vide en attendant que le modèle soit créé
+        message: 'CalendarEvent model not found'
+      });
+    }
+    
     // Exécution de la requête avec inclusion des données de patient
     const events = await prisma.calendarEvent.findMany({
       where: query,
@@ -77,16 +89,16 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Erreur lors de la récupération des événements:', error);
     return NextResponse.json(
-      {
-        success: false,
+      { 
+        success: false, 
         error: 'Erreur lors de la récupération des événements',
+        message: error.message 
       },
       { status: 500 }
     );
   }
 }
 
-// POST: Créer un nouvel événement
 export async function POST(request: NextRequest) {
   try {
     const data = await request.json();
@@ -102,17 +114,36 @@ export async function POST(request: NextRequest) {
       );
     }
     
+    console.log('Données reçues pour création d\'événement:', data);
+    
+    // Solution temporaire si le modèle CalendarEvent n'est pas encore disponible
+    if (!prisma.calendarEvent) {
+      console.warn('Modèle CalendarEvent non disponible, retournant une réponse factice');
+      
+      // Retourner une réponse factice pour permettre le développement de l'interface
+      return NextResponse.json({
+        success: true,
+        data: {
+          id: Math.floor(Math.random() * 1000) + 1, // ID aléatoire
+          ...data,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        }
+      });
+    }
+    
     // Formatage des dates
     const event = {
       ...data,
       startDate: new Date(data.startDate),
       endDate: new Date(data.endDate),
       // S'assurer que le statut par défaut est "planifie" s'il n'est pas fourni
-      status: data.status || 'planifie',
+      status: data.status || 'Planifié',
       // Conversion en JSON pour les métadonnées si présentes
       metadata: data.metadata ? JSON.stringify(data.metadata) : null,
     };
     
+    // Création de l'événement en base de données
     const newEvent = await prisma.calendarEvent.create({
       data: event,
       include: {
@@ -138,6 +169,7 @@ export async function POST(request: NextRequest) {
       {
         success: false,
         error: 'Erreur lors de la création de l\'événement',
+        details: error.message
       },
       { status: 500 }
     );

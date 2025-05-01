@@ -68,9 +68,29 @@ export const MonthView: React.FC<MonthViewProps> = ({
               !isCurrentMonth ? 'bg-gray-50' : 'bg-white'
             } ${isToday(day) ? 'border-blue-500 border-2' : ''}`}
             onClick={() => {
-              // Créer un événement à midi pour ce jour
-              const newDate = addHours(new Date(day), 12);
-              onSelectSlot(newDate);
+              // NOUVELLE MÉTHODE: Construire la date directement avec l'année, le mois et le jour
+              // Utilisons une date complètement nouvelle avec UTC
+              const newDate = new Date(Date.UTC(
+                day.getFullYear(),
+                day.getMonth(),
+                day.getDate(),
+                12, 0, 0, 0
+              ));
+              
+              // Convertir ensuite en date locale (pour avoir le bon fuseau horaire)
+              const localDate = new Date(newDate.toISOString().slice(0, 10) + "T12:00:00");
+              
+              console.log("Date sélectionnée INFO:", {
+                originalDay: day.toString(),
+                year: day.getFullYear(),
+                month: day.getMonth(), // 0-11
+                day: day.getDate(),
+                newDate: localDate.toString(),
+                isoDate: localDate.toISOString()
+              });
+              
+              // Passer cette date précise
+              onSelectSlot(localDate);
             }}
           >
             <div className="p-2">

@@ -65,31 +65,68 @@ export const EventModal: React.FC<EventModalProps> = ({
       setEventType(event.eventType);
       setStatus(event.status);
       setPatientId(event.patientId || null);
+
     } else if (initialDate) {
-      // Initialiser avec la date sélectionnée
-      setStartDate(format(initialDate, 'yyyy-MM-dd'));
-      setStartTime(format(initialDate, 'HH:mm'));
+      // LOGS DE DÉBOGAGE DÉTAILLÉS
+      console.log("MODAL - Date reçue:", {
+        date: initialDate,
+        toString: initialDate.toString(),
+        toISOString: initialDate.toISOString(),
+        type: typeof initialDate,
+        isDate: initialDate instanceof Date
+      });
       
-      // Définir l'heure de fin à +1 heure par défaut
-      const endTime = addHours(initialDate, 1);
-      setEndDate(format(endTime, 'yyyy-MM-dd'));
-      setEndTime(format(endTime, 'HH:mm'));
+      // MÉTHODE DIRECTE avec ISO String
+      // Créer directement des chaînes au format attendu par les inputs
+      const dateISOString = initialDate.toISOString();
+      const datePart = dateISOString.split('T')[0]; // "YYYY-MM-DD"
+      
+      // Heure locale avec padding à 2 chiffres
+      const hours = initialDate.getHours().toString().padStart(2, '0');
+      const minutes = initialDate.getMinutes().toString().padStart(2, '0');
+      const timePart = `${hours}:${minutes}`;
+      
+      // Date de fin: +1 heure
+      const endDate = new Date(initialDate);
+      endDate.setHours(endDate.getHours() + 1);
+      const endDatePart = endDate.toISOString().split('T')[0];
+      const endHours = endDate.getHours().toString().padStart(2, '0');
+      const endMinutes = endDate.getMinutes().toString().padStart(2, '0');
+      const endTimePart = `${endHours}:${endMinutes}`;
+      
+      console.log("MODAL - Dates formatées:", {
+        startDate: datePart,
+        startTime: timePart,
+        endDate: endDatePart,
+        endTime: endTimePart
+      });
+      
+      // Mettre à jour les états
+      setStartDate(datePart);
+      setStartTime(timePart);
+      setEndDate(endDatePart);
+      setEndTime(endTimePart);
       
       // Valeurs par défaut
       setStatus('Planifié');
-      setEventType(eventTypes.length > 0 ? eventTypes[0] : '');
+      setEventType(eventTypes.length > 0 ? eventTypes[0] : 'Entretien Infirmier');
     }
   }, [event, initialDate, eventTypes]);
+
+
 
   // Effet pour charger la liste des patients
   useEffect(() => {
     const fetchPatients = async () => {
       try {
         const response = await fetch('/api/patients');
-        const data = await response.json();
+        const result = await response.json();
         
-        if (data.success) {
-          setPatients(data.data);
+        if (result.data) {
+          setPatients(result.data);
+          console.log('Patients chargés:', result.data.length);
+        } else {
+          console.error('Format de réponse inattendu:', result);
         }
       } catch (error) {
         console.error('Erreur lors du chargement des patients:', error);
@@ -185,46 +222,65 @@ export const EventModal: React.FC<EventModalProps> = ({
                 Type d'événement <span className="text-red-500">*</span>
               </label>
               <div className="relative">
-                <select
-                  value={eventType}
-                  onChange={(e) => setEventType(e.target.value)}
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 pr-10"
-                >
-                  <option value="">Sélectionner un type</option>
-                  {eventTypes.map((type) => (
-                    <option key={type} value={type}>
-                      {type}
-                    </option>
-                  ))}
-                </select>
-                <Tag className="absolute right-3 top-2.5 h-5 w-5 text-gray-400" />
-              </div>
-            </div>
+              <select
+  value={eventType}
+  onChange={(e) => setEventType(e.target.value)}
+  required
+  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 pr-10"
+>
+  <option value="">Sélectionner un type</option>
+  {eventTypes && eventTypes.length > 0 ? (
+    eventTypes.map((type) => (
+      <option key={type} value={type}>
+        {type}
+      </option>
+    ))
+  ) : (
+    <>
+      <option value="Entretien Infirmier">Entretien Infirmier</option>
+      <option value="Visite Médicale">Visite Médicale</option>
+      <option value="Rappel Médical">Rappel Médical</option>
+      <option value="Étude de Poste">Étude de Poste</option>
+      <option value="Entretien Manager">Entretien Manager</option>
+      <option value="Limitation de Travail">Limitation de Travail</option>
+      <option value="Suivi Post-AT">Suivi Post-AT</option>
+      <option value="Vaccination">Vaccination</option>
+      <option value="Formation">Formation</option>
+      <option value="Autre">Autre</option>
+    </>
+  )}
+</select>
 
-            {/* Statut */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Statut <span className="text-red-500">*</span>
-              </label>
-              <div className="relative">
-                <select
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value)}
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 pr-10"
-                >
-                  <option value="">Sélectionner un statut</option>
-                  {statusTypes.map((type) => (
-                    <option key={type} value={type}>
-                      {type}
-                    </option>
-                  ))}
-                </select>
+
+<select
+  value={status}
+  onChange={(e) => setStatus(e.target.value)}
+  required
+  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 pr-10"
+>
+  <option value="">Sélectionner un statut</option>
+  {statusTypes && statusTypes.length > 0 ? (
+    statusTypes.map((type) => (
+      <option key={type} value={type}>
+        {type}
+      </option>
+    ))
+  ) : (
+    <>
+      <option value="Planifié">Planifié</option>
+      <option value="Confirmé">Confirmé</option>
+      <option value="En cours">En cours</option>
+      <option value="Effectué">Effectué</option>
+      <option value="Annulé">Annulé</option>
+      <option value="Reporté">Reporté</option>
+      <option value="Non présenté">Non présenté</option>
+    </>
+  )}
+</select>
                 <Check className="absolute right-3 top-2.5 h-5 w-5 text-gray-400" />
               </div>
             </div>
-            // src/components/calendar/EventModal.tsx (suite)
+            
 
             {/* Date de début */}
             <div>
