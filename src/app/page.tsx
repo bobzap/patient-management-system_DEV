@@ -8,11 +8,12 @@ import { PatientDetails } from '@/components/patients/PatientDetails';
 import { PatientForm } from '@/components/patients/PatientForm';
 import { Dashboard } from '@/components/dashboard/Dashboard';
 import { toast } from '@/components/ui/use-toast';
+import { Toaster } from 'sonner';
 import AdminPage from '@/app/admin/page';
 import { CalendarPage } from '@/components/calendar/CalendarPage';
 
 // Types
-type NavigationTab = 'dashboard' | 'patients' | 'newDossier' | 'admin';
+type NavigationTab = 'dashboard' | 'patients' | 'newDossier' | 'admin' | 'calendar';
 
 export default function HomePage() {
   // États
@@ -182,9 +183,16 @@ export default function HomePage() {
             {activeTab === 'admin' && (
               <AdminPage />
             )}
+            
+            {activeTab === 'calendar' && (
+              <CalendarPage />
+            )}
           </>
         )}
       </main>
+      
+      {/* Toaster pour les notifications */}
+      <Toaster position="top-right" />
     </div>
   );
 }

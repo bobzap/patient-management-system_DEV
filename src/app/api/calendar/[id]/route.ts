@@ -1,6 +1,6 @@
 // src/app/api/calendar/[id]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import { prisma } from '@/lib/prisma';
 
 // GET: Récupérer un événement spécifique
 export async function GET(
@@ -9,6 +9,16 @@ export async function GET(
 ) {
   try {
     const id = parseInt(params.id);
+    
+    if (isNaN(id)) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'ID invalide',
+        },
+        { status: 400 }
+      );
+    }
     
     const event = await prisma.calendarEvent.findUnique({
       where: { id },
@@ -19,25 +29,33 @@ export async function GET(
             civilites: true,
             nom: true,
             prenom: true,
-            departement: true
-          }
+            departement: true,
+          },
         },
-        entretien: true
-      }
+      },
     });
     
     if (!event) {
       return NextResponse.json(
-        { success: false, error: 'Événement non trouvé' },
+        {
+          success: false,
+          error: 'Événement non trouvé',
+        },
         { status: 404 }
       );
     }
     
-    return NextResponse.json({ success: true, data: event });
+    return NextResponse.json({
+      success: true,
+      data: event,
+    });
   } catch (error) {
     console.error('Erreur lors de la récupération de l\'événement:', error);
     return NextResponse.json(
-      { success: false, error: 'Erreur lors de la récupération de l\'événement' },
+      {
+        success: false,
+        error: 'Erreur lors de la récupération de l\'événement',
+      },
       { status: 500 }
     );
   }
@@ -50,49 +68,79 @@ export async function PUT(
 ) {
   try {
     const id = parseInt(params.id);
-    const body = await request.json();
     
-    // Vérifier si l'événement existe
+    if (isNaN(id)) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'ID invalide',
+        },
+        { status: 400 }
+      );
+    }
+    
+    const data = await request.json();
+    
+    // Vérification que l'événement existe
     const existingEvent = await prisma.calendarEvent.findUnique({
-      where: { id }
+      where: { id },
     });
     
     if (!existingEvent) {
       return NextResponse.json(
-        { success: false, error: 'Événement non trouvé' },
+        {
+          success: false,
+          error: 'Événement non trouvé',
+        },
         { status: 404 }
       );
     }
     
-    // Conversion des dates
-    if (body.startDate) {
-      body.startDate = new Date(body.startDate);
+    // Formatage des données pour la mise à jour
+    const updateData: any = { ...data };
+    
+    // Conversion des dates si présentes
+    if (data.startDate) {
+      updateData.startDate = new Date(data.startDate);
     }
     
-    if (body.endDate) {
-      body.endDate = new Date(body.endDate);
+    if (data.endDate) {
+      updateData.endDate = new Date(data.endDate);
     }
     
-    // Conversion des IDs
-    if (body.patientId) {
-      body.patientId = parseInt(body.patientId);
-    }
-    
-    if (body.entretienId) {
-      body.entretienId = parseInt(body.entretienId);
+    // Conversion des métadonnées en JSON si présentes
+    if (data.metadata) {
+      updateData.metadata = JSON.stringify(data.metadata);
     }
     
     // Mise à jour de l'événement
     const updatedEvent = await prisma.calendarEvent.update({
       where: { id },
-      data: body
+      data: updateData,
+      include: {
+        patient: {
+          select: {
+            id: true,
+            civilites: true,
+            nom: true,
+            prenom: true,
+            departement: true,
+          },
+        },
+      },
     });
     
-    return NextResponse.json({ success: true, data: updatedEvent });
+    return NextResponse.json({
+      success: true,
+      data: updatedEvent,
+    });
   } catch (error) {
     console.error('Erreur lors de la mise à jour de l\'événement:', error);
     return NextResponse.json(
-      { success: false, error: 'Erreur lors de la mise à jour de l\'événement' },
+      {
+        success: false,
+        error: 'Erreur lors de la mise à jour de l\'événement',
+      },
       { status: 500 }
     );
   }
@@ -106,28 +154,47 @@ export async function DELETE(
   try {
     const id = parseInt(params.id);
     
-    // Vérifier si l'événement existe
+    if (isNaN(id)) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'ID invalide',
+        },
+        { status: 400 }
+      );
+    }
+    
+    // Vérification que l'événement existe
     const existingEvent = await prisma.calendarEvent.findUnique({
-      where: { id }
+      where: { id },
     });
     
     if (!existingEvent) {
       return NextResponse.json(
-        { success: false, error: 'Événement non trouvé' },
+        {
+          success: false,
+          error: 'Événement non trouvé',
+        },
         { status: 404 }
       );
     }
     
-    // Supprimer l'événement
+    // Suppression de l'événement
     await prisma.calendarEvent.delete({
-      where: { id }
+      where: { id },
     });
     
-    return NextResponse.json({ success: true, message: 'Événement supprimé avec succès' });
+    return NextResponse.json({
+      success: true,
+      message: 'Événement supprimé avec succès',
+    });
   } catch (error) {
     console.error('Erreur lors de la suppression de l\'événement:', error);
     return NextResponse.json(
-      { success: false, error: 'Erreur lors de la suppression de l\'événement' },
+      {
+        success: false,
+        error: 'Erreur lors de la suppression de l\'événement',
+      },
       { status: 500 }
     );
   }

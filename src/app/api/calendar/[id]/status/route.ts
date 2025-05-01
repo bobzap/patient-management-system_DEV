@@ -1,51 +1,85 @@
 // src/app/api/calendar/[id]/status/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import { prisma } from '@/lib/prisma';
 
-// PATCH: Modifier uniquement le statut d'un événement
+// PATCH: Mettre à jour uniquement le statut d'un événement
 export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
     const id = parseInt(params.id);
-    const body = await request.json();
     
-    // Vérifier si le nouveau statut est fourni
-    if (!body.status) {
+    if (isNaN(id)) {
       return NextResponse.json(
-        { success: false, error: 'Statut non fourni' },
+        {
+          success: false,
+          error: 'ID invalide',
+        },
         { status: 400 }
       );
     }
     
-    // Vérifier si l'événement existe
+    const data = await request.json();
+    
+    // Vérifier que le statut est fourni
+    if (!data.status) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Statut non spécifié',
+        },
+        { status: 400 }
+      );
+    }
+    
+    // Vérification que l'événement existe
     const existingEvent = await prisma.calendarEvent.findUnique({
-      where: { id }
+      where: { id },
     });
     
     if (!existingEvent) {
       return NextResponse.json(
-        { success: false, error: 'Événement non trouvé' },
+        {
+          success: false,
+          error: 'Événement non trouvé',
+        },
         { status: 404 }
       );
     }
     
-    // Mettre à jour uniquement le statut
+    // Mise à jour du statut
     const updatedEvent = await prisma.calendarEvent.update({
       where: { id },
-      data: { status: body.status }
+      data: {
+        status: data.status,
+        // Mise à jour de la date de modification
+        updatedAt: new Date(),
+      },
+      include: {
+        patient: {
+          select: {
+            id: true,
+            civilites: true,
+            nom: true,
+            prenom: true,
+            departement: true,
+          },
+        },
+      },
     });
     
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       data: updatedEvent,
-      message: `Statut mis à jour: ${body.status}`
     });
   } catch (error) {
     console.error('Erreur lors de la mise à jour du statut:', error);
     return NextResponse.json(
-      { success: false, error: 'Erreur lors de la mise à jour du statut' },
+      {
+        success: false,
+        error: 'Erreur lors de la mise à jour du statut',
+      },
       { status: 500 }
     );
   }

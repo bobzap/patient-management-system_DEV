@@ -1,6 +1,9 @@
-// src/components/layout/Sidebar.tsx (mise à jour)
+// src/components/layout/Sidebar.tsx - Mise à jour
+'use client';
 
-type NavigationTab = 'dashboard' | 'patients' | 'newDossier' | 'admin' | 'calendar'; // Ajout de 'calendar'
+//patient-management-system\src\components\layout\Sidebar.tsx
+
+type NavigationTab = 'dashboard' | 'patients' | 'newDossier' | 'admin' | 'calendar';
 
 interface SidebarProps {
   activeTab: NavigationTab;
@@ -29,17 +32,6 @@ export const Sidebar = ({ activeTab, onTabChange }: SidebarProps) => {
         </svg>
       )
     },
-    // Nouvel onglet Calendrier
-    {
-      id: 'calendar' as NavigationTab,
-      label: 'Calendrier',
-      icon: (
-        <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" 
-                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-        </svg>
-      )
-    },
     {
       id: 'newDossier' as NavigationTab,
       label: 'Nouveau employé',
@@ -47,6 +39,16 @@ export const Sidebar = ({ activeTab, onTabChange }: SidebarProps) => {
         <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" 
                 d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+        </svg>
+      )
+    },
+    {
+      id: 'calendar' as NavigationTab,
+      label: 'Calendrier',
+      icon: (
+        <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" 
+                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
         </svg>
       )
     },
