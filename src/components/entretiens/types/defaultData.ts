@@ -1,10 +1,10 @@
 // src/components/entretiens/types/defaultData.ts
 
 export const defaultVecuTravailData = {
-    motifVisite: {
-      motif: '',
-      commentaires: ''
-    },
+  motifVisite: {
+    motifs: [], // Changé de 'motif' à 'motifs' (tableau)
+    commentaires: ''
+  },
     postesOccupes: '',
     posteDeTravail: {
       descriptionTaches: '',
