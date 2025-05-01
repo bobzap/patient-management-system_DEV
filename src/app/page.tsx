@@ -178,10 +178,9 @@ export default function HomePage() {
               />
             )}
 
-            {/* Nouvelle condition */}
-{activeTab === 'admin' && (
-  <AdminPage />
-)}
+            {activeTab === 'admin' && (
+              <AdminPage />
+            )}
           </>
         )}
       </main>

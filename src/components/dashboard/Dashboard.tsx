@@ -1,157 +1,327 @@
 // src/components/dashboard/Dashboard.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
-  BarChart3, Users, Calendar, Activity, Clock, Award,
-  TrendingUp, TrendingDown, AlertCircle, CheckCircle, FileText,
-  Filter, Download, Clipboard, ArrowRight
+  BarChart3, 
+  Users, 
+  Clock, 
+  Activity, 
+  FileText,
+  CheckCircle,
+  Archive,
+  Calendar,
+  ClipboardList,
+  AlertTriangle,
+  Stethoscope,
+  AlertCircle,
+  Filter,
+  Download,
+  TrendingUp,
+  TrendingDown,
+  RefreshCw,
+  X
 } from 'lucide-react';
+import { analyzeEntretiensData } from '../../services/dashboard-analysis';
+import { Patient } from '@/types';
+
+// Import des composants améliorés du tableau de bord
+import { StatCard } from './StatCard';
+import { PieChart } from './PieChart';
+import { BarChart } from './BarChart';
+import { RisquesList } from './RisquesList';
+import { HealthMetrics, createHealthMetrics } from './HealthMetrics';
+import { RecentActivities } from './RecentActivities';
+import { GaugeMetrics } from './GaugeMetrics';
 
 interface DashboardProps {
   patients: {
-    data: Array<{
-      id: number;
-      dateCreation: string;
-      dateEntretien?: string;
-      departement: string;
-      manager: string;
-      zone: string;
-      nom: string;
-      prenom: string;
-      civilites: string;
-      poste: string;
-    }>;
+    data: Patient[];
   };
 }
 
 export const Dashboard = ({ patients }: DashboardProps) => {
   const router = useRouter();
-  const [entretienStats, setEntretienStats] = useState({
-    total: 0,
-    brouillon: 0,
-    finalise: 0,
-    archive: 0
-  });
+  
+  // États pour les données
+  const [entretiens, setEntretiens] = useState<any[]>([]);
+  const [dashboardData, setDashboardData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedFilter, setSelectedFilter] = useState('total');
-  const [timeRangeFilter, setTimeRangeFilter] = useState('all');
-  const [departmentDistribution, setDepartmentDistribution] = useState<Record<string, number>>({});
-  const [recentActivity, setRecentActivity] = useState<any[]>([]);
-
-  // Fonction pour formater les dates
-  const formatDate = (dateString: string) => {
-    if (!dateString) return '';
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat('fr-FR', { 
-      day: '2-digit', 
-      month: '2-digit', 
-      year: 'numeric'
-    }).format(date);
-  };
-
-  // Charger les statistiques des entretiens
+  const [selectedTimeRange, setSelectedTimeRange] = useState<'week' | 'month' | 'all'>('all');
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  
+  // État pour les filtres avancés
+  const [showFilters, setShowFilters] = useState(false);
+  const [departmentFilter, setDepartmentFilter] = useState<string>('');
+  const [statusFilter, setStatusFilter] = useState<string>('');
+  
+  // Charger tous les entretiens pour analyse
   useEffect(() => {
-    const fetchEntretienStats = async () => {
+    const fetchAllEntretiens = async () => {
       setIsLoading(true);
       try {
-        // En production, vous feriez un appel API ici
-        // Simulation des données pour le moment
-        const stats = {
-          total: 0,
-          brouillon: 0,
-          finalise: 0,
-          archive: 0
-        };
+        const allEntretiens: any[] = [];
         
-        const deptDistribution: Record<string, number> = {};
-        const recentEntretiens: any[] = [];
-        
-        // Parcourir tous les patients
+        // Parcourir tous les patients pour récupérer leurs entretiens
         for (const patient of patients.data) {
           try {
             const response = await fetch(`/api/patients/${patient.id}/entretiens`);
             const result = await response.json();
             
             if (result.success && result.data && result.data.length > 0) {
-              const patientEntretiens = result.data;
-              stats.total += patientEntretiens.length;
+              // Ajouter les informations du patient à chaque entretien
+              const entretiensWithPatient = result.data.map((entretien: any) => ({
+                ...entretien,
+                patient
+              }));
               
-              // Compter par statut
-              patientEntretiens.forEach((entretien: any) => {
-                if (entretien.status === 'brouillon') stats.brouillon++;
-                else if (entretien.status === 'finalise') stats.finalise++;
-                else if (entretien.status === 'archive') stats.archive++;
-                
-                // Ajouter aux entretiens récents (limité aux 5 plus récents)
-                if (recentEntretiens.length < 5) {
-                  recentEntretiens.push({
-                    ...entretien,
-                    patientNom: `${patient.civilites} ${patient.nom} ${patient.prenom}`,
-                    poste: patient.poste,
-                    departement: patient.departement
-                  });
+              // Pour chaque entretien, charger ses données détaillées
+              for (const entretien of entretiensWithPatient) {
+                try {
+                  const detailResponse = await fetch(`/api/entretiens/${entretien.id}`);
+                  const detailResult = await detailResponse.json();
+                  
+                  if (detailResult.success && detailResult.data) {
+                    // Si les données sont une chaîne JSON, les parser
+                    if (typeof detailResult.data.donneesEntretien === 'string') {
+                      try {
+                        const donneesObject = JSON.parse(detailResult.data.donneesEntretien);
+                        entretien.donneesObject = donneesObject;
+                      } catch (e) {
+                        console.warn(`Erreur de parsing des données pour l'entretien ${entretien.id}:`, e);
+                      }
+                    }
+                    
+                    // Ajouter d'autres informations importantes
+                    entretien.tempsDebut = detailResult.data.tempsDebut;
+                    entretien.tempsFin = detailResult.data.tempsFin;
+                    entretien.tempsPause = detailResult.data.tempsPause;
+                    entretien.enPause = detailResult.data.enPause;
+                    entretien.dernierePause = detailResult.data.dernierePause;
+                  }
+                } catch (error) {
+                  console.error(`Erreur lors du chargement des détails de l'entretien ${entretien.id}:`, error);
                 }
-              });
-              
-              // Distribution par département
-              if (patient.departement) {
-                deptDistribution[patient.departement] = (deptDistribution[patient.departement] || 0) + 1;
               }
+              
+              allEntretiens.push(...entretiensWithPatient);
             }
           } catch (error) {
             console.error(`Erreur pour patient ${patient.id}:`, error);
           }
         }
         
-        // Trier les entretiens récents par date
-        recentEntretiens.sort((a, b) => 
-          new Date(b.dateCreation).getTime() - new Date(a.dateCreation).getTime()
-        );
+        setEntretiens(allEntretiens);
         
-        setEntretienStats(stats);
-        setDepartmentDistribution(deptDistribution);
-        setRecentActivity(recentEntretiens);
+        // Analyser les données collectées
+        const metricsData = await analyzeEntretiensData(allEntretiens, patients.data);
+        setDashboardData(metricsData);
       } catch (error) {
-        console.error('Erreur lors du chargement des statistiques:', error);
+        console.error('Erreur lors du chargement des données du dashboard:', error);
       } finally {
         setIsLoading(false);
       }
     };
     
-    fetchEntretienStats();
+    fetchAllEntretiens();
+  }, [patients.data, refreshTrigger]);
+  
+  // Filtrer les données selon la période sélectionnée
+  const filteredData = useMemo(() => {
+    if (!dashboardData) return null;
+    
+    // Si aucun filtre n'est appliqué, retourner toutes les données
+    if (selectedTimeRange === 'all' && !departmentFilter && !statusFilter) {
+      return dashboardData;
+    }
+    
+    // Copier l'objet pour ne pas modifier l'original
+    const filtered = { ...dashboardData };
+    
+    // Filtrer les entretiens en fonction de la période
+    let filteredEntretiens = [...entretiens];
+    
+    // Filtre par période
+    if (selectedTimeRange !== 'all') {
+      const now = new Date();
+      let cutoffDate = new Date();
+      
+      if (selectedTimeRange === 'week') {
+        cutoffDate.setDate(now.getDate() - 7);
+      } else if (selectedTimeRange === 'month') {
+        cutoffDate.setMonth(now.getMonth() - 1);
+      }
+      
+      filteredEntretiens = filteredEntretiens.filter(entretien => {
+        const entretienDate = new Date(entretien.dateCreation);
+        return entretienDate >= cutoffDate;
+      });
+    }
+    
+    // Filtre par département
+    if (departmentFilter) {
+      filteredEntretiens = filteredEntretiens.filter(entretien => 
+        entretien.patient && entretien.patient.departement === departmentFilter
+      );
+    }
+    
+    // Filtre par statut
+    if (statusFilter) {
+      filteredEntretiens = filteredEntretiens.filter(entretien => 
+        entretien.status === statusFilter
+      );
+    }
+    
+    // Mettre à jour les métriques avec les entretiens filtrés
+    if (filteredEntretiens.length !== entretiens.length) {
+      // Recalculer les métriques principales
+      filtered.totalEntretiens = filteredEntretiens.length;
+      
+      // Recalculer la répartition par statut
+      filtered.entretiensByStatus = {
+        brouillon: 0,
+        finalise: 0,
+        archive: 0
+      };
+      
+      for (const entretien of filteredEntretiens) {
+        filtered.entretiensByStatus[entretien.status]++;
+      }
+      
+      // Mettre à jour les entretiens récents
+      filtered.recentsEntretiens = filteredEntretiens
+        .slice()
+        .sort((a, b) => new Date(b.dateCreation).getTime() - new Date(a.dateCreation).getTime())
+        .slice(0, 5);
+    }
+    
+    return filtered;
+  }, [dashboardData, entretiens, selectedTimeRange, departmentFilter, statusFilter]);
+  
+  // Liste des départements uniques pour les filtres
+  const uniqueDepartments = useMemo(() => {
+    if (!patients.data) return [];
+    
+    const departments = Array.from(new Set(patients.data.map(p => p.departement)))
+      .filter(Boolean)
+      .sort();
+      
+    return departments;
   }, [patients.data]);
-
-  // Filtrer les données en fonction de la période
-  const filterDataByTime = (data: number) => {
-    // Dans une implémentation réelle, vous filtreriez en fonction de timeRangeFilter
-    return data;
+  
+  // Fonction pour réinitialiser les filtres
+  const resetFilters = () => {
+    setSelectedTimeRange('all');
+    setDepartmentFilter('');
+    setStatusFilter('');
   };
-
-  // Fonction pour obtenir la classe de couleur selon le statut
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'finalise': return 'bg-green-100 text-green-800';
-      case 'archive': return 'bg-gray-100 text-gray-800';
-      default: return 'bg-yellow-100 text-yellow-800';
+  
+  // Extraire les données pour les visualisations
+  const typesVisitesData = useMemo(() => {
+    if (!filteredData || !filteredData.typesVisites) return [];
+    
+    return Object.entries(filteredData.typesVisites).map(([name, value]) => ({
+      name,
+      value: value as number
+    }));
+  }, [filteredData]);
+  
+  // Données pour le graphique d'activité par mois
+  const activiteParMoisData = useMemo(() => {
+    if (!filteredData || !filteredData.activiteParMois) return [];
+    
+    return filteredData.activiteParMois;
+  }, [filteredData]);
+  
+  // Données pour les métriques de santé
+  const healthMetricsData = useMemo(() => {
+    if (!filteredData) return [];
+    
+    return createHealthMetrics({
+      visiteMedicalePlanifiee: filteredData.visiteMedicalePlanifiee || 0,
+      limitationsActives: filteredData.limitationsActives || 0,
+      etudePostePrevue: filteredData.etudePostePrevue || 0,
+      entretienManagerPrevu: filteredData.entretienManagerPrevu || 0,
+      detectionsRisque: filteredData.detectionPrecoce?.risqueEleve || 0
+    });
+  }, [filteredData]);
+  
+  // Données pour les jauges de performance
+  const gaugeMetricsData = useMemo(() => {
+    if (!filteredData) return [];
+    
+    return [
+      {
+        id: 'taux-finalisation',
+        value: filteredData.tendances?.tauxFinalisation || 0,
+        title: 'Taux de finalisation',
+        color: '#3b82f6', // blue-600
+        description: 'Entretiens finalisés'
+      },
+      {
+        id: 'detection-precoce',
+        value: filteredData.totalEntretiens
+          ? Math.round((filteredData.detectionPrecoce?.risqueEleve || 0) / filteredData.totalEntretiens * 100)
+          : 0,
+        title: 'Détection précoce',
+        color: '#ef4444', // red-600
+        description: 'Risques identifiés'
+      },
+      {
+        id: 'croissance',
+        value: Math.max(0, filteredData.tendances?.croissanceEntretiens || 0),
+        title: 'Évolution',
+        color: '#10b981', // emerald-600
+        description: 'vs période précédente'
+      }
+    ];
+  }, [filteredData]);
+  
+  // Fonctions de navigation
+  const handleViewEntretien = (entretienId: number) => {
+    // Trouver le patient associé à cet entretien
+    const entretien = entretiens.find(e => e.id === entretienId);
+    if (entretien && entretien.patient) {
+      // Déclencher l'événement pour afficher ce patient
+      window.dispatchEvent(new CustomEvent('viewPatient', { 
+        detail: { patient: entretien.patient } 
+      }));
     }
   };
-
-  // Fonction pour obtenir le texte du statut
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'finalise': return 'Finalisé';
-      case 'archive': return 'Archivé';
-      default: return 'Brouillon';
+  
+  const handleViewPatient = (patientId: number) => {
+    const patient = patients.data.find(p => p.id === patientId);
+    if (patient) {
+      window.dispatchEvent(new CustomEvent('viewPatient', { 
+        detail: { patient } 
+      }));
     }
   };
-
-  // Obtenir le top des départements
-  const topDepartments = Object.entries(departmentDistribution)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 5);
-
+  
+  const navigateToPatients = () => {
+    window.dispatchEvent(new CustomEvent('navigateTo', { 
+      detail: { tab: 'patients' } 
+    }));
+  };
+  
+  const navigateToNewDossier = () => {
+    window.dispatchEvent(new CustomEvent('navigateTo', { 
+      detail: { tab: 'newDossier' } 
+    }));
+  };
+  
+  const navigateToAdmin = () => {
+    window.dispatchEvent(new CustomEvent('navigateTo', { 
+      detail: { tab: 'admin' } 
+    }));
+  };
+  
+  // Rafraîchir les données
+  const refreshData = () => {
+    setRefreshTrigger(prev => prev + 1);
+  };
+  
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       <div className="max-w-7xl mx-auto">
@@ -159,15 +329,16 @@ export const Dashboard = ({ patients }: DashboardProps) => {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Tableau de bord</h1>
-            <p className="text-gray-600 mt-1">Aperçu de l'activité et des statistiques</p>
+            <p className="text-gray-600 mt-1">Statistiques et activité infirmière</p>
           </div>
           
-          <div className="flex mt-4 md:mt-0 space-x-2">
+          <div className="mt-4 md:mt-0 flex flex-wrap gap-3">
+            {/* Contrôles de période */}
             <div className="inline-flex rounded-md shadow-sm">
               <button
-                onClick={() => setTimeRangeFilter('week')}
+                onClick={() => setSelectedTimeRange('week')}
                 className={`px-3 py-2 text-sm font-medium rounded-l-lg border ${
-                  timeRangeFilter === 'week' 
+                  selectedTimeRange === 'week' 
                     ? 'bg-blue-50 text-blue-700 border-blue-300' 
                     : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
                 }`}
@@ -175,9 +346,9 @@ export const Dashboard = ({ patients }: DashboardProps) => {
                 Semaine
               </button>
               <button
-                onClick={() => setTimeRangeFilter('month')}
+                onClick={() => setSelectedTimeRange('month')}
                 className={`px-3 py-2 text-sm font-medium border-t border-b ${
-                  timeRangeFilter === 'month' 
+                  selectedTimeRange === 'month' 
                     ? 'bg-blue-50 text-blue-700 border-blue-300' 
                     : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
                 }`}
@@ -185,9 +356,9 @@ export const Dashboard = ({ patients }: DashboardProps) => {
                 Mois
               </button>
               <button
-                onClick={() => setTimeRangeFilter('all')}
+                onClick={() => setSelectedTimeRange('all')}
                 className={`px-3 py-2 text-sm font-medium rounded-r-lg border ${
-                  timeRangeFilter === 'all' 
+                  selectedTimeRange === 'all' 
                     ? 'bg-blue-50 text-blue-700 border-blue-300' 
                     : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
                 }`}
@@ -196,8 +367,86 @@ export const Dashboard = ({ patients }: DashboardProps) => {
               </button>
             </div>
             
+            {/* Bouton de filtres */}
+            <div className="relative">
+              <button 
+                onClick={() => setShowFilters(!showFilters)}
+                className={`inline-flex items-center gap-1 px-3 py-2 text-sm font-medium border rounded-lg ${
+                  showFilters || departmentFilter || statusFilter
+                    ? 'bg-blue-50 text-blue-700 border-blue-300' 
+                    : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                } shadow-sm`}
+              >
+                <Filter size={16} />
+                Filtrer
+              </button>
+              
+              {showFilters && (
+                <div className="absolute z-10 right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 p-4">
+                  <h3 className="text-sm font-semibold text-gray-700 mb-3">Filtres avancés</h3>
+                  
+                  {/* Filtre par département */}
+                  <div className="mb-3">
+                    <label className="block text-xs text-gray-600 mb-1">Département</label>
+                    <select
+                      value={departmentFilter}
+                      onChange={(e) => setDepartmentFilter(e.target.value)}
+                      className="w-full border border-gray-300 rounded-md p-2 text-sm"
+                    >
+                      <option value="">Tous les départements</option>
+                      {uniqueDepartments.map(dept => (
+                        <option key={dept} value={dept}>{dept}</option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  {/* Filtre par statut d'entretien */}
+                  <div className="mb-3">
+                    <label className="block text-xs text-gray-600 mb-1">État de l'entretien</label>
+                    <select
+                      value={statusFilter}
+                      onChange={(e) => setStatusFilter(e.target.value)}
+                      className="w-full border border-gray-300 rounded-md p-2 text-sm"
+                    >
+                      <option value="">Tous les états</option>
+                      <option value="brouillon">Brouillon</option>
+                      <option value="finalise">Finalisé</option>
+                      <option value="archive">Archivé</option>
+                    </select>
+                  </div>
+                  
+                  {/* Boutons d'actions */}
+                  <div className="flex justify-between mt-4">
+                    <button 
+                      onClick={resetFilters}
+                      className="text-xs text-gray-600 hover:text-gray-800"
+                    >
+                      Réinitialiser
+                    </button>
+                    <button 
+                      onClick={() => setShowFilters(false)}
+                      className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700"
+                    >
+                      Appliquer
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            {/* Bouton de rafraîchissement */}
             <button 
-              className="inline-flex items-center gap-1 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 shadow-sm"
+              onClick={refreshData}
+              className="inline-flex items-center gap-1 px-3 py-2 text-sm font-medium bg-white border border-gray-300 rounded-lg hover:bg-gray-50 shadow-sm"
+              title="Rafraîchir les données"
+            >
+              <RefreshCw size={16} />
+              Actualiser
+            </button>
+            
+            {/* Bouton d'export */}
+            <button 
+              className="inline-flex items-center gap-1 px-3 py-2 text-sm font-medium bg-white border border-gray-300 rounded-lg hover:bg-gray-50 shadow-sm"
             >
               <Download size={16} />
               Exporter
@@ -205,311 +454,379 @@ export const Dashboard = ({ patients }: DashboardProps) => {
           </div>
         </div>
         
+        {/* Indicateurs de filtres actifs */}
+        {(departmentFilter || statusFilter || selectedTimeRange !== 'all') && (
+          <div className="mb-4 flex flex-wrap gap-2">
+            {selectedTimeRange !== 'all' && (
+              <div className="inline-flex items-center px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
+                Période: {selectedTimeRange === 'week' ? 'Semaine' : 'Mois'}
+                <button 
+                  onClick={() => setSelectedTimeRange('all')}
+                  className="ml-2 text-blue-600 hover:text-blue-800"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            )}
+            
+            {departmentFilter && (
+              <div className="inline-flex items-center px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
+                Département: {departmentFilter}
+                <button 
+                  onClick={() => setDepartmentFilter('')}
+                  className="ml-2 text-blue-600 hover:text-blue-800"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            )}
+            
+            {statusFilter && (
+              <div className="inline-flex items-center px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
+                État: {
+                  statusFilter === 'finalise' ? 'Finalisé' : 
+                  statusFilter === 'archive' ? 'Archivé' : 'Brouillon'
+                }
+                <button 
+                  onClick={() => setStatusFilter('')}
+                  className="ml-2 text-blue-600 hover:text-blue-800"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            )}
+            
+            <button 
+              onClick={resetFilters}
+              className="inline-flex items-center px-3 py-1 bg-gray-100 text-gray-800 rounded-full text-sm hover:bg-gray-200"
+            >
+              Réinitialiser les filtres
+            </button>
+          </div>
+        )}
+        
         {/* Cartes de statistiques */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {/* Total des entretiens */}
-          <div 
-            className={`bg-white rounded-xl shadow-sm p-6 border-l-4 border-blue-500 cursor-pointer transition-all hover:shadow-md ${
-              selectedFilter === 'total' ? 'ring-2 ring-blue-500 ring-opacity-50' : ''
-            }`}
-            onClick={() => setSelectedFilter('total')}
-          >
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-sm font-medium text-gray-500">Total des entretiens</p>
-                <p className="text-2xl font-bold text-gray-900 mt-2">
-                  {isLoading ? '...' : filterDataByTime(entretienStats.total)}
-                </p>
-              </div>
-              <div className="bg-blue-100 p-3 rounded-lg">
-                <FileText className="text-blue-600" size={20} />
-              </div>
-            </div>
-            <div className="flex items-center mt-4 text-sm text-green-600">
-              <TrendingUp size={16} className="mr-1" />
-              <span>{patients.data.length} patients actifs</span>
-            </div>
-          </div>
+          <StatCard
+            title="Total des entretiens"
+            value={filteredData?.totalEntretiens || 0}
+            icon={<FileText size={20} />}
+            description={`${patients.data.length} patients actifs`}
+            trend={filteredData?.tendances?.croissanceEntretiens}
+            colorScheme="blue"
+            isLoading={isLoading}
+            onClick={navigateToPatients}
+          />
           
-          {/* Entretiens en cours */}
-          <div 
-            className={`bg-white rounded-xl shadow-sm p-6 border-l-4 border-yellow-500 cursor-pointer transition-all hover:shadow-md ${
-              selectedFilter === 'brouillon' ? 'ring-2 ring-yellow-500 ring-opacity-50' : ''
-            }`}
-            onClick={() => setSelectedFilter('brouillon')}
-          >
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-sm font-medium text-gray-500">Entretiens en cours</p>
-                <p className="text-2xl font-bold text-gray-900 mt-2">
-                  {isLoading ? '...' : filterDataByTime(entretienStats.brouillon)}
-                </p>
-              </div>
-              <div className="bg-yellow-100 p-3 rounded-lg">
-                <Clock className="text-yellow-600" size={20} />
-              </div>
-            </div>
-            <div className="flex items-center mt-4 text-sm text-yellow-600">
-              <AlertCircle size={16} className="mr-1" />
-              <span>À compléter</span>
-            </div>
-          </div>
+          {/* Nombre d'heures */}
+          <StatCard
+            title="Heures d'entretien"
+            value={filteredData?.totalHeures || 0}
+            icon={<Clock size={20} />}
+            description={`${filteredData?.tendances?.tempsMoyenEntretien || 0} min en moyenne`}
+            colorScheme="green"
+            isLoading={isLoading}
+          />
           
           {/* Entretiens finalisés */}
-          <div 
-            className={`bg-white rounded-xl shadow-sm p-6 border-l-4 border-green-500 cursor-pointer transition-all hover:shadow-md ${
-              selectedFilter === 'finalise' ? 'ring-2 ring-green-500 ring-opacity-50' : ''
-            }`}
-            onClick={() => setSelectedFilter('finalise')}
-          >
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-sm font-medium text-gray-500">Entretiens finalisés</p>
-                <p className="text-2xl font-bold text-gray-900 mt-2">
-                  {isLoading ? '...' : filterDataByTime(entretienStats.finalise)}
-                </p>
-              </div>
-              <div className="bg-green-100 p-3 rounded-lg">
-                <CheckCircle className="text-green-600" size={20} />
-              </div>
+          <StatCard
+            title="Entretiens finalisés"
+            value={filteredData?.entretiensByStatus?.finalise || 0}
+            icon={<CheckCircle size={20} />}
+            description={`${filteredData?.tendances?.tauxFinalisation || 0}% du total`}
+            colorScheme="amber"
+            isLoading={isLoading}
+          />
+          
+          {/* Détection précoce */}
+          <StatCard
+            title="Risques détectés"
+            value={filteredData?.detectionPrecoce?.risqueEleve || 0}
+            icon={<AlertCircle size={20} />}
+            description="Nécessitant une attention immédiate"
+            colorScheme="pink"
+            isLoading={isLoading}
+          />
+        </div>
+        
+        {/* Contenu principal - Grid layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+          {/* Section graphiques - 2/3 */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Graphiques */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Types de visites */}
+              <PieChart
+                data={typesVisitesData}
+                title="Types de visites"
+                colors={['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899']}
+                height={300}
+              />
+              
+              {/* Risques professionnels identifiés */}
+              <RisquesList
+                risques={filteredData?.risquesProfessionnels || []}
+                title="Risques professionnels identifiés"
+                maxItems={5}
+                totalEntretiens={filteredData?.totalEntretiens || 0}
+                isLoading={isLoading}
+              />
             </div>
-            <div className="flex items-center mt-4 text-sm text-green-600">
-              <TrendingUp size={16} className="mr-1" />
-              <span>Prêts pour analyse</span>
-            </div>
+            
+            {/* Graphique d'activité */}
+            <BarChart
+              data={activiteParMoisData}
+              title="Activité par mois"
+              xAxisKey="mois"
+              series={[
+                {
+                  key: 'count',
+                  name: 'Entretiens',
+                  color: '#3b82f6' // blue-600
+                }
+              ]}
+              height={250}
+            />
+            
+            {/* Métriques de santé au travail */}
+            <HealthMetrics
+              metrics={healthMetricsData}
+              title="Actions à suivre"
+              isLoading={isLoading}
+            />
           </div>
           
-          {/* Entretiens archivés */}
-          <div 
-            className={`bg-white rounded-xl shadow-sm p-6 border-l-4 border-gray-500 cursor-pointer transition-all hover:shadow-md ${
-              selectedFilter === 'archive' ? 'ring-2 ring-gray-500 ring-opacity-50' : ''
-            }`}
-            onClick={() => setSelectedFilter('archive')}
-          >
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-sm font-medium text-gray-500">Entretiens archivés</p>
-                <p className="text-2xl font-bold text-gray-900 mt-2">
-                  {isLoading ? '...' : filterDataByTime(entretienStats.archive)}
-                </p>
+          {/* Colonne latérale - 1/3 */}
+          <div className="space-y-6">
+            {/* Jauges de performance */}
+            <GaugeMetrics
+              metrics={gaugeMetricsData}
+              title="Indicateurs de performance"
+              isLoading={isLoading}
+            />
+            
+            {/* Activités récentes */}
+            <RecentActivities
+              entretiens={filteredData?.recentsEntretiens || []}
+              onViewEntretien={handleViewEntretien}
+              onViewPatient={handleViewPatient}
+              isLoading={isLoading}
+              maxItems={5}
+            />
+            
+            {/* Liens rapides */}
+            <div className="bg-white rounded-xl shadow-sm p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Actions rapides</h3>
+              
+              <div className="space-y-3">
+                <button
+                  onClick={navigateToPatients}
+                  className="w-full flex items-center justify-between p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+                >
+                  <div className="flex items-center">
+                    <Users className="text-blue-600 mr-3" size={18} />
+                    <span className="text-sm font-medium text-gray-800">
+                      Voir tous les dossiers
+                    </span>
+                  </div>
+                  <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+                
+                <button
+                  onClick={navigateToNewDossier}
+                  className="w-full flex items-center justify-between p-3 bg-green-50 rounded-lg hover:bg-green-100 transition-colors"
+                >
+                  <div className="flex items-center">
+                    <svg className="text-green-600 mr-3" width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" 
+                            d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                    </svg>
+                    <span className="text-sm font-medium text-gray-800">
+                      Créer un nouveau dossier
+                    </span>
+                  </div>
+                  <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+                
+                <button
+                  onClick={navigateToAdmin}
+                  className="w-full flex items-center justify-between p-3 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors"
+                >
+                  <div className="flex items-center">
+                    <svg className="text-purple-600 mr-3" width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" 
+                            d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" 
+                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    <span className="text-sm font-medium text-gray-800">
+                      Gestion administrative
+                    </span>
+                  </div>
+                  <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
               </div>
-              <div className="bg-gray-100 p-3 rounded-lg">
-                <Clipboard className="text-gray-600" size={20} />
-              </div>
-            </div>
-            <div className="flex items-center mt-4 text-sm text-gray-600">
-              <Activity size={16} className="mr-1" />
-              <span>Historique complet</span>
             </div>
           </div>
         </div>
         
-        {/* Contenu principal */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Graphique et statistiques */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Graphique d'activité */}
-            <div className="bg-white rounded-xl shadow-sm p-6">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-lg font-semibold text-gray-900">Activité par département</h2>
-                <button className="text-sm text-gray-500 hover:text-gray-700 flex items-center">
-                  <Filter size={14} className="mr-1" />
-                  Filtrer
-                </button>
-              </div>
+        {/* Section statistiques détaillées */}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">
+          {/* Répartition par statut */}
+          <div className="lg:col-span-2">
+            <div className="bg-white rounded-xl shadow-sm p-6 h-full">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Statut des entretiens</h3>
               
-              <div className="space-y-4">
-                {isLoading ? (
-                  <div className="animate-pulse space-y-4">
-                    <div className="h-10 bg-gray-200 rounded"></div>
-                    <div className="h-10 bg-gray-200 rounded"></div>
-                    <div className="h-10 bg-gray-200 rounded"></div>
-                  </div>
-                ) : topDepartments.length > 0 ? (
-                  topDepartments.map(([dept, count], index) => (
-                    <div key={dept} className="relative">
-                      <div className="flex justify-between mb-1">
-                        <span className="text-sm font-medium text-gray-700">{dept}</span>
-                        <span className="text-sm text-gray-600">{count} patients</span>
+              {isLoading ? (
+                <div className="animate-pulse space-y-4 py-8">
+                  <div className="h-32 bg-gray-200 rounded"></div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-3 gap-4">
+                  {/* Entretiens en brouillon */}
+                  <div className="bg-amber-50 rounded-lg p-4 border border-amber-200">
+                    <div className="flex flex-col items-center text-center">
+                      <div className="bg-white/60 w-12 h-12 rounded-full flex items-center justify-center mb-3 text-amber-600">
+                        <Clock size={24} />
                       </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2.5">
+                      <p className="text-sm font-medium text-gray-700 mb-1">En cours</p>
+                      <p className="text-xl font-bold text-gray-900">{filteredData?.entretiensByStatus?.brouillon || 0}</p>
+                      <div className="mt-2 w-full bg-amber-200/50 rounded-full h-1.5">
                         <div 
-                          className="bg-blue-600 h-2.5 rounded-full" 
-                          style={{ width: `${(count / Math.max(...topDepartments.map(d => d[1]))) * 100}%` }}
+                          className="bg-amber-500 h-1.5 rounded-full" 
+                          style={{ 
+                            width: `${filteredData?.totalEntretiens 
+                              ? (filteredData.entretiensByStatus.brouillon / filteredData.totalEntretiens) * 100 
+                              : 0}%` 
+                          }}
                         ></div>
                       </div>
                     </div>
-                  ))
-                ) : (
-                  <p className="text-gray-500 text-center py-8">Aucune donnée disponible</p>
-                )}
-              </div>
-            </div>
-            
-            {/* Statistiques supplémentaires */}
-            <div className="bg-white rounded-xl shadow-sm p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-6">Performances</h2>
-              
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center">
-                      <div className="bg-purple-100 p-2 rounded-lg mr-3">
-                        <Calendar className="text-purple-600" size={18} />
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-700">Taux d'entretiens finalisés</p>
-                        <p className="text-xs text-gray-500">Sur le total des entretiens</p>
-                      </div>
-                    </div>
-                    <p className="text-lg font-semibold text-gray-900">
-                      {isLoading ? '...' : `${entretienStats.total === 0 ? 0 : Math.round((entretienStats.finalise / entretienStats.total) * 100)}%`}
-                    </p>
                   </div>
                   
-                  <div className="w-full bg-gray-200 rounded-full h-1.5 mt-3">
-                    <div 
-                      className="bg-purple-600 h-1.5 rounded-full" 
-                      style={{ width: `${entretienStats.total === 0 ? 0 : (entretienStats.finalise / entretienStats.total) * 100}%` }}
-                    ></div>
-                  </div>
-                </div>
-                
-                <div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center">
-                      <div className="bg-indigo-100 p-2 rounded-lg mr-3">
-                        <Users className="text-indigo-600" size={18} />
+                  {/* Entretiens finalisés */}
+                  <div className="bg-green-50 rounded-lg p-4 border border-green-200">
+                    <div className="flex flex-col items-center text-center">
+                      <div className="bg-white/60 w-12 h-12 rounded-full flex items-center justify-center mb-3 text-green-600">
+                        <CheckCircle size={24} />
                       </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-700">Couverture patients</p>
-                        <p className="text-xs text-gray-500">Patients avec entretien</p>
+                      <p className="text-sm font-medium text-gray-700 mb-1">Finalisés</p>
+                      <p className="text-xl font-bold text-gray-900">{filteredData?.entretiensByStatus?.finalise || 0}</p>
+                      <div className="mt-2 w-full bg-green-200/50 rounded-full h-1.5">
+                        <div 
+                          className="bg-green-500 h-1.5 rounded-full" 
+                          style={{ 
+                            width: `${filteredData?.totalEntretiens 
+                              ? (filteredData.entretiensByStatus.finalise / filteredData.totalEntretiens) * 100 
+                              : 0}%` 
+                          }}
+                        ></div>
                       </div>
                     </div>
-                    <p className="text-lg font-semibold text-gray-900">
-                      {isLoading ? '...' : `${patients.data.length} / ${patients.data.length}`}
-                    </p>
                   </div>
                   
-                  <div className="w-full bg-gray-200 rounded-full h-1.5 mt-3">
-                    <div 
-                      className="bg-indigo-600 h-1.5 rounded-full" 
-                      style={{ width: '100%' }}
-                    ></div>
+                  {/* Entretiens archivés */}
+                  <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                    <div className="flex flex-col items-center text-center">
+                      <div className="bg-white/60 w-12 h-12 rounded-full flex items-center justify-center mb-3 text-gray-600">
+                        <Archive size={24} />
+                      </div>
+                      <p className="text-sm font-medium text-gray-700 mb-1">Archivés</p>
+                      <p className="text-xl font-bold text-gray-900">{filteredData?.entretiensByStatus?.archive || 0}</p>
+                      <div className="mt-2 w-full bg-gray-200/50 rounded-full h-1.5">
+                        <div 
+                          className="bg-gray-500 h-1.5 rounded-full" 
+                          style={{ 
+                            width: `${filteredData?.totalEntretiens 
+                              ? (filteredData.entretiensByStatus.archive / filteredData.totalEntretiens) * 100 
+                              : 0}%` 
+                          }}
+                        ></div>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
           
-          {/* Activité récente et à faire */}
-          <div className="space-y-6">
-            {/* Activité récente */}
-            <div className="bg-white rounded-xl shadow-sm p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Entretiens récents</h2>
+          {/* Détection précoce */}
+          <div className="lg:col-span-2">
+            <div className="bg-white rounded-xl shadow-sm p-6 h-full">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold text-gray-900">Détection précoce AI</h3>
+                <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
+                  Prochainement
+                </span>
+              </div>
               
               {isLoading ? (
-                <div className="space-y-4 animate-pulse">
-                  {[...Array(3)].map((_, i) => (
-                    <div key={i} className="flex items-start gap-3">
-                      <div className="rounded-full bg-gray-200 h-10 w-10"></div>
-                      <div className="flex-1">
-                        <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-                        <div className="h-3 bg-gray-200 rounded w-1/2"></div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : recentActivity.length > 0 ? (
-                <div className="space-y-4">
-                  {recentActivity.map((activity, index) => (
-                    <div key={index} className="flex items-start border-b border-gray-100 pb-4 last:border-0 last:pb-0">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                        activity.status === 'finalise' ? 'bg-green-100' :
-                        activity.status === 'archive' ? 'bg-gray-100' : 'bg-yellow-100'
-                      }`}>
-                        <span className="text-sm font-medium">
-                          {activity.patientNom.split(' ').map((part: string) => part[0]).join('').substring(0, 2)}
-                        </span>
-                      </div>
-                      <div className="ml-3 flex-1">
-                        <p className="text-sm font-medium text-gray-900">{activity.patientNom}</p>
-                        <div className="flex items-center mt-1">
-                          <span className={`text-xs px-2 py-0.5 rounded-full ${getStatusColor(activity.status)}`}>
-                            {getStatusText(activity.status)}
-                          </span>
-                          <span className="text-xs text-gray-500 ml-2">
-                            {formatDate(activity.dateCreation)}
-                          </span>
-                        </div>
-                      </div>
-                      <button 
-  className="text-blue-600 hover:text-blue-800 mt-1"
-  onClick={() => {
-    // Au lieu de router.push
-    // Vous devrez trouver le patient correspondant dans la liste des patients
-    const patientToView = patients.data.find(p => p.id === activity.patientId);
-    if (patientToView) {
-      window.dispatchEvent(new CustomEvent('viewPatient', { 
-        detail: { patient: patientToView } 
-      }));
-    }
-  }}
->
-  <ArrowRight size={16} />
-</button>
-                    </div>
-                  ))}
+                <div className="animate-pulse space-y-4 py-8">
+                  <div className="h-32 bg-gray-200 rounded"></div>
                 </div>
               ) : (
-                <p className="text-gray-500 text-center py-8">Aucun entretien récent</p>
+                <div className="grid grid-cols-3 gap-4">
+                  {/* Risque élevé */}
+                  <div className="bg-red-50 rounded-lg p-4 border border-red-200">
+                    <div className="flex flex-col items-center text-center">
+                      <div className="bg-white/60 w-12 h-12 rounded-full flex items-center justify-center mb-3 text-red-600">
+                        <AlertCircle size={24} />
+                      </div>
+                      <p className="text-sm font-medium text-gray-700 mb-1">Risque élevé</p>
+                      <p className="text-xl font-bold text-gray-900">{filteredData?.detectionPrecoce?.risqueEleve || 0}</p>
+                    </div>
+                  </div>
+                  
+                  {/* Risque moyen */}
+                  <div className="bg-amber-50 rounded-lg p-4 border border-amber-200">
+                    <div className="flex flex-col items-center text-center">
+                      <div className="bg-white/60 w-12 h-12 rounded-full flex items-center justify-center mb-3 text-amber-600">
+                        <AlertTriangle size={24} />
+                      </div>
+                      <p className="text-sm font-medium text-gray-700 mb-1">Risque moyen</p>
+                      <p className="text-xl font-bold text-gray-900">{filteredData?.detectionPrecoce?.risqueMoyen || 0}</p>
+                    </div>
+                  </div>
+                  
+                  {/* Risque faible */}
+                  <div className="bg-green-50 rounded-lg p-4 border border-green-200">
+                    <div className="flex flex-col items-center text-center">
+                      <div className="bg-white/60 w-12 h-12 rounded-full flex items-center justify-center mb-3 text-green-600">
+                        <Activity size={24} />
+                      </div>
+                      <p className="text-sm font-medium text-gray-700 mb-1">Risque faible</p>
+                      <p className="text-xl font-bold text-gray-900">{filteredData?.detectionPrecoce?.risqueFaible || 0}</p>
+                    </div>
+                  </div>
+                </div>
               )}
-            </div>
-            
-            {/* À faire */}
-            <div className="bg-white rounded-xl shadow-sm p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">À faire</h2>
               
-              <div className="space-y-3">
-                <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
-                  <div className="flex items-center">
-                    <Clock className="text-yellow-600 mr-3" size={18} />
-                    <span className="text-sm font-medium text-gray-800">
-                      {entretienStats.brouillon} entretiens en cours
-                    </span>
-                  </div>
-                  <button 
-  className="text-sm text-blue-600 hover:text-blue-800"
-  onClick={() => {
-    // Au lieu de router.push('/patients')
-    window.dispatchEvent(new CustomEvent('navigateTo', { 
-      detail: { tab: 'patients' } 
-    }));
-  }}
->
-  Voir
-</button>
-                </div>
-                
-                <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
-                  <div className="flex items-center">
-                    <Calendar className="text-blue-600 mr-3" size={18} />
-                    <span className="text-sm font-medium text-gray-800">
-                      {patients.data.length} dossiers employés actifs
-                    </span>
-                  </div>
-                  <button 
-                    className="text-sm text-blue-600 hover:text-blue-800"
-                    onClick={() => {
-                      // Action
-                    }}
-                  >
-                    Voir
-                  </button>
-                </div>
+              <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-sm text-blue-800">
+                  La fonctionnalité de détection précoce par Intelligence Artificielle sera disponible dans une prochaine mise à jour. 
+                  Elle permettra d'identifier automatiquement les employés présentant des risques potentiels pour leur santé au travail.
+                </p>
               </div>
             </div>
           </div>
+        </div>
+        
+        {/* Note de bas de page */}
+        <div className="text-center text-gray-500 text-sm">
+          <p>Données mises à jour le {new Date().toLocaleDateString('fr-FR', { 
+            day: '2-digit', 
+            month: '2-digit', 
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          })}</p>
         </div>
       </div>
     </div>
