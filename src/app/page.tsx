@@ -9,6 +9,7 @@ import { PatientForm } from '@/components/patients/PatientForm';
 import { Dashboard } from '@/components/dashboard/Dashboard';
 import { toast } from '@/components/ui/use-toast';
 import AdminPage from '@/app/admin/page';
+import { CalendarPage } from '@/components/calendar/CalendarPage';
 
 // Types
 type NavigationTab = 'dashboard' | 'patients' | 'newDossier' | 'admin';

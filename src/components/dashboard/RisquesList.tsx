@@ -108,10 +108,3 @@ export function RisquesList({
     </div>
   );
 }
-
-export function RisquesList({
-  risques,
-  title,
-  maxItems = 5,
-  onViewMore,
-  isLoading = false,

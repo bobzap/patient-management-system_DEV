@@ -159,3 +159,43 @@ model RisqueProfessionnel {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 }
+
+
+model CalendarEvent {
+  id          Int      @id @default(autoincrement())
+  title       String   // Titre de l'événement
+  description String?  // Description facultative
+  startDate   DateTime // Date et heure de début
+  endDate     DateTime // Date et heure de fin
+  allDay      Boolean  @default(false) // Événement sur toute la journée?
+  
+  // Type d'événement (entretien, visite médicale, rappel, etc.)
+  eventType   String
+  
+  // Statut de l'événement (planifié, effectué, annulé, reporté)
+  status      String   @default("planifie")
+  
+  // Lien avec un patient (facultatif)
+  patientId   Int?
+  patient     Patient? @relation(fields: [patientId], references: [id])
+  
+  // Lien avec un entretien (facultatif)
+  entretienId Int?
+  entretien   Entretien? @relation(fields: [entretienId], references: [id], onDelete: SetNull)
+  
+  // Métadonnées (par exemple, couleur d'affichage, notifications, etc.)
+  metadata    String?   // JSON stocké sous forme de texte
+  
+  // Champs pour le suivi et l'audit
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  createdBy   String?   // Nom de l'utilisateur ayant créé l'événement
+  
+  // Récurrence (pour les événements répétitifs)
+  recurrence      String?  // Pattern de récurrence au format JSON
+  parentEventId   Int?     // ID de l'événement parent en cas de récurrence
+  
+  @@index([patientId])
+  @@index([entretienId])
+  @@index([startDate, endDate])
+}

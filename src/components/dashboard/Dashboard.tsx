@@ -4,36 +4,21 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
-  BarChart3, 
-  Users, 
-  Clock, 
-  Activity, 
-  FileText,
-  CheckCircle,
-  Archive,
-  Calendar,
-  ClipboardList,
-  AlertTriangle,
-  Stethoscope,
-  AlertCircle,
-  Filter,
-  Download,
-  TrendingUp,
-  TrendingDown,
-  RefreshCw,
-  X
+  BarChart3, Users, Clock, FileText, CheckCircle,
+  AlertCircle, Filter, Download, RefreshCw, X, 
+  AlertTriangle, // Ajouté ici
+  Activity     // Ajouté si nécessaire ailleurs
 } from 'lucide-react';
-import { analyzeEntretiensData } from '../../services/dashboard-analysis';
-import { Patient } from '@/types';
 
-// Import des composants améliorés du tableau de bord
+// Import des composants
 import { StatCard } from './StatCard';
 import { PieChart } from './PieChart';
 import { BarChart } from './BarChart';
 import { RisquesList } from './RisquesList';
 import { HealthMetrics, createHealthMetrics } from './HealthMetrics';
-import { RecentActivities } from './RecentActivities';
 import { GaugeMetrics } from './GaugeMetrics';
+// Vérifier cette ligne dans Dashboard.tsx
+import { analyzeEntretiensData } from '@/services/dashboard-analysis';
 
 interface DashboardProps {
   patients: {
@@ -42,8 +27,6 @@ interface DashboardProps {
 }
 
 export const Dashboard = ({ patients }: DashboardProps) => {
-  const router = useRouter();
-  
   // États pour les données
   const [entretiens, setEntretiens] = useState<any[]>([]);
   const [dashboardData, setDashboardData] = useState<any>(null);
@@ -51,98 +34,109 @@ export const Dashboard = ({ patients }: DashboardProps) => {
   const [selectedTimeRange, setSelectedTimeRange] = useState<'week' | 'month' | 'all'>('all');
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   
-  // État pour les filtres avancés
+  // État pour les filtres
   const [showFilters, setShowFilters] = useState(false);
   const [departmentFilter, setDepartmentFilter] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string>('');
   
-  // Charger tous les entretiens pour analyse
-  useEffect(() => {
-    const fetchAllEntretiens = async () => {
-      setIsLoading(true);
-      try {
-        const allEntretiens: any[] = [];
-        
-        // Parcourir tous les patients pour récupérer leurs entretiens
-        for (const patient of patients.data) {
-          try {
-            const response = await fetch(`/api/patients/${patient.id}/entretiens`);
-            const result = await response.json();
+  // Chargement des données
+  // src/components/dashboard/Dashboard.tsx - Partie useEffect modifiée
+
+useEffect(() => {
+  const fetchAllEntretiens = async () => {
+    setIsLoading(true);
+    try {
+      console.log("Début du chargement des entretiens");
+      const allEntretiens: any[] = [];
+      
+      // Parcourir tous les patients
+      for (const patient of patients.data) {
+        try {
+          console.log(`Chargement des entretiens pour le patient ${patient.id}`);
+          const response = await fetch(`/api/patients/${patient.id}/entretiens`);
+          const result = await response.json();
+          
+          console.log(`Résultat pour patient ${patient.id}:`, result);
+          
+          if (result.success && result.data && result.data.length > 0) {
+            // Ajouter les informations du patient à chaque entretien
+            const entretiensWithPatient = result.data.map((entretien: any) => ({
+              ...entretien,
+              patient
+            }));
             
-            if (result.success && result.data && result.data.length > 0) {
-              // Ajouter les informations du patient à chaque entretien
-              const entretiensWithPatient = result.data.map((entretien: any) => ({
-                ...entretien,
-                patient
-              }));
-              
-              // Pour chaque entretien, charger ses données détaillées
-              for (const entretien of entretiensWithPatient) {
-                try {
-                  const detailResponse = await fetch(`/api/entretiens/${entretien.id}`);
-                  const detailResult = await detailResponse.json();
-                  
-                  if (detailResult.success && detailResult.data) {
-                    // Si les données sont une chaîne JSON, les parser
-                    if (typeof detailResult.data.donneesEntretien === 'string') {
-                      try {
-                        const donneesObject = JSON.parse(detailResult.data.donneesEntretien);
-                        entretien.donneesObject = donneesObject;
-                      } catch (e) {
-                        console.warn(`Erreur de parsing des données pour l'entretien ${entretien.id}:`, e);
-                      }
+            // Pour chaque entretien, charger ses données détaillées
+            for (const entretien of entretiensWithPatient) {
+              try {
+                console.log(`Chargement des détails pour l'entretien ${entretien.id}`);
+                const detailResponse = await fetch(`/api/entretiens/${entretien.id}`);
+                const detailResult = await detailResponse.json();
+                
+                if (detailResult.success && detailResult.data) {
+                  // Si les données sont une chaîne JSON, les parser
+                  if (typeof detailResult.data.donneesEntretien === 'string') {
+                    try {
+                      const donneesObject = JSON.parse(detailResult.data.donneesEntretien);
+                      entretien.donneesObject = donneesObject;
+                    } catch (e) {
+                      console.warn(`Erreur de parsing des données pour l'entretien ${entretien.id}:`, e);
                     }
-                    
-                    // Ajouter d'autres informations importantes
-                    entretien.tempsDebut = detailResult.data.tempsDebut;
-                    entretien.tempsFin = detailResult.data.tempsFin;
-                    entretien.tempsPause = detailResult.data.tempsPause;
-                    entretien.enPause = detailResult.data.enPause;
-                    entretien.dernierePause = detailResult.data.dernierePause;
+                  } else if (detailResult.data.donneesEntretien) {
+                    // Si c'est déjà un objet, l'utiliser directement
+                    entretien.donneesObject = detailResult.data.donneesEntretien;
                   }
-                } catch (error) {
-                  console.error(`Erreur lors du chargement des détails de l'entretien ${entretien.id}:`, error);
+                  
+                  // Ajouter d'autres informations importantes
+                  entretien.tempsDebut = detailResult.data.tempsDebut;
+                  entretien.tempsFin = detailResult.data.tempsFin;
+                  entretien.tempsPause = detailResult.data.tempsPause;
+                  entretien.enPause = detailResult.data.enPause;
+                  entretien.dernierePause = detailResult.data.dernierePause;
                 }
+              } catch (error) {
+                console.error(`Erreur lors du chargement des détails de l'entretien ${entretien.id}:`, error);
               }
-              
-              allEntretiens.push(...entretiensWithPatient);
             }
-          } catch (error) {
-            console.error(`Erreur pour patient ${patient.id}:`, error);
+            
+            allEntretiens.push(...entretiensWithPatient);
           }
+        } catch (error) {
+          console.error(`Erreur pour patient ${patient.id}:`, error);
         }
-        
-        setEntretiens(allEntretiens);
-        
-        // Analyser les données collectées
-        const metricsData = await analyzeEntretiensData(allEntretiens, patients.data);
-        setDashboardData(metricsData);
-      } catch (error) {
-        console.error('Erreur lors du chargement des données du dashboard:', error);
-      } finally {
-        setIsLoading(false);
       }
-    };
-    
-    fetchAllEntretiens();
-  }, [patients.data, refreshTrigger]);
+      
+      console.log(`Total d'entretiens chargés: ${allEntretiens.length}`);
+      setEntretiens(allEntretiens);
+      
+      // Analyser les données collectées
+      try {
+        const metricsData = await analyzeEntretiensData(allEntretiens, patients.data);
+        console.log("Métriques calculées:", metricsData);
+        setDashboardData(metricsData);
+      } catch (analyzeError) {
+        console.error("Erreur lors de l'analyse des données:", analyzeError);
+      }
+    } catch (error) {
+      console.error('Erreur lors du chargement des données du dashboard:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
   
-  // Filtrer les données selon la période sélectionnée
+  fetchAllEntretiens();
+}, [patients.data, refreshTrigger]);
+  
+  // Données filtrées
   const filteredData = useMemo(() => {
     if (!dashboardData) return null;
     
-    // Si aucun filtre n'est appliqué, retourner toutes les données
     if (selectedTimeRange === 'all' && !departmentFilter && !statusFilter) {
       return dashboardData;
     }
     
-    // Copier l'objet pour ne pas modifier l'original
     const filtered = { ...dashboardData };
-    
-    // Filtrer les entretiens en fonction de la période
     let filteredEntretiens = [...entretiens];
     
-    // Filtre par période
     if (selectedTimeRange !== 'all') {
       const now = new Date();
       let cutoffDate = new Date();
@@ -159,26 +153,21 @@ export const Dashboard = ({ patients }: DashboardProps) => {
       });
     }
     
-    // Filtre par département
     if (departmentFilter) {
       filteredEntretiens = filteredEntretiens.filter(entretien => 
         entretien.patient && entretien.patient.departement === departmentFilter
       );
     }
     
-    // Filtre par statut
     if (statusFilter) {
       filteredEntretiens = filteredEntretiens.filter(entretien => 
         entretien.status === statusFilter
       );
     }
     
-    // Mettre à jour les métriques avec les entretiens filtrés
     if (filteredEntretiens.length !== entretiens.length) {
-      // Recalculer les métriques principales
       filtered.totalEntretiens = filteredEntretiens.length;
       
-      // Recalculer la répartition par statut
       filtered.entretiensByStatus = {
         brouillon: 0,
         finalise: 0,
@@ -189,7 +178,6 @@ export const Dashboard = ({ patients }: DashboardProps) => {
         filtered.entretiensByStatus[entretien.status]++;
       }
       
-      // Mettre à jour les entretiens récents
       filtered.recentsEntretiens = filteredEntretiens
         .slice()
         .sort((a, b) => new Date(b.dateCreation).getTime() - new Date(a.dateCreation).getTime())
@@ -199,7 +187,7 @@ export const Dashboard = ({ patients }: DashboardProps) => {
     return filtered;
   }, [dashboardData, entretiens, selectedTimeRange, departmentFilter, statusFilter]);
   
-  // Liste des départements uniques pour les filtres
+  // Liste des départements
   const uniqueDepartments = useMemo(() => {
     if (!patients.data) return [];
     
@@ -210,14 +198,14 @@ export const Dashboard = ({ patients }: DashboardProps) => {
     return departments;
   }, [patients.data]);
   
-  // Fonction pour réinitialiser les filtres
+  // Réinitialiser filtres
   const resetFilters = () => {
     setSelectedTimeRange('all');
     setDepartmentFilter('');
     setStatusFilter('');
   };
   
-  // Extraire les données pour les visualisations
+  // Données pour visualisations
   const typesVisitesData = useMemo(() => {
     if (!filteredData || !filteredData.typesVisites) return [];
     
@@ -227,101 +215,19 @@ export const Dashboard = ({ patients }: DashboardProps) => {
     }));
   }, [filteredData]);
   
-  // Données pour le graphique d'activité par mois
+  // Données d'activité par mois
   const activiteParMoisData = useMemo(() => {
     if (!filteredData || !filteredData.activiteParMois) return [];
     
     return filteredData.activiteParMois;
   }, [filteredData]);
   
-  // Données pour les métriques de santé
-  const healthMetricsData = useMemo(() => {
-    if (!filteredData) return [];
-    
-    return createHealthMetrics({
-      visiteMedicalePlanifiee: filteredData.visiteMedicalePlanifiee || 0,
-      limitationsActives: filteredData.limitationsActives || 0,
-      etudePostePrevue: filteredData.etudePostePrevue || 0,
-      entretienManagerPrevu: filteredData.entretienManagerPrevu || 0,
-      detectionsRisque: filteredData.detectionPrecoce?.risqueEleve || 0
-    });
-  }, [filteredData]);
-  
-  // Données pour les jauges de performance
-  const gaugeMetricsData = useMemo(() => {
-    if (!filteredData) return [];
-    
-    return [
-      {
-        id: 'taux-finalisation',
-        value: filteredData.tendances?.tauxFinalisation || 0,
-        title: 'Taux de finalisation',
-        color: '#3b82f6', // blue-600
-        description: 'Entretiens finalisés'
-      },
-      {
-        id: 'detection-precoce',
-        value: filteredData.totalEntretiens
-          ? Math.round((filteredData.detectionPrecoce?.risqueEleve || 0) / filteredData.totalEntretiens * 100)
-          : 0,
-        title: 'Détection précoce',
-        color: '#ef4444', // red-600
-        description: 'Risques identifiés'
-      },
-      {
-        id: 'croissance',
-        value: Math.max(0, filteredData.tendances?.croissanceEntretiens || 0),
-        title: 'Évolution',
-        color: '#10b981', // emerald-600
-        description: 'vs période précédente'
-      }
-    ];
-  }, [filteredData]);
-  
-  // Fonctions de navigation
-  const handleViewEntretien = (entretienId: number) => {
-    // Trouver le patient associé à cet entretien
-    const entretien = entretiens.find(e => e.id === entretienId);
-    if (entretien && entretien.patient) {
-      // Déclencher l'événement pour afficher ce patient
-      window.dispatchEvent(new CustomEvent('viewPatient', { 
-        detail: { patient: entretien.patient } 
-      }));
-    }
-  };
-  
-  const handleViewPatient = (patientId: number) => {
-    const patient = patients.data.find(p => p.id === patientId);
-    if (patient) {
-      window.dispatchEvent(new CustomEvent('viewPatient', { 
-        detail: { patient } 
-      }));
-    }
-  };
-  
-  const navigateToPatients = () => {
-    window.dispatchEvent(new CustomEvent('navigateTo', { 
-      detail: { tab: 'patients' } 
-    }));
-  };
-  
-  const navigateToNewDossier = () => {
-    window.dispatchEvent(new CustomEvent('navigateTo', { 
-      detail: { tab: 'newDossier' } 
-    }));
-  };
-  
-  const navigateToAdmin = () => {
-    window.dispatchEvent(new CustomEvent('navigateTo', { 
-      detail: { tab: 'admin' } 
-    }));
-  };
-  
-  // Rafraîchir les données
+  // Actualiser les données
   const refreshData = () => {
     setRefreshTrigger(prev => prev + 1);
   };
-  
+
+  // Rendu du composant
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       <div className="max-w-7xl mx-auto">
@@ -332,8 +238,9 @@ export const Dashboard = ({ patients }: DashboardProps) => {
             <p className="text-gray-600 mt-1">Statistiques et activité infirmière</p>
           </div>
           
+          {/* Filtres et contrôles */}
           <div className="mt-4 md:mt-0 flex flex-wrap gap-3">
-            {/* Contrôles de période */}
+            {/* Période */}
             <div className="inline-flex rounded-md shadow-sm">
               <button
                 onClick={() => setSelectedTimeRange('week')}
@@ -367,7 +274,7 @@ export const Dashboard = ({ patients }: DashboardProps) => {
               </button>
             </div>
             
-            {/* Bouton de filtres */}
+            {/* Bouton filtres */}
             <div className="relative">
               <button 
                 onClick={() => setShowFilters(!showFilters)}
@@ -385,7 +292,7 @@ export const Dashboard = ({ patients }: DashboardProps) => {
                 <div className="absolute z-10 right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 p-4">
                   <h3 className="text-sm font-semibold text-gray-700 mb-3">Filtres avancés</h3>
                   
-                  {/* Filtre par département */}
+                  {/* Département */}
                   <div className="mb-3">
                     <label className="block text-xs text-gray-600 mb-1">Département</label>
                     <select
@@ -400,7 +307,7 @@ export const Dashboard = ({ patients }: DashboardProps) => {
                     </select>
                   </div>
                   
-                  {/* Filtre par statut d'entretien */}
+                  {/* Statut */}
                   <div className="mb-3">
                     <label className="block text-xs text-gray-600 mb-1">État de l'entretien</label>
                     <select
@@ -434,7 +341,7 @@ export const Dashboard = ({ patients }: DashboardProps) => {
               )}
             </div>
             
-            {/* Bouton de rafraîchissement */}
+            {/* Bouton rafraîchir */}
             <button 
               onClick={refreshData}
               className="inline-flex items-center gap-1 px-3 py-2 text-sm font-medium bg-white border border-gray-300 rounded-lg hover:bg-gray-50 shadow-sm"
@@ -444,7 +351,7 @@ export const Dashboard = ({ patients }: DashboardProps) => {
               Actualiser
             </button>
             
-            {/* Bouton d'export */}
+            {/* Bouton exporter */}
             <button 
               className="inline-flex items-center gap-1 px-3 py-2 text-sm font-medium bg-white border border-gray-300 rounded-lg hover:bg-gray-50 shadow-sm"
             >
@@ -505,7 +412,7 @@ export const Dashboard = ({ patients }: DashboardProps) => {
           </div>
         )}
         
-        {/* Cartes de statistiques */}
+        {/* Cartes de statistiques principales */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {/* Total des entretiens */}
           <StatCard
@@ -516,10 +423,9 @@ export const Dashboard = ({ patients }: DashboardProps) => {
             trend={filteredData?.tendances?.croissanceEntretiens}
             colorScheme="blue"
             isLoading={isLoading}
-            onClick={navigateToPatients}
           />
           
-          {/* Nombre d'heures */}
+          {/* Heures d'entretien */}
           <StatCard
             title="Heures d'entretien"
             value={filteredData?.totalHeures || 0}
@@ -539,7 +445,7 @@ export const Dashboard = ({ patients }: DashboardProps) => {
             isLoading={isLoading}
           />
           
-          {/* Détection précoce */}
+          {/* Risques détectés */}
           <StatCard
             title="Risques détectés"
             value={filteredData?.detectionPrecoce?.risqueEleve || 0}
@@ -549,276 +455,274 @@ export const Dashboard = ({ patients }: DashboardProps) => {
             isLoading={isLoading}
           />
         </div>
+
+
+        {/* Actions rapides */}
+<div className="mb-6">
+  <div className="bg-white rounded-xl shadow-sm p-6">
+    <h3 className="text-lg font-semibold text-gray-900 mb-4">Actions rapides</h3>
+    
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <button
+        onClick={() => {
+          window.dispatchEvent(new CustomEvent('navigateTo', { 
+            detail: { tab: 'patients' } 
+          }));
+        }}
+        className="w-full flex items-center justify-between p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+      >
+        <div className="flex items-center">
+          <Users className="text-blue-600 mr-3" size={18} />
+          <span className="text-sm font-medium text-gray-800">
+            Voir tous les dossiers
+          </span>
+        </div>
+        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+        </svg>
+      </button>
+      
+      <button
+        onClick={() => {
+          window.dispatchEvent(new CustomEvent('navigateTo', { 
+            detail: { tab: 'newDossier' } 
+          }));
+        }}
+        className="w-full flex items-center justify-between p-3 bg-green-50 rounded-lg hover:bg-green-100 transition-colors"
+      >
+        <div className="flex items-center">
+          <svg className="text-green-600 mr-3" width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" 
+                  d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+          </svg>
+          <span className="text-sm font-medium text-gray-800">
+            Créer un nouveau dossier
+          </span>
+        </div>
+        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+        </svg>
+      </button>
+      
+      <button
+        onClick={() => {
+          window.dispatchEvent(new CustomEvent('navigateTo', { 
+            detail: { tab: 'admin' } 
+          }));
+        }}
+        className="w-full flex items-center justify-between p-3 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors"
+      >
+        <div className="flex items-center">
+          <svg className="text-purple-600 mr-3" width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" 
+                  d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" 
+                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+          <span className="text-sm font-medium text-gray-800">
+            Gestion administrative
+          </span>
+        </div>
+        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+        </svg>
+      </button>
+    </div>
+  </div>
+</div>
         
-        {/* Contenu principal - Grid layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-          {/* Section graphiques - 2/3 */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Graphiques */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Types de visites */}
-              <PieChart
-                data={typesVisitesData}
-                title="Types de visites"
-                colors={['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899']}
-                height={300}
-              />
-              
-              {/* Risques professionnels identifiés */}
-              <RisquesList
-                risques={filteredData?.risquesProfessionnels || []}
-                title="Risques professionnels identifiés"
-                maxItems={5}
-                totalEntretiens={filteredData?.totalEntretiens || 0}
-                isLoading={isLoading}
-              />
-            </div>
-            
-            {/* Graphique d'activité */}
-            <BarChart
-              data={activiteParMoisData}
-              title="Activité par mois"
-              xAxisKey="mois"
-              series={[
-                {
-                  key: 'count',
-                  name: 'Entretiens',
-                  color: '#3b82f6' // blue-600
-                }
-              ]}
-              height={250}
+        {/* Première rangée de graphiques */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+          {/* Types de visites */}
+          <div className="col-span-1">
+            <PieChart
+              data={typesVisitesData}
+              title="Types de visites"
+              colors={['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899']}
+              height={300}
             />
-            
-            {/* Métriques de santé au travail */}
-            <HealthMetrics
-              metrics={healthMetricsData}
-              title="Actions à suivre"
+          </div>
+          
+          {/* Risques professionnels identifiés */}
+          <div className="col-span-1">
+            <RisquesList
+              risques={filteredData?.risquesProfessionnels || []}
+              title="Risques professionnels identifiés"
+              maxItems={5}
+              totalEntretiens={filteredData?.totalEntretiens || 0}
               isLoading={isLoading}
             />
           </div>
           
-          {/* Colonne latérale - 1/3 */}
-          <div className="space-y-6">
-            {/* Jauges de performance */}
+          {/* Indicateurs de performance */}
+          <div className="col-span-1">
             <GaugeMetrics
-              metrics={gaugeMetricsData}
+              metrics={[
+                {
+                  id: 'taux-finalisation',
+                  value: filteredData?.tendances?.tauxFinalisation || 0,
+                  title: 'Taux de finalisation',
+                  color: '#3b82f6',
+                  description: 'Entretiens finalisés'
+                },
+                {
+                  id: 'detection-precoce',
+                  value: filteredData?.totalEntretiens
+                    ? Math.round((filteredData.detectionPrecoce?.risqueEleve || 0) / filteredData.totalEntretiens * 100)
+                    : 0,
+                  title: 'Détection précoce',
+                  color: '#ef4444',
+                  description: 'Risques identifiés'
+                },
+                {
+                  id: 'croissance',
+                  value: Math.max(0, filteredData?.tendances?.croissanceEntretiens || 0),
+                  title: 'Évolution',
+                  color: '#10b981',
+                  description: 'vs période précédente'
+                }
+              ]}
               title="Indicateurs de performance"
               isLoading={isLoading}
             />
-            
-            {/* Activités récentes */}
-            <RecentActivities
-              entretiens={filteredData?.recentsEntretiens || []}
-              onViewEntretien={handleViewEntretien}
-              onViewPatient={handleViewPatient}
-              isLoading={isLoading}
-              maxItems={5}
-            />
-            
-            {/* Liens rapides */}
-            <div className="bg-white rounded-xl shadow-sm p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Actions rapides</h3>
-              
-              <div className="space-y-3">
-                <button
-                  onClick={navigateToPatients}
-                  className="w-full flex items-center justify-between p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
-                >
-                  <div className="flex items-center">
-                    <Users className="text-blue-600 mr-3" size={18} />
-                    <span className="text-sm font-medium text-gray-800">
-                      Voir tous les dossiers
-                    </span>
-                  </div>
-                  <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-                  </svg>
-                </button>
-                
-                <button
-                  onClick={navigateToNewDossier}
-                  className="w-full flex items-center justify-between p-3 bg-green-50 rounded-lg hover:bg-green-100 transition-colors"
-                >
-                  <div className="flex items-center">
-                    <svg className="text-green-600 mr-3" width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" 
-                            d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-                    </svg>
-                    <span className="text-sm font-medium text-gray-800">
-                      Créer un nouveau dossier
-                    </span>
-                  </div>
-                  <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-                  </svg>
-                </button>
-                
-                <button
-                  onClick={navigateToAdmin}
-                  className="w-full flex items-center justify-between p-3 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors"
-                >
-                  <div className="flex items-center">
-                    <svg className="text-purple-600 mr-3" width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" 
-                            d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" 
-                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                    <span className="text-sm font-medium text-gray-800">
-                      Gestion administrative
-                    </span>
-                  </div>
-                  <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-                  </svg>
-                </button>
-              </div>
-            </div>
           </div>
         </div>
         
-        {/* Section statistiques détaillées */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">
-          {/* Répartition par statut */}
-          <div className="lg:col-span-2">
-            <div className="bg-white rounded-xl shadow-sm p-6 h-full">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Statut des entretiens</h3>
-              
-              {isLoading ? (
-                <div className="animate-pulse space-y-4 py-8">
-                  <div className="h-32 bg-gray-200 rounded"></div>
+        {/* Activité par mois */}
+        <div className="mb-6">
+          <BarChart
+            data={activiteParMoisData}
+            title="Activité par mois"
+            xAxisKey="mois"
+            series={[
+              {
+                key: 'count',
+                name: 'Entretiens',
+                color: '#3b82f6'
+              }
+            ]}
+            height={250}
+          />
+        </div>
+        
+        {/* Statut des entretiens & Détection précoce AI */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          {/* Statut des entretiens */}
+          <div className="bg-white rounded-xl shadow-sm p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Statut des entretiens</h3>
+            <div className="grid grid-cols-3 gap-4">
+              {/* En cours */}
+              <div className="bg-amber-50 rounded-lg p-4 border border-amber-100 flex flex-col items-center text-center">
+                <div className="mb-2 text-amber-600">
+                  <Clock size={24} />
                 </div>
-              ) : (
-                <div className="grid grid-cols-3 gap-4">
-                  {/* Entretiens en brouillon */}
-                  <div className="bg-amber-50 rounded-lg p-4 border border-amber-200">
-                    <div className="flex flex-col items-center text-center">
-                      <div className="bg-white/60 w-12 h-12 rounded-full flex items-center justify-center mb-3 text-amber-600">
-                        <Clock size={24} />
-                      </div>
-                      <p className="text-sm font-medium text-gray-700 mb-1">En cours</p>
-                      <p className="text-xl font-bold text-gray-900">{filteredData?.entretiensByStatus?.brouillon || 0}</p>
-                      <div className="mt-2 w-full bg-amber-200/50 rounded-full h-1.5">
-                        <div 
-                          className="bg-amber-500 h-1.5 rounded-full" 
-                          style={{ 
-                            width: `${filteredData?.totalEntretiens 
-                              ? (filteredData.entretiensByStatus.brouillon / filteredData.totalEntretiens) * 100 
-                              : 0}%` 
-                          }}
-                        ></div>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* Entretiens finalisés */}
-                  <div className="bg-green-50 rounded-lg p-4 border border-green-200">
-                    <div className="flex flex-col items-center text-center">
-                      <div className="bg-white/60 w-12 h-12 rounded-full flex items-center justify-center mb-3 text-green-600">
-                        <CheckCircle size={24} />
-                      </div>
-                      <p className="text-sm font-medium text-gray-700 mb-1">Finalisés</p>
-                      <p className="text-xl font-bold text-gray-900">{filteredData?.entretiensByStatus?.finalise || 0}</p>
-                      <div className="mt-2 w-full bg-green-200/50 rounded-full h-1.5">
-                        <div 
-                          className="bg-green-500 h-1.5 rounded-full" 
-                          style={{ 
-                            width: `${filteredData?.totalEntretiens 
-                              ? (filteredData.entretiensByStatus.finalise / filteredData.totalEntretiens) * 100 
-                              : 0}%` 
-                          }}
-                        ></div>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* Entretiens archivés */}
-                  <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                    <div className="flex flex-col items-center text-center">
-                      <div className="bg-white/60 w-12 h-12 rounded-full flex items-center justify-center mb-3 text-gray-600">
-                        <Archive size={24} />
-                      </div>
-                      <p className="text-sm font-medium text-gray-700 mb-1">Archivés</p>
-                      <p className="text-xl font-bold text-gray-900">{filteredData?.entretiensByStatus?.archive || 0}</p>
-                      <div className="mt-2 w-full bg-gray-200/50 rounded-full h-1.5">
-                        <div 
-                          className="bg-gray-500 h-1.5 rounded-full" 
-                          style={{ 
-                            width: `${filteredData?.totalEntretiens 
-                              ? (filteredData.entretiensByStatus.archive / filteredData.totalEntretiens) * 100 
-                              : 0}%` 
-                          }}
-                        ></div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-          
-          {/* Détection précoce */}
-          <div className="lg:col-span-2">
-            <div className="bg-white rounded-xl shadow-sm p-6 h-full">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold text-gray-900">Détection précoce AI</h3>
-                <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
-                  Prochainement
-                </span>
+                <p className="text-sm font-medium text-gray-700">En cours</p>
+                <p className="text-2xl font-bold text-gray-900 mt-1">
+                  {filteredData?.entretiensByStatus?.brouillon || 0}
+                </p>
               </div>
               
-              {isLoading ? (
-                <div className="animate-pulse space-y-4 py-8">
-                  <div className="h-32 bg-gray-200 rounded"></div>
+              {/* Finalisés */}
+              <div className="bg-green-50 rounded-lg p-4 border border-green-100 flex flex-col items-center text-center">
+                <div className="mb-2 text-green-600">
+                  <CheckCircle size={24} />
                 </div>
-              ) : (
-                <div className="grid grid-cols-3 gap-4">
-                  {/* Risque élevé */}
-                  <div className="bg-red-50 rounded-lg p-4 border border-red-200">
-                    <div className="flex flex-col items-center text-center">
-                      <div className="bg-white/60 w-12 h-12 rounded-full flex items-center justify-center mb-3 text-red-600">
-                        <AlertCircle size={24} />
-                      </div>
-                      <p className="text-sm font-medium text-gray-700 mb-1">Risque élevé</p>
-                      <p className="text-xl font-bold text-gray-900">{filteredData?.detectionPrecoce?.risqueEleve || 0}</p>
-                    </div>
-                  </div>
-                  
-                  {/* Risque moyen */}
-                  <div className="bg-amber-50 rounded-lg p-4 border border-amber-200">
-                    <div className="flex flex-col items-center text-center">
-                      <div className="bg-white/60 w-12 h-12 rounded-full flex items-center justify-center mb-3 text-amber-600">
-                        <AlertTriangle size={24} />
-                      </div>
-                      <p className="text-sm font-medium text-gray-700 mb-1">Risque moyen</p>
-                      <p className="text-xl font-bold text-gray-900">{filteredData?.detectionPrecoce?.risqueMoyen || 0}</p>
-                    </div>
-                  </div>
-                  
-                  {/* Risque faible */}
-                  <div className="bg-green-50 rounded-lg p-4 border border-green-200">
-                    <div className="flex flex-col items-center text-center">
-                      <div className="bg-white/60 w-12 h-12 rounded-full flex items-center justify-center mb-3 text-green-600">
-                        <Activity size={24} />
-                      </div>
-                      <p className="text-sm font-medium text-gray-700 mb-1">Risque faible</p>
-                      <p className="text-xl font-bold text-gray-900">{filteredData?.detectionPrecoce?.risqueFaible || 0}</p>
-                    </div>
-                  </div>
-                </div>
-              )}
+                <p className="text-sm font-medium text-gray-700">Finalisés</p>
+                <p className="text-2xl font-bold text-gray-900 mt-1">
+                  {filteredData?.entretiensByStatus?.finalise || 0}
+                </p>
+              </div>
               
-              <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                <p className="text-sm text-blue-800">
-                  La fonctionnalité de détection précoce par Intelligence Artificielle sera disponible dans une prochaine mise à jour. 
-                  Elle permettra d'identifier automatiquement les employés présentant des risques potentiels pour leur santé au travail.
+              {/* Archivés */}
+              <div className="bg-gray-50 rounded-lg p-4 border border-gray-100 flex flex-col items-center text-center">
+                <div className="mb-2 text-gray-600">
+                  <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
+                      d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+                  </svg>
+                </div>
+                <p className="text-sm font-medium text-gray-700">Archivés</p>
+                <p className="text-2xl font-bold text-gray-900 mt-1">
+                  {filteredData?.entretiensByStatus?.archive || 0}
                 </p>
               </div>
             </div>
           </div>
+          
+          {/* Détection précoce AI */}
+          <div className="bg-white rounded-xl shadow-sm p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Détection précoce AI</h3>
+              <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
+                Prochainement
+              </span>
+            </div>
+            
+            <div className="grid grid-cols-3 gap-4">
+              {/* Risque élevé */}
+              <div className="bg-red-50 rounded-lg p-4 border border-red-100 flex flex-col items-center text-center">
+                <div className="mb-2 text-red-600">
+                  <AlertCircle size={24} />
+                </div>
+                <p className="text-sm font-medium text-gray-700">Risque élevé</p>
+                <p className="text-2xl font-bold text-gray-900 mt-1">
+                  {filteredData?.detectionPrecoce?.risqueEleve || 0}
+                </p>
+              </div>
+              
+              {/* Risque moyen */}
+              <div className="bg-amber-50 rounded-lg p-4 border border-amber-100 flex flex-col items-center text-center">
+                <div className="mb-2 text-amber-600">
+                  <AlertTriangle size={24} />
+                </div>
+                <p className="text-sm font-medium text-gray-700">Risque moyen</p>
+                <p className="text-2xl font-bold text-gray-900 mt-1">
+                  {filteredData?.detectionPrecoce?.risqueMoyen || 0}
+                </p>
+              </div>
+              
+              {/* Risque faible */}
+              <div className="bg-green-50 rounded-lg p-4 border border-green-100 flex flex-col items-center text-center">
+                <div className="mb-2 text-green-600">
+                  <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
+                          d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                </div>
+                <p className="text-sm font-medium text-gray-700">Risque faible</p>
+                <p className="text-2xl font-bold text-gray-900 mt-1">
+                  {filteredData?.detectionPrecoce?.risqueFaible || 0}
+                </p>
+              </div>
+            </div>
+            
+            <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-sm text-blue-800">
+                La fonctionnalité de détection précoce par Intelligence Artificielle sera disponible dans une prochaine mise à jour. 
+                Elle permettra d'identifier automatiquement les employés présentant des risques potentiels pour leur santé au travail.
+              </p>
+            </div>
+          </div>
         </div>
         
-        {/* Note de bas de page */}
+        {/* Actions à suivre */}
+        <div className="mb-6">
+          <HealthMetrics
+            metrics={createHealthMetrics({
+              visiteMedicalePlanifiee: filteredData?.visiteMedicalePlanifiee || 0,
+              limitationsActives: filteredData?.limitationsActives || 0,
+              etudePostePrevue: filteredData?.etudePostePrevue || 0,
+              entretienManagerPrevu: filteredData?.entretienManagerPrevu || 0,
+              detectionsRisque: filteredData?.detectionPrecoce?.risqueEleve || 0
+            })}
+            title="Actions à suivre"
+            isLoading={isLoading}
+          />
+        </div>
+
+        
+        
+        {/* Bas de page */}
         <div className="text-center text-gray-500 text-sm">
           <p>Données mises à jour le {new Date().toLocaleDateString('fr-FR', { 
             day: '2-digit', 
@@ -829,6 +733,12 @@ export const Dashboard = ({ patients }: DashboardProps) => {
           })}</p>
         </div>
       </div>
+    
+    
+
+
     </div>
+
+
   );
 };

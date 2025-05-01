@@ -3,6 +3,7 @@ import { PrismaClient } from '@prisma/client'
 import { initialLists } from './data/initial-lists'
 import { initialFormConfig } from './seeds/formConfig'
 import { initialRisquesProfessionnels } from './seeds/risquesProfessionnels'
+import { eventTypes } from './seeds/eventTypes'
 
 const prisma = new PrismaClient()
 
@@ -151,6 +152,53 @@ async function seedRisquesProfessionnels() {
     throw error;
   }
 }
+
+async function seedEventTypes() {
+  console.log('Début de l\'initialisation des types d\'événements...')
+  for (const list of eventTypes) {
+    console.log(`Traitement de la liste: ${list.name}`)
+   
+    try {
+      const existingCategory = await prisma.listCategory.findUnique({
+        where: { listId: list.listId },
+      })
+      if (existingCategory) {
+        console.log(`Mise à jour de la liste existante: ${list.name}`)
+       
+        await prisma.listItem.deleteMany({
+          where: { categoryId: existingCategory.id },
+        })
+        await prisma.listItem.createMany({
+          data: list.items.map((value: string, index: number) => ({
+            value,
+            order: index,
+            categoryId: existingCategory.id,
+          })),
+        })
+      } else {
+        console.log(`Création d'une nouvelle liste: ${list.name}`)
+       
+        await prisma.listCategory.create({
+          data: {
+            name: list.name,
+            listId: list.listId,
+            items: {
+              create: list.items.map((value: string, index: number) => ({
+                value,
+                order: index,
+              })),
+            },
+          },
+        })
+      }
+    } catch (error) {
+      console.error(`Erreur lors du traitement de la liste ${list.name}:`, error)
+      throw error
+    }
+  }
+  console.log('Initialisation des types d\'événements terminée.')
+}
+
 
 async function main() {
   // Initialiser les listes d'abord
