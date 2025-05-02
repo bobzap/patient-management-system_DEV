@@ -12,6 +12,7 @@ import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addMonths, ad
 import { fr } from 'date-fns/locale';
 
 
+
 // Définition des types
 export type CalendarEvent = {
   id: number;
@@ -51,49 +52,176 @@ const Calendar: React.FC = () => {
   const [filterEventType, setFilterEventType] = useState<string>('');
   const [filterStatus, setFilterStatus] = useState<string>('');
   const [filterDepartment, setFilterDepartment] = useState<string>('');
+  const [selectedDateStr, setSelectedDateStr] = useState<string | null>(null);
 
-  // Fonction pour sélectionner un événement
+// Définir toutes les fonctions d'abord
+  // 1. Gestion du modal
+  const handleCloseModal = () => {
+    setShowEventModal(false);
+    setSelectedEvent(null);
+    setSelectedDate(null);
+    setSelectedDateStr(null);
+  };
+
+  // 2. Fonctions de sélection
   const handleSelectEvent = (event: CalendarEvent) => {
     setSelectedEvent(event);
     setShowEventModal(true);
   };
 
-  // Charger les types d'événements et statuts
-  useEffect(() => {
-    const fetchLists = async () => {
+  // Dans Calendar.tsx - Simplifier handleSelectSlot
+const handleSelectSlot = (date: Date) => {
+  console.log("Calendar handleSelectSlot - Date reçue:", date);
+  
+  // Stocker directement la date sans manipulation
+  setSelectedDate(date);
+  setSelectedEvent(null);
+  setShowEventModal(true);
+};
+
+  // 3. Fonctions de navigation
+  const handlePrevious = () => {
+    if (view === 'month') {
+      setCurrentDate(prevDate => addMonths(prevDate, -1));
+    } else if (view === 'week') {
+      setCurrentDate(prevDate => addWeeks(prevDate, -1));
+    } else {
+      setCurrentDate(prevDate => addDays(prevDate, -1));
+    }
+  };
+
+  const handleNext = () => {
+    if (view === 'month') {
+      setCurrentDate(prevDate => addMonths(prevDate, 1));
+    } else if (view === 'week') {
+      setCurrentDate(prevDate => addWeeks(prevDate, 1));
+    } else {
+      setCurrentDate(prevDate => addDays(prevDate, 1));
+    }
+  };
+
+  const handleToday = () => {
+    setCurrentDate(new Date());
+  };
+
+  // 4. Fonction de gestion des filtres
+  const handleFilterChange = (filterType: string, value: string) => {
+    switch (filterType) {
+      case 'eventType':
+        setFilterEventType(value);
+        break;
+      case 'status':
+        setFilterStatus(value);
+        break;
+      case 'department':
+        setFilterDepartment(value);
+        break;
+      default:
+        break;
+    }
+  };
+
+  // 5. Fonctions de gestion des événements
+  const handleSaveEvent = async (eventData: Partial<CalendarEvent>) => {
+    try {
+      let response;
+      
+      if (selectedEvent) {
+        // Mise à jour d'un événement existant
+        response = await fetch(`/api/calendar/${selectedEvent.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(eventData)
+        });
+      } else {
+        // Création d'un nouvel événement
+        response = await fetch('/api/calendar-temp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(eventData)
+        });
+      }
+      
+      if (!response.ok) {
+        throw new Error(`Erreur HTTP: ${response.status} ${response.statusText}`);
+      }
+      
+      const responseText = await response.text();
+      console.log('Réponse brute:', responseText);
+      
+      let data;
       try {
-        const response = await fetch('/api/lists');
-        const data = await response.json();
+        data = JSON.parse(responseText);
+      } catch (e) {
+        throw new Error(`Impossible de parser la réponse: ${responseText}`);
+      }
+      
+      if (data.success) {
+        toast.success(selectedEvent ? 'Événement mis à jour' : 'Événement créé');
+        handleCloseModal();
+        fetchEvents(); // Recharger les événements
+      } else {
+        toast.error(data.error || 'Erreur lors de l\'enregistrement');
+      }
+    } catch (error) {
+      console.error('Erreur lors de l\'enregistrement:', error);
+      toast.error(`Erreur: ${error.message}`);
+    }
+  };
+
+
+
+
+
+  const handleDeleteEvent = async (eventId: number) => {
+      try {
+        const tempResponse = await fetch('/api/calendar-temp');
         
-        if (data.success) {
-          // Récupérer les types d'événements
-          const eventTypesList = data.data.find((list: any) => list.listId === 'eventTypes');
-          if (eventTypesList && eventTypesList.items) {
-            setEventTypes(eventTypesList.items.map((item: any) => item.value));
-          }
+        if (tempResponse.ok) {
+          const tempData = await tempResponse.json();
           
-          // Récupérer les statuts d'événements
-          const statusList = data.data.find((list: any) => list.listId === 'eventStatus');
-          if (statusList && statusList.items) {
-            setStatusTypes(statusList.items.map((item: any) => item.value));
-          }
-          
-          // Récupérer les départements pour les filtres
-          const dptList = data.data.find((list: any) => list.listId === 'dpt');
-          if (dptList && dptList.items) {
-            setDepartments(dptList.items.map((item: any) => item.value));
+          if (tempData.success && Array.isArray(tempData.data)) {
+            const tempEvents = tempData.data.map((event: any) => ({
+              ...event,
+              startDate: new Date(event.startDate),
+              endDate: new Date(event.endDate),
+              source: 'temp'
+            }));
+            
+            console.log(`${tempEvents.length} événements temporaires récupérés`);
+            allEvents = [...allEvents, ...tempEvents];
           }
         }
       } catch (error) {
-        console.error('Erreur lors du chargement des listes:', error);
-        toast.error('Erreur lors du chargement des options');
+        console.error('Erreur lors de la récupération des événements temporaires:', error);
       }
     };
-    
-    fetchLists();
-  }, []);
 
-  const fetchEvents = useCallback(async () => {
+
+ const handleUpdateStatus = async (eventId: number, newStatus: string) => {
+    try {
+      const response = await fetch(`/api/calendar/${eventId}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        toast.success(`Statut changé en: ${newStatus}`);
+        fetchEvents(); // Recharger les événements
+      } else {
+        toast.error(data.error || 'Erreur lors du changement de statut');
+      }
+    } catch (error) {
+      console.error('Erreur lors du changement de statut:', error);
+      toast.error('Erreur lors du changement de statut');
+    }
+  };
+
+
+    const fetchEvents = useCallback(async () => {
     setIsLoading(true);
     
     try {
@@ -217,189 +345,6 @@ const Calendar: React.FC = () => {
   }, [currentDate, view, filterEventType, filterStatus, filterDepartment]);
 
 
-
-  function createLocalDate(year: number, month: number, day: number, hour = 12, minute = 0) {
-    // Crée une date locale sans décalage de fuseau horaire
-    const date = new Date();
-    date.setFullYear(year);
-    date.setMonth(month - 1); // Les mois sont indexés à partir de 0
-    date.setDate(day);
-    date.setHours(hour, minute, 0, 0);
-    return date;
-  }
-  
-  // Puis utilisez-la lors de la sélection d'une date
-  const handleDayClick = (day: Date) => {
-    const localDate = createLocalDate(
-      day.getFullYear(),
-      day.getMonth() + 1,
-      day.getDate(),
-      12, // Midi par défaut
-      0
-    );
-    onSelectSlot(localDate);
-  };
-  
-  // Charger les événements lorsque la date ou la vue change
-  useEffect(() => {
-    fetchEvents();
-  }, [fetchEvents]);
-
-  // Navigation dans le calendrier
-  const handlePrevious = () => {
-    if (view === 'month') {
-      setCurrentDate(prevDate => addMonths(prevDate, -1));
-    } else if (view === 'week') {
-      setCurrentDate(prevDate => addWeeks(prevDate, -1));
-    } else {
-      setCurrentDate(prevDate => addDays(prevDate, -1));
-    }
-  };
-
-  const handleNext = () => {
-    if (view === 'month') {
-      setCurrentDate(prevDate => addMonths(prevDate, 1));
-    } else if (view === 'week') {
-      setCurrentDate(prevDate => addWeeks(prevDate, 1));
-    } else {
-      setCurrentDate(prevDate => addDays(prevDate, 1));
-    }
-  };
-
-  const handleToday = () => {
-    setCurrentDate(new Date());
-  };
-
-  // Gestion des événements
-  const handleSelectSlot = (date: Date) => {
-    console.log('handleSelectSlot reçoit:', date);
-    
-    // Passer directement la date sans manipulation
-    setSelectedDate(date);
-    setSelectedEvent(null);
-    setShowEventModal(true);
-  };
-
-  const handleCloseModal = () => {
-    setShowEventModal(false);
-    setSelectedEvent(null);
-    setSelectedDate(null);
-  };
-
-  // Dans Calendar.tsx, modifier la fonction handleSaveEvent
-
-const handleSaveEvent = async (eventData: Partial<CalendarEvent>) => {
-  try {
-    let response;
-    
-    if (selectedEvent) {
-      // Mise à jour d'un événement existant
-      response = await fetch(`/api/calendar/${selectedEvent.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(eventData)
-      });
-    } else {
-      // Création d'un nouvel événement - utiliser l'API temporaire
-      response = await fetch('/api/calendar-temp', {  // Modifier ici pour utiliser l'API temporaire
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(eventData)
-      });
-    }
-    
-    // S'assurer que la réponse est valide avant de tenter de la parser
-    if (!response.ok) {
-      throw new Error(`Erreur HTTP: ${response.status} ${response.statusText}`);
-    }
-    
-    // Lire le texte de la réponse pour débogage
-    const responseText = await response.text();
-    console.log('Réponse brute:', responseText);
-    
-    // Parser la réponse JSON
-    let data;
-    try {
-      data = JSON.parse(responseText);
-    } catch (e) {
-      throw new Error(`Impossible de parser la réponse: ${responseText}`);
-    }
-    
-    if (data.success) {
-      toast.success(selectedEvent ? 'Événement mis à jour' : 'Événement créé');
-      handleCloseModal();
-      fetchEvents(); // Recharger les événements
-    } else {
-      toast.error(data.error || 'Erreur lors de l\'enregistrement');
-    }
-  } catch (error) {
-    console.error('Erreur lors de l\'enregistrement:', error);
-    toast.error(`Erreur: ${error.message}`);
-  }
-};
-  const handleDeleteEvent = async (eventId: number) => {
-    try {
-      const tempResponse = await fetch('/api/calendar-temp');
-      
-      if (tempResponse.ok) {
-        const tempData = await tempResponse.json();
-        
-        if (tempData.success && Array.isArray(tempData.data)) {
-          const tempEvents = tempData.data.map((event: any) => ({
-            ...event,
-            startDate: new Date(event.startDate),
-            endDate: new Date(event.endDate),
-            source: 'temp'
-          }));
-          
-          console.log(`${tempEvents.length} événements temporaires récupérés`);
-          allEvents = [...allEvents, ...tempEvents];
-        }
-      }
-    } catch (error) {
-      console.error('Erreur lors de la récupération des événements temporaires:', error);
-    }
-  };
-
-  const handleUpdateStatus = async (eventId: number, newStatus: string) => {
-    try {
-      const response = await fetch(`/api/calendar/${eventId}/status`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus })
-      });
-      
-      const data = await response.json();
-      
-      if (data.success) {
-        toast.success(`Statut changé en: ${newStatus}`);
-        fetchEvents(); // Recharger les événements
-      } else {
-        toast.error(data.error || 'Erreur lors du changement de statut');
-      }
-    } catch (error) {
-      console.error('Erreur lors du changement de statut:', error);
-      toast.error('Erreur lors du changement de statut');
-    }
-  };
-
-  // Gérer les changements de filtres
-  const handleFilterChange = (filterType: string, value: string) => {
-    switch (filterType) {
-      case 'eventType':
-        setFilterEventType(value);
-        break;
-      case 'status':
-        setFilterStatus(value);
-        break;
-      case 'department':
-        setFilterDepartment(value);
-        break;
-      default:
-        break;
-    }
-  };
-
   // Déterminer le titre du calendrier en fonction de la vue
   const getCalendarTitle = () => {
     if (view === 'month') {
@@ -412,6 +357,20 @@ const handleSaveEvent = async (eventData: Partial<CalendarEvent>) => {
       return format(currentDate, 'EEEE dd MMMM yyyy', { locale: fr });
     }
   };
+
+
+  // Charger les événements lorsque la date ou la vue change
+  useEffect(() => {
+    fetchEvents();
+  }, [fetchEvents]);
+
+
+ 
+  
+
+
+
+
 
   return (
     <div className="flex flex-col h-full bg-white rounded-xl shadow-lg">
@@ -470,18 +429,19 @@ const handleSaveEvent = async (eventData: Partial<CalendarEvent>) => {
       
       {/* Modal pour créer/éditer un événement */}
       {showEventModal && (
-        <EventModal
-          event={selectedEvent}
-          initialDate={selectedDate}
-          isOpen={showEventModal}
-          onClose={handleCloseModal}
-          onSave={handleSaveEvent}
-          onDelete={handleDeleteEvent}
-          onUpdateStatus={handleUpdateStatus}
-          eventTypes={eventTypes}
-          statusTypes={statusTypes}
-        />
-      )}
+  <EventModal
+    event={selectedEvent}
+    initialDate={selectedDate}
+    // RETIREZ cette ligne initialDateStr={selectedDateStr}
+    isOpen={showEventModal}
+    onClose={handleCloseModal}
+    onSave={handleSaveEvent}
+    onDelete={handleDeleteEvent}
+    onUpdateStatus={handleUpdateStatus}
+    eventTypes={eventTypes}
+    statusTypes={statusTypes}
+  />
+)}
     </div>
   );
 };

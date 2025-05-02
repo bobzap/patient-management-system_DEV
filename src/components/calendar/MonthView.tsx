@@ -17,11 +17,12 @@ import {
 import { fr } from 'date-fns/locale';
 import { CalendarEvent } from './Calendar';
 
+
 interface MonthViewProps {
   currentDate: Date;
   events: CalendarEvent[];
   onSelectEvent: (event: CalendarEvent) => void;
-  onSelectSlot: (date: Date) => void;
+  onSelectSlot: (date: Date) => void; // CHANGEZ DE string à Date
 }
 
 export const MonthView: React.FC<MonthViewProps> = ({
@@ -65,33 +66,36 @@ export const MonthView: React.FC<MonthViewProps> = ({
           <div
             key={day.toString()}
             className={`border border-gray-200 min-h-[120px] ${
-              !isCurrentMonth ? 'bg-gray-50' : 'bg-white'
+              !isCurrentMonth ? 'bg-gray-50 out-of-month' : 'bg-white'
             } ${isToday(day) ? 'border-blue-500 border-2' : ''}`}
             onClick={() => {
-              // NOUVELLE MÉTHODE: Construire la date directement avec l'année, le mois et le jour
-              // Utilisons une date complètement nouvelle avec UTC
-              const newDate = new Date(Date.UTC(
-                day.getFullYear(),
-                day.getMonth(),
-                day.getDate(),
-                12, 0, 0, 0
-              ));
+              // IMPORTANT: Ajouter un avertissement si le jour n'est pas dans le mois actuel
+              if (!isCurrentMonth) {
+                console.log("Jour hors du mois courant:", day);
+                // Si vous souhaitez désactiver les clics sur les jours hors du mois actuel:
+                // return;
+              }
               
-              // Convertir ensuite en date locale (pour avoir le bon fuseau horaire)
-              const localDate = new Date(newDate.toISOString().slice(0, 10) + "T12:00:00");
+              // Créer une nouvelle Date avec l'année, le mois et le jour précis
+              const y = day.getFullYear();
+              const m = day.getMonth(); // 0-11, pas besoin d'ajuster
+              const d = day.getDate();
               
-              console.log("Date sélectionnée INFO:", {
-                originalDay: day.toString(),
-                year: day.getFullYear(),
-                month: day.getMonth(), // 0-11
-                day: day.getDate(),
-                newDate: localDate.toString(),
-                isoDate: localDate.toISOString()
+              // Créer une nouvelle date à midi
+              const exactDate = new Date(y, m, d, 12, 0, 0);
+              
+              console.log("Date sélectionnée:", {
+                year: y,
+                month: m,
+                day: d,
+                date: exactDate.toISOString()
               });
               
-              // Passer cette date précise
-              onSelectSlot(localDate);
-            }}
+              // Passer l'objet Date
+              onSelectSlot(exactDate);
+            }
+
+}
           >
             <div className="p-2">
               <div className={`text-right ${

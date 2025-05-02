@@ -11,6 +11,7 @@ import { Patient } from '@/types';
 interface EventModalProps {
   event: CalendarEvent | null;
   initialDate: Date | null;
+  initialDateStr?: string | null; // Ajouter cette ligne
   isOpen: boolean;
   onClose: () => void;
   onSave: (event: Partial<CalendarEvent>) => void;
@@ -49,70 +50,57 @@ export const EventModal: React.FC<EventModalProps> = ({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // Effet pour charger les données de l'événement si en mode édition
-  useEffect(() => {
-    if (event) {
-      setTitle(event.title);
-      setDescription(event.description || '');
-      
-      const start = new Date(event.startDate);
-      const end = new Date(event.endDate);
-      
-      setStartDate(format(start, 'yyyy-MM-dd'));
-      setStartTime(format(start, 'HH:mm'));
-      setEndDate(format(end, 'yyyy-MM-dd'));
-      setEndTime(format(end, 'HH:mm'));
-      setAllDay(event.allDay);
-      setEventType(event.eventType);
-      setStatus(event.status);
-      setPatientId(event.patientId || null);
-
-    } else if (initialDate) {
-      // LOGS DE DÉBOGAGE DÉTAILLÉS
-      console.log("MODAL - Date reçue:", {
-        date: initialDate,
-        toString: initialDate.toString(),
-        toISOString: initialDate.toISOString(),
-        type: typeof initialDate,
-        isDate: initialDate instanceof Date
-      });
-      
-      // MÉTHODE DIRECTE avec ISO String
-      // Créer directement des chaînes au format attendu par les inputs
-      const dateISOString = initialDate.toISOString();
-      const datePart = dateISOString.split('T')[0]; // "YYYY-MM-DD"
-      
-      // Heure locale avec padding à 2 chiffres
-      const hours = initialDate.getHours().toString().padStart(2, '0');
-      const minutes = initialDate.getMinutes().toString().padStart(2, '0');
-      const timePart = `${hours}:${minutes}`;
-      
-      // Date de fin: +1 heure
-      const endDate = new Date(initialDate);
-      endDate.setHours(endDate.getHours() + 1);
-      const endDatePart = endDate.toISOString().split('T')[0];
-      const endHours = endDate.getHours().toString().padStart(2, '0');
-      const endMinutes = endDate.getMinutes().toString().padStart(2, '0');
-      const endTimePart = `${endHours}:${endMinutes}`;
-      
-      console.log("MODAL - Dates formatées:", {
-        startDate: datePart,
-        startTime: timePart,
-        endDate: endDatePart,
-        endTime: endTimePart
-      });
-      
-      // Mettre à jour les états
-      setStartDate(datePart);
-      setStartTime(timePart);
-      setEndDate(endDatePart);
-      setEndTime(endTimePart);
-      
-      // Valeurs par défaut
-      setStatus('Planifié');
-      setEventType(eventTypes.length > 0 ? eventTypes[0] : 'Entretien Infirmier');
-    }
-  }, [event, initialDate, eventTypes]);
-
+useEffect(() => {
+  if (event) {
+    // Si on modifie un événement existant
+    setTitle(event.title);
+    setDescription(event.description || '');
+    
+    const start = new Date(event.startDate);
+    const end = new Date(event.endDate);
+    
+    setStartDate(format(start, 'yyyy-MM-dd'));
+    setStartTime(format(start, 'HH:mm'));
+    setEndDate(format(end, 'yyyy-MM-dd'));
+    setEndTime(format(end, 'HH:mm'));
+    setAllDay(event.allDay);
+    setEventType(event.eventType);
+    setStatus(event.status);
+    setPatientId(event.patientId || null);
+  } 
+  
+  // Conserver le comportement existant comme fallback
+  else if (initialDate) {
+    // TRÈS IMPORTANT: Extraction précise des composants de date
+    const selectedDate = initialDate;
+    console.log("EventModal useEffect - Date initiale:", {
+      date: selectedDate.toString(),
+      year: selectedDate.getFullYear(),
+      month: selectedDate.getMonth(), // 0-11
+      day: selectedDate.getDate()
+    });
+    
+    // Formater avec les composants exacts (pas de conversion/manipulation)
+    const year = selectedDate.getFullYear();
+    const month = String(selectedDate.getMonth() + 1).padStart(2, '0'); // +1 pour format YYYY-MM-DD
+    const day = String(selectedDate.getDate()).padStart(2, '0');
+    
+    // Construire la chaîne de date directement
+    const dateStr = `${year}-${month}-${day}`;
+    
+    console.log("EventModal useEffect - Date formatée:", dateStr);
+    
+    // Mettre à jour les états
+    setStartDate(dateStr);
+    setStartTime('12:00');
+    setEndDate(dateStr);
+    setEndTime('13:00');
+    
+    // Valeurs par défaut
+    setStatus('Planifié');
+    setEventType(eventTypes.length > 0 ? eventTypes[0] : 'Entretien Infirmier');
+  }
+}, [event, initialDate, eventTypes]);
 
 
   // Effet pour charger la liste des patients
