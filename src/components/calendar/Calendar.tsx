@@ -11,8 +11,6 @@ import { toast } from 'sonner';
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addMonths, addWeeks, addDays } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
-
-
 // Définition des types
 export type CalendarEvent = {
   id: number;
@@ -52,15 +50,12 @@ const Calendar: React.FC = () => {
   const [filterEventType, setFilterEventType] = useState<string>('');
   const [filterStatus, setFilterStatus] = useState<string>('');
   const [filterDepartment, setFilterDepartment] = useState<string>('');
-  const [selectedDateStr, setSelectedDateStr] = useState<string | null>(null);
 
-// Définir toutes les fonctions d'abord
   // 1. Gestion du modal
   const handleCloseModal = () => {
     setShowEventModal(false);
     setSelectedEvent(null);
     setSelectedDate(null);
-    setSelectedDateStr(null);
   };
 
   // 2. Fonctions de sélection
@@ -69,15 +64,24 @@ const Calendar: React.FC = () => {
     setShowEventModal(true);
   };
 
-  // Dans Calendar.tsx - Simplifier handleSelectSlot
-const handleSelectSlot = (date: Date) => {
-  console.log("Calendar handleSelectSlot - Date reçue:", date);
-  
-  // Stocker directement la date sans manipulation
-  setSelectedDate(date);
-  setSelectedEvent(null);
-  setShowEventModal(true);
-};
+  // Fonction simplifiée pour la sélection d'un créneau
+  const handleSelectSlot = (date: Date) => {
+    // Créer une nouvelle instance de Date pour éviter les références partagées
+    const newDate = new Date(date);
+    
+    console.log("Calendar.handleSelectSlot - Date reçue:", {
+      rawDate: date.toString(),
+      newDate: newDate.toString(),
+      year: newDate.getFullYear(),
+      month: newDate.getMonth() + 1, // +1 car getMonth() retourne 0-11
+      day: newDate.getDate(),
+      formattedDate: format(newDate, 'yyyy-MM-dd')
+    });
+    
+    setSelectedDate(newDate);
+    setSelectedEvent(null);
+    setShowEventModal(true);
+  };
 
   // 3. Fonctions de navigation
   const handlePrevious = () => {
@@ -169,36 +173,32 @@ const handleSelectSlot = (date: Date) => {
     }
   };
 
-
-
-
-
   const handleDeleteEvent = async (eventId: number) => {
-      try {
-        const tempResponse = await fetch('/api/calendar-temp');
-        
-        if (tempResponse.ok) {
-          const tempData = await tempResponse.json();
-          
-          if (tempData.success && Array.isArray(tempData.data)) {
-            const tempEvents = tempData.data.map((event: any) => ({
-              ...event,
-              startDate: new Date(event.startDate),
-              endDate: new Date(event.endDate),
-              source: 'temp'
-            }));
-            
-            console.log(`${tempEvents.length} événements temporaires récupérés`);
-            allEvents = [...allEvents, ...tempEvents];
-          }
-        }
-      } catch (error) {
-        console.error('Erreur lors de la récupération des événements temporaires:', error);
+    try {
+      const response = await fetch(`/api/calendar/${eventId}`, {
+        method: 'DELETE',
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Erreur HTTP: ${response.status}`);
       }
-    };
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        toast.success('Événement supprimé');
+        handleCloseModal();
+        fetchEvents(); // Recharger les événements
+      } else {
+        toast.error(data.error || 'Erreur lors de la suppression');
+      }
+    } catch (error) {
+      console.error('Erreur lors de la suppression:', error);
+      toast.error('Erreur lors de la suppression de l\'événement');
+    }
+  };
 
-
- const handleUpdateStatus = async (eventId: number, newStatus: string) => {
+  const handleUpdateStatus = async (eventId: number, newStatus: string) => {
     try {
       const response = await fetch(`/api/calendar/${eventId}/status`, {
         method: 'PATCH',
@@ -220,8 +220,8 @@ const handleSelectSlot = (date: Date) => {
     }
   };
 
-
-    const fetchEvents = useCallback(async () => {
+  // Chargement des événements
+  const fetchEvents = useCallback(async () => {
     setIsLoading(true);
     
     try {
@@ -344,7 +344,6 @@ const handleSelectSlot = (date: Date) => {
     }
   }, [currentDate, view, filterEventType, filterStatus, filterDepartment]);
 
-
   // Déterminer le titre du calendrier en fonction de la vue
   const getCalendarTitle = () => {
     if (view === 'month') {
@@ -358,19 +357,45 @@ const handleSelectSlot = (date: Date) => {
     }
   };
 
-
-  // Charger les événements lorsque la date ou la vue change
+  // Charger les événements et types lorsque la date ou la vue change
   useEffect(() => {
     fetchEvents();
+    
+    // Chargement des types d'événements et statuts (données statiques pour l'exemple)
+    setEventTypes([
+      'Entretien Infirmier',
+      'Visite Médicale',
+      'Rappel Médical',
+      'Étude de Poste',
+      'Entretien Manager',
+      'Limitation de Travail',
+      'Suivi Post-AT',
+      'Vaccination',
+      'Formation',
+      'Autre'
+    ]);
+    
+    setStatusTypes([
+      'Planifié',
+      'Confirmé',
+      'En cours',
+      'Effectué',
+      'Annulé',
+      'Reporté',
+      'Non présenté'
+    ]);
+    
+    // Chargement des départements (peut être récupéré depuis l'API)
+    setDepartments([
+      'Informatique',
+      'Ressources humaines',
+      'Commercial',
+      'Production',
+      'Logistique',
+      'Direction',
+      'Maintenance'
+    ]);
   }, [fetchEvents]);
-
-
- 
-  
-
-
-
-
 
   return (
     <div className="flex flex-col h-full bg-white rounded-xl shadow-lg">
@@ -429,19 +454,18 @@ const handleSelectSlot = (date: Date) => {
       
       {/* Modal pour créer/éditer un événement */}
       {showEventModal && (
-  <EventModal
-    event={selectedEvent}
-    initialDate={selectedDate}
-    // RETIREZ cette ligne initialDateStr={selectedDateStr}
-    isOpen={showEventModal}
-    onClose={handleCloseModal}
-    onSave={handleSaveEvent}
-    onDelete={handleDeleteEvent}
-    onUpdateStatus={handleUpdateStatus}
-    eventTypes={eventTypes}
-    statusTypes={statusTypes}
-  />
-)}
+        <EventModal
+          event={selectedEvent}
+          initialDate={selectedDate}
+          isOpen={showEventModal}
+          onClose={handleCloseModal}
+          onSave={handleSaveEvent}
+          onDelete={handleDeleteEvent}
+          onUpdateStatus={handleUpdateStatus}
+          eventTypes={eventTypes}
+          statusTypes={statusTypes}
+        />
+      )}
     </div>
   );
 };

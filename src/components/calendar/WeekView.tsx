@@ -195,33 +195,19 @@ export const WeekView: React.FC<WeekViewProps> = ({
                     key={hour} 
                     className="h-20 border-b border-gray-200"
                     onClick={() => {
-                      // IMPORTANT: Ajouter un avertissement si le jour n'est pas dans le mois actuel
                       if (!isCurrentMonth) {
                         console.log("Jour hors du mois courant:", day);
-                        // Si vous souhaitez désactiver les clics sur les jours hors du mois actuel:
-                        // return;
                       }
                       
-                      // Créer une nouvelle Date avec l'année, le mois et le jour précis
-                      const y = day.getFullYear();
-                      const m = day.getMonth(); // 0-11, pas besoin d'ajuster
-                      const d = day.getDate();
+                      // Créer une nouvelle date à midi de ce jour précis
+                      const newDate = new Date(day);
+                      newDate.setHours(12, 0, 0, 0);
                       
-                      // Créer une nouvelle date à midi
-                      const exactDate = new Date(y, m, d, 12, 0, 0);
+                      console.log("MonthView - Date sélectionnée:", newDate.toString());
                       
-                      console.log("Date sélectionnée:", {
-                        year: y,
-                        month: m,
-                        day: d,
-                        date: exactDate.toISOString()
-                      });
-                      
-                      // Passer l'objet Date
-                      onSelectSlot(exactDate);
-                    }
-                  
-                  }
+                      // Passer cette date directement
+                      onSelectSlot(newDate);
+                    }}
                   >
                     {/* Sous-divisions 30 minutes */}
                     <div 

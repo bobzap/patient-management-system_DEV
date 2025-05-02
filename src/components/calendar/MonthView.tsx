@@ -11,18 +11,16 @@ import {
   addDays,
   isSameMonth,
   isSameDay,
-  isToday,
-  addHours
+  isToday
 } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { CalendarEvent } from './Calendar';
-
 
 interface MonthViewProps {
   currentDate: Date;
   events: CalendarEvent[];
   onSelectEvent: (event: CalendarEvent) => void;
-  onSelectSlot: (date: Date) => void; // CHANGEZ DE string à Date
+  onSelectSlot: (date: Date) => void;
 }
 
 export const MonthView: React.FC<MonthViewProps> = ({
@@ -51,55 +49,47 @@ export const MonthView: React.FC<MonthViewProps> = ({
         const formattedDate = format(day, 'd');
         const isCurrentMonth = isSameMonth(day, currentDate);
         
+        // Copie du jour actuel pour éviter les références partagées
+        const currentDay = new Date(day);
+        
         // Filtrer les événements pour ce jour
         const dayEvents = events.filter(event => {
           const eventStart = new Date(event.startDate);
           const eventEnd = new Date(event.endDate);
           
           // Un événement est affiché pour un jour s'il commence, se termine ou se déroule pendant ce jour
-          return isSameDay(day, eventStart) || 
-                 isSameDay(day, eventEnd) || 
-                 (day >= eventStart && day <= eventEnd);
+          return isSameDay(currentDay, eventStart) || 
+                 isSameDay(currentDay, eventEnd) || 
+                 (currentDay >= eventStart && currentDay <= eventEnd);
         });
         
         days.push(
           <div
-            key={day.toString()}
+            key={currentDay.toString()}
             className={`border border-gray-200 min-h-[120px] ${
               !isCurrentMonth ? 'bg-gray-50 out-of-month' : 'bg-white'
-            } ${isToday(day) ? 'border-blue-500 border-2' : ''}`}
+            } ${isToday(currentDay) ? 'border-blue-500 border-2' : ''}`}
             onClick={() => {
-              // IMPORTANT: Ajouter un avertissement si le jour n'est pas dans le mois actuel
-              if (!isCurrentMonth) {
-                console.log("Jour hors du mois courant:", day);
-                // Si vous souhaitez désactiver les clics sur les jours hors du mois actuel:
-                // return;
-              }
+              // Créer une nouvelle instance de Date pour ce jour
+              const selectedDate = new Date(
+                currentDay.getFullYear(),
+                currentDay.getMonth(),
+                currentDay.getDate(),
+                12, 0, 0, 0
+              );
               
-              // Créer une nouvelle Date avec l'année, le mois et le jour précis
-              const y = day.getFullYear();
-              const m = day.getMonth(); // 0-11, pas besoin d'ajuster
-              const d = day.getDate();
-              
-              // Créer une nouvelle date à midi
-              const exactDate = new Date(y, m, d, 12, 0, 0);
-              
-              console.log("Date sélectionnée:", {
-                year: y,
-                month: m,
-                day: d,
-                date: exactDate.toISOString()
+              console.log("MonthView - Jour sélectionné:", {
+                date: selectedDate.toISOString(),
+                formattedDate: format(selectedDate, 'yyyy-MM-dd')
               });
               
-              // Passer l'objet Date
-              onSelectSlot(exactDate);
-            }
-
-}
+              // Passer cette date exacte au gestionnaire
+              onSelectSlot(selectedDate);
+            }}
           >
             <div className="p-2">
               <div className={`text-right ${
-                isToday(day) 
+                isToday(currentDay) 
                   ? 'text-blue-600 font-bold' 
                   : !isCurrentMonth 
                     ? 'text-gray-400' 

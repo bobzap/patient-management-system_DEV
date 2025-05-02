@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { format, addHours, parseISO } from 'date-fns';
+import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { X, Calendar, Clock, Check, User, Tag, FileText, Trash2 } from 'lucide-react';
 import { CalendarEvent } from './Calendar';
@@ -11,7 +11,6 @@ import { Patient } from '@/types';
 interface EventModalProps {
   event: CalendarEvent | null;
   initialDate: Date | null;
-  initialDateStr?: string | null; // Ajouter cette ligne
   isOpen: boolean;
   onClose: () => void;
   onSave: (event: Partial<CalendarEvent>) => void;
@@ -49,59 +48,54 @@ export const EventModal: React.FC<EventModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  // Effet pour charger les données de l'événement si en mode édition
-useEffect(() => {
-  if (event) {
-    // Si on modifie un événement existant
-    setTitle(event.title);
-    setDescription(event.description || '');
-    
-    const start = new Date(event.startDate);
-    const end = new Date(event.endDate);
-    
-    setStartDate(format(start, 'yyyy-MM-dd'));
-    setStartTime(format(start, 'HH:mm'));
-    setEndDate(format(end, 'yyyy-MM-dd'));
-    setEndTime(format(end, 'HH:mm'));
-    setAllDay(event.allDay);
-    setEventType(event.eventType);
-    setStatus(event.status);
-    setPatientId(event.patientId || null);
-  } 
-  
-  // Conserver le comportement existant comme fallback
-  else if (initialDate) {
-    // TRÈS IMPORTANT: Extraction précise des composants de date
-    const selectedDate = initialDate;
-    console.log("EventModal useEffect - Date initiale:", {
-      date: selectedDate.toString(),
-      year: selectedDate.getFullYear(),
-      month: selectedDate.getMonth(), // 0-11
-      day: selectedDate.getDate()
-    });
-    
-    // Formater avec les composants exacts (pas de conversion/manipulation)
-    const year = selectedDate.getFullYear();
-    const month = String(selectedDate.getMonth() + 1).padStart(2, '0'); // +1 pour format YYYY-MM-DD
-    const day = String(selectedDate.getDate()).padStart(2, '0');
-    
-    // Construire la chaîne de date directement
-    const dateStr = `${year}-${month}-${day}`;
-    
-    console.log("EventModal useEffect - Date formatée:", dateStr);
-    
-    // Mettre à jour les états
-    setStartDate(dateStr);
-    setStartTime('12:00');
-    setEndDate(dateStr);
-    setEndTime('13:00');
-    
-    // Valeurs par défaut
-    setStatus('Planifié');
-    setEventType(eventTypes.length > 0 ? eventTypes[0] : 'Entretien Infirmier');
-  }
-}, [event, initialDate, eventTypes]);
-
+  // Effet pour initialiser le formulaire avec les données existantes ou nouvelles
+  useEffect(() => {
+    // Cas 1: Édition d'un événement existant
+    if (event) {
+      setTitle(event.title);
+      setDescription(event.description || '');
+      
+      const start = new Date(event.startDate);
+      const end = new Date(event.endDate);
+      
+      setStartDate(format(start, 'yyyy-MM-dd'));
+      setStartTime(format(start, 'HH:mm'));
+      setEndDate(format(end, 'yyyy-MM-dd'));
+      setEndTime(format(end, 'HH:mm'));
+      setAllDay(event.allDay);
+      setEventType(event.eventType);
+      setStatus(event.status);
+      setPatientId(event.patientId || null);
+    } 
+    // Cas 2: Création d'un nouvel événement à partir d'une date sélectionnée
+    else if (initialDate) {
+      // Approche directe: formatage manuel sans utiliser date-fns
+      const year = initialDate.getFullYear();
+      const month = initialDate.getMonth() + 1; // +1 car getMonth() retourne 0-11
+      const day = initialDate.getDate();
+      
+      // Créer la chaîne de date au format YYYY-MM-DD
+      const formattedDate = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      
+      console.log("EventModal - Date formatée:", {
+        initialDate: initialDate.toString(),
+        year, month, day,
+        formattedDate
+      });
+      
+      // Définir les valeurs par défaut pour un nouvel événement
+      setTitle('');
+      setDescription('');
+      setStartDate(formattedDate);
+      setEndDate(formattedDate);
+      setStartTime('12:00');
+      setEndTime('13:00');
+      setAllDay(false);
+      setStatus('Planifié');
+      setEventType(eventTypes.length > 0 ? eventTypes[0] : 'Entretien Infirmier');
+      setPatientId(null);
+    }
+  }, [event, initialDate, eventTypes]);
 
   // Effet pour charger la liste des patients
   useEffect(() => {
@@ -210,65 +204,72 @@ useEffect(() => {
                 Type d'événement <span className="text-red-500">*</span>
               </label>
               <div className="relative">
-              <select
-  value={eventType}
-  onChange={(e) => setEventType(e.target.value)}
-  required
-  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 pr-10"
->
-  <option value="">Sélectionner un type</option>
-  {eventTypes && eventTypes.length > 0 ? (
-    eventTypes.map((type) => (
-      <option key={type} value={type}>
-        {type}
-      </option>
-    ))
-  ) : (
-    <>
-      <option value="Entretien Infirmier">Entretien Infirmier</option>
-      <option value="Visite Médicale">Visite Médicale</option>
-      <option value="Rappel Médical">Rappel Médical</option>
-      <option value="Étude de Poste">Étude de Poste</option>
-      <option value="Entretien Manager">Entretien Manager</option>
-      <option value="Limitation de Travail">Limitation de Travail</option>
-      <option value="Suivi Post-AT">Suivi Post-AT</option>
-      <option value="Vaccination">Vaccination</option>
-      <option value="Formation">Formation</option>
-      <option value="Autre">Autre</option>
-    </>
-  )}
-</select>
-
-
-<select
-  value={status}
-  onChange={(e) => setStatus(e.target.value)}
-  required
-  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 pr-10"
->
-  <option value="">Sélectionner un statut</option>
-  {statusTypes && statusTypes.length > 0 ? (
-    statusTypes.map((type) => (
-      <option key={type} value={type}>
-        {type}
-      </option>
-    ))
-  ) : (
-    <>
-      <option value="Planifié">Planifié</option>
-      <option value="Confirmé">Confirmé</option>
-      <option value="En cours">En cours</option>
-      <option value="Effectué">Effectué</option>
-      <option value="Annulé">Annulé</option>
-      <option value="Reporté">Reporté</option>
-      <option value="Non présenté">Non présenté</option>
-    </>
-  )}
-</select>
+                <select
+                  value={eventType}
+                  onChange={(e) => setEventType(e.target.value)}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 pr-10"
+                >
+                  <option value="">Sélectionner un type</option>
+                  {eventTypes && eventTypes.length > 0 ? (
+                    eventTypes.map((type) => (
+                      <option key={type} value={type}>
+                        {type}
+                      </option>
+                    ))
+                  ) : (
+                    <>
+                      <option value="Entretien Infirmier">Entretien Infirmier</option>
+                      <option value="Visite Médicale">Visite Médicale</option>
+                      <option value="Rappel Médical">Rappel Médical</option>
+                      <option value="Étude de Poste">Étude de Poste</option>
+                      <option value="Entretien Manager">Entretien Manager</option>
+                      <option value="Limitation de Travail">Limitation de Travail</option>
+                      <option value="Suivi Post-AT">Suivi Post-AT</option>
+                      <option value="Vaccination">Vaccination</option>
+                      <option value="Formation">Formation</option>
+                      <option value="Autre">Autre</option>
+                    </>
+                  )}
+                </select>
                 <Check className="absolute right-3 top-2.5 h-5 w-5 text-gray-400" />
               </div>
             </div>
-            
+
+            {/* Statut */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Statut <span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <select
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value)}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 pr-10"
+                >
+                  <option value="">Sélectionner un statut</option>
+                  {statusTypes && statusTypes.length > 0 ? (
+                    statusTypes.map((type) => (
+                      <option key={type} value={type}>
+                        {type}
+                      </option>
+                    ))
+                  ) : (
+                    <>
+                      <option value="Planifié">Planifié</option>
+                      <option value="Confirmé">Confirmé</option>
+                      <option value="En cours">En cours</option>
+                      <option value="Effectué">Effectué</option>
+                      <option value="Annulé">Annulé</option>
+                      <option value="Reporté">Reporté</option>
+                      <option value="Non présenté">Non présenté</option>
+                    </>
+                  )}
+                </select>
+                <Check className="absolute right-3 top-2.5 h-5 w-5 text-gray-400" />
+              </div>
+            </div>
 
             {/* Date de début */}
             <div>
