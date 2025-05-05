@@ -243,7 +243,7 @@ const confirmDelete = async () => {
     onClick={() => onEntretienSelect(entretien.id, false)} // Mode édition
     className="text-green-600 hover:text-green-900 px-2 py-1"
   >
-    {entretien.status !== 'brouillon' ? 'Rouvrir' : 'Modifier'}
+    {entretien.status !== 'brouillon' ? 'Ré-ouvrir' : 'Modifier'}
   </button>
   <button 
     onClick={() => handleDelete(entretien.id)}
