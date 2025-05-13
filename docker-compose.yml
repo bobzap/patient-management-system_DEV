@@ -1,0 +1,168 @@
+services:
+  # Service de l'application Next.js
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: entretien-infirmier-app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env.production
+    depends_on:
+      - db
+      - redis
+    networks:
+      - app-network
+      - backend-network
+    volumes:
+      - app-data:/app/data
+      - ./logs:/app/logs
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1'
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # Service de base de données PostgreSQL
+  db:
+    image: postgres:16-alpine
+    container_name: entretien-infirmier-db
+    restart: unless-stopped
+    env_file:
+      - .env.production
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-entretiendb}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./initdb:/docker-entrypoint-initdb.d
+    networks:
+      - backend-network
+    ports:
+      - "127.0.0.1:5432:5432"  # Accessible uniquement en local
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    security_opt:
+      - no-new-privileges:true
+
+  # Service de cache Redis
+  redis:
+    image: redis:7-alpine
+    container_name: entretien-infirmier-redis
+    restart: unless-stopped
+    command: redis-server --requirepass ${REDIS_PASSWORD:-redis} --appendonly yes
+    volumes:
+      - redis-data:/data
+    networks:
+      - backend-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "--no-auth-warning", "-a", "${REDIS_PASSWORD:-redis}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    security_opt:
+      - no-new-privileges:true
+
+  # Service de proxy/load balancer
+  nginx:
+    image: nginx:alpine
+    container_name: entretien-infirmier-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/conf:/etc/nginx/conf.d:ro
+      - ./nginx/certbot/conf:/etc/letsencrypt:ro
+      - ./nginx/certbot/www:/var/www/certbot:ro
+      - ./nginx/logs:/var/log/nginx
+    depends_on:
+      - app
+    networks:
+      - app-network
+    command: "/bin/sh -c 'while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g \"daemon off;\"'"
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 1m
+      timeout: 10s
+      retries: 3
+    security_opt:
+      - no-new-privileges:true
+
+  # Service pour les certificats SSL
+  certbot:
+    image: certbot/certbot
+    container_name: entretien-infirmier-certbot
+    restart: unless-stopped
+    volumes:
+      - ./nginx/certbot/conf:/etc/letsencrypt
+      - ./nginx/certbot/www:/var/www/certbot
+    depends_on:
+      - nginx
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew --webroot -w /var/www/certbot --deploy-hook \"touch /etc/letsencrypt/renewal-hooks/deploy/touch\"; sleep 12h & wait $${!}; done;'"
+    security_opt:
+      - no-new-privileges:true
+
+  # Service pour la sauvegarde automatique
+  backup:
+    image: postgres:16-alpine
+    container_name: entretien-infirmier-backup
+    volumes:
+      - ./backups:/backups
+      - ./scripts/backup.sh:/backup.sh:ro
+    depends_on:
+      - db
+    networks:
+      - backend-network
+    entrypoint: ["/bin/sh", "-c"]
+    command: >
+      "chmod +x /backup.sh && 
+      while :; do 
+        /backup.sh; 
+        echo 'Sauvegarde terminée. Prochaine sauvegarde dans 24h.'; 
+        sleep 24h; 
+      done"
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-entretiendb}
+      BACKUP_RETENTION_DAYS: 7
+
+networks:
+  app-network:
+    driver: bridge
+  backend-network:
+    driver: bridge
+    internal: true  # Réseau interne non accessible de l'extérieur
+
+volumes:
+  app-data:
+    driver: local
+    driver_opts:
+      type: none
+      device: ${PWD}/data
+      o: bind
+  postgres-data:
+    driver: local
+  redis-data:
+    driver: local
