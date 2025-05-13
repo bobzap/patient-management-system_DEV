@@ -151,6 +151,21 @@ model Entretien {
   dernierePause DateTime? // Moment où la dernière pause a commencé
 }
 
+
+// Ajouter ce modèle à votre schéma existant
+model EventType {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  color     String?  @default("#3b82f6") 
+  icon      String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relation many-to-many avec CalendarEvent
+  events    CalendarEvent[] @relation("EventTypeToCalendarEvent")
+}
+
 // prisma/schema.prisma
 model RisqueProfessionnel {
   id        Int      @id @default(autoincrement())
@@ -163,38 +178,31 @@ model RisqueProfessionnel {
 
 model CalendarEvent {
   id          Int      @id @default(autoincrement())
-  title       String // Titre de l'événement
-  description String? // Description facultative
-  startDate   DateTime // Date et heure de début
-  endDate     DateTime // Date et heure de fin
-  allDay      Boolean  @default(false) // Événement sur toute la journée?
-
-  // Type d'événement (entretien, visite médicale, rappel, etc.)
-  eventType String
-
-  // Statut de l'événement (planifié, effectué, annulé, reporté)
-  status String @default("planifie")
-
-  // Lien avec un patient (facultatif)
-  patientId Int?
-  patient   Patient? @relation(fields: [patientId], references: [id])
-
-  // Lien avec un entretien (facultatif)
+  title       String
+  description String?
+  startDate   DateTime
+  endDate     DateTime
+  allDay      Boolean  @default(false)
+  
+  // Changer le champ eventType en relation many-to-many avec EventType
+  // Les types d'événements (multiple) reliés à cet événement
+  eventTypes  EventType[] @relation("EventTypeToCalendarEvent")
+  
+  // Pour la rétrocompatibilité - stocke les types sous forme de chaîne séparée par des virgules
+  eventTypeString String? @map("eventType")
+  
+  status      String    @default("planifie")
+  patientId   Int?
+  patient     Patient?  @relation(fields: [patientId], references: [id])
   entretienId Int?
   entretien   Entretien? @relation(fields: [entretienId], references: [id], onDelete: SetNull)
-
-  // Métadonnées (par exemple, couleur d'affichage, notifications, etc.)
-  metadata String? // JSON stocké sous forme de texte
-
-  // Champs pour le suivi et l'audit
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  createdBy String? // Nom de l'utilisateur ayant créé l'événement
-
-  // Récurrence (pour les événements répétitifs)
-  recurrence    String? // Pattern de récurrence au format JSON
-  parentEventId Int? // ID de l'événement parent en cas de récurrence
-
+  metadata    String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  createdBy   String?
+  recurrence  String?
+  parentEventId Int?
+  
   @@index([patientId])
   @@index([entretienId])
   @@index([startDate, endDate])

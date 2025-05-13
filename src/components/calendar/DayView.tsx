@@ -75,6 +75,10 @@ export const DayView: React.FC<DayViewProps> = ({
   
   // Fonction pour déterminer la couleur d'un événement selon son type
   const getEventColorClass = (event: CalendarEvent) => {
+
+      const primaryType = Array.isArray(event.eventType) 
+    ? event.eventType[0] 
+    : event.eventType;
     // Couleurs selon le type d'événement
     switch (event.eventType) {
       case 'Entretien Infirmier':

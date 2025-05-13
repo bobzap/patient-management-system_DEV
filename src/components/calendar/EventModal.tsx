@@ -4,9 +4,15 @@
 import React, { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { X, Calendar, Clock, Check, User, Tag, FileText, Trash2 } from 'lucide-react';
+import { X, Calendar, Clock, Check, User, Tag, FileText, Trash2, Plus, Edit } from 'lucide-react';
 import { CalendarEvent } from './Calendar';
 import { Patient } from '@/types';
+
+// Ajouter cette interface pour les titres prédéfinis
+interface PredefinedTitle {
+  id: string;
+  title: string;
+}
 
 interface EventModalProps {
   event: CalendarEvent | null;
@@ -39,7 +45,8 @@ export const EventModal: React.FC<EventModalProps> = ({
   const [endDate, setEndDate] = useState('');
   const [endTime, setEndTime] = useState('');
   const [allDay, setAllDay] = useState(false);
-  const [eventType, setEventType] = useState('');
+  // Modification pour stocker plusieurs types d'événement
+  const [selectedEventTypes, setSelectedEventTypes] = useState<string[]>([]);
   const [status, setStatus] = useState('Planifié');
   const [patientId, setPatientId] = useState<number | null>(null);
   const [patients, setPatients] = useState<Patient[]>([]);
@@ -47,11 +54,23 @@ export const EventModal: React.FC<EventModalProps> = ({
   const [showPatientSearch, setShowPatientSearch] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  
+  // États pour les titres prédéfinis
+  const [predefinedTitles, setPredefinedTitles] = useState<PredefinedTitle[]>([
+    { id: '1', title: 'Visite annuelle' },
+    { id: '2', title: 'Suivi régulier' },
+    { id: '3', title: 'Vaccination' },
+    { id: '4', title: 'Examen médical' },
+    { id: '5', title: 'Évaluation médicale' },
+    { id: '6', title: 'Consultation' },
+  ]);
+  const [selectedTitleId, setSelectedTitleId] = useState<string>('');
+  const [isCustomTitle, setIsCustomTitle] = useState(true);
 
-  // Effet pour initialiser le formulaire avec les données existantes ou nouvelles
+  // Effet pour charger les données de l'événement existant ou initialiser un nouvel événement
   useEffect(() => {
-    // Cas 1: Édition d'un événement existant
     if (event) {
+      // Pour un événement existant
       setTitle(event.title);
       setDescription(event.description || '');
       
@@ -63,27 +82,46 @@ export const EventModal: React.FC<EventModalProps> = ({
       setEndDate(format(end, 'yyyy-MM-dd'));
       setEndTime(format(end, 'HH:mm'));
       setAllDay(event.allDay);
-      setEventType(event.eventType);
+      
+      // Gestion des types d'événement multiples (convertir la chaîne en tableau si nécessaire)
+      if (typeof event.eventType === 'string') {
+        if (event.eventType.includes(',')) {
+          setSelectedEventTypes(event.eventType.split(','));
+        } else {
+          setSelectedEventTypes([event.eventType]);
+        }
+      } else if (Array.isArray(event.eventType)) {
+        setSelectedEventTypes(event.eventType);
+      }
+      
       setStatus(event.status);
       setPatientId(event.patientId || null);
+      
+      // Vérifier si le titre correspond à un titre prédéfini
+      const matchedTitle = predefinedTitles.find(pt => pt.title === event.title);
+      if (matchedTitle) {
+        setSelectedTitleId(matchedTitle.id);
+        setIsCustomTitle(false);
+      } else {
+        setSelectedTitleId('');
+        setIsCustomTitle(true);
+      }
     } 
-    // Cas 2: Création d'un nouvel événement à partir d'une date sélectionnée
     else if (initialDate) {
-      // Approche directe: formatage manuel sans utiliser date-fns
+      // Pour un nouvel événement
       const year = initialDate.getFullYear();
       const month = initialDate.getMonth() + 1; // +1 car getMonth() retourne 0-11
       const day = initialDate.getDate();
       
-      // Créer la chaîne de date au format YYYY-MM-DD
       const formattedDate = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
       
+      // Log de diagnostic
       console.log("EventModal - Date formatée:", {
         initialDate: initialDate.toString(),
         year, month, day,
         formattedDate
       });
       
-      // Définir les valeurs par défaut pour un nouvel événement
       setTitle('');
       setDescription('');
       setStartDate(formattedDate);
@@ -91,11 +129,34 @@ export const EventModal: React.FC<EventModalProps> = ({
       setStartTime('12:00');
       setEndTime('13:00');
       setAllDay(false);
+      setSelectedEventTypes(eventTypes.length > 0 ? [eventTypes[0]] : []);
       setStatus('Planifié');
-      setEventType(eventTypes.length > 0 ? eventTypes[0] : 'Entretien Infirmier');
       setPatientId(null);
+      setSelectedTitleId('');
+      setIsCustomTitle(true);
     }
-  }, [event, initialDate, eventTypes]);
+  }, [event, initialDate, eventTypes, predefinedTitles]);
+
+  // Effet pour mettre à jour le titre lorsqu'un patient est sélectionné
+  useEffect(() => {
+    if (patientId) {
+      const patient = patients.find(p => p.id === patientId);
+      if (patient && title) {
+        // Ne pas ajouter le nom du patient s'il est déjà présent
+        if (!title.includes(`- ${patient.nom} ${patient.prenom}`)) {
+          // Si titre prédéfini, conserver ce format mais ajouter le patient
+          if (!isCustomTitle && selectedTitleId) {
+            const baseTitle = predefinedTitles.find(t => t.id === selectedTitleId)?.title || '';
+            setTitle(`${baseTitle} - ${patient.nom} ${patient.prenom}`);
+          } 
+          // Si titre personnalisé, simplement ajouter le patient
+          else if (title.trim() !== '') {
+            setTitle(`${title} - ${patient.nom} ${patient.prenom}`);
+          }
+        }
+      }
+    }
+  }, [patientId, patients, isCustomTitle, selectedTitleId, predefinedTitles, title]);
 
   // Effet pour charger la liste des patients
   useEffect(() => {
@@ -120,11 +181,51 @@ export const EventModal: React.FC<EventModalProps> = ({
     }
   }, [isOpen]);
 
+  // Gestion du changement de titre prédéfini
+  const handleTitleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selectedId = e.target.value;
+    
+    if (selectedId === 'custom') {
+      setIsCustomTitle(true);
+      setSelectedTitleId('');
+      // Conserver le titre actuel
+    } else {
+      const selectedTitle = predefinedTitles.find(t => t.id === selectedId);
+      if (selectedTitle) {
+        setIsCustomTitle(false);
+        setSelectedTitleId(selectedId);
+        
+        // Si un patient est sélectionné, inclure son nom dans le titre
+        if (patientId) {
+          const patient = patients.find(p => p.id === patientId);
+          if (patient) {
+            setTitle(`${selectedTitle.title} - ${patient.nom} ${patient.prenom}`);
+          } else {
+            setTitle(selectedTitle.title);
+          }
+        } else {
+          setTitle(selectedTitle.title);
+        }
+      }
+    }
+  };
+
+  // Gestion de la sélection/désélection des types d'événement
+  const toggleEventType = (type: string) => {
+    setSelectedEventTypes(prevTypes => {
+      if (prevTypes.includes(type)) {
+        return prevTypes.filter(t => t !== type);
+      } else {
+        return [...prevTypes, type];
+      }
+    });
+  };
+
   // Gérer la soumission du formulaire
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!title || !startDate || !endDate || !eventType || !status) {
+    if (!title || !startDate || !endDate || selectedEventTypes.length === 0 || !status) {
       // Validation simple
       return;
     }
@@ -138,7 +239,7 @@ export const EventModal: React.FC<EventModalProps> = ({
       startDate: `${startDate}T${startTime}:00`,
       endDate: `${endDate}T${endTime}:00`,
       allDay,
-      eventType,
+      eventType: selectedEventTypes, // Tableau de types d'événement
       status,
       patientId: patientId || undefined
     };
@@ -184,60 +285,75 @@ export const EventModal: React.FC<EventModalProps> = ({
         {/* Corps du modal */}
         <form onSubmit={handleSubmit} className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Titre */}
+            {/* Titre avec sélection prédéfinie ou personnalisée */}
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Titre <span className="text-red-500">*</span>
               </label>
-              <input
-                type="text"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="md:col-span-1">
+                  <select
+                    value={isCustomTitle ? 'custom' : selectedTitleId}
+                    onChange={handleTitleChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="custom">Titre personnalisé</option>
+                    <optgroup label="Titres prédéfinis">
+                      {predefinedTitles.map(pt => (
+                        <option key={pt.id} value={pt.id}>{pt.title}</option>
+                      ))}
+                    </optgroup>
+                  </select>
+                </div>
+                <div className="md:col-span-2">
+                  <input
+                    type="text"
+                    value={title}
+                    onChange={(e) => {
+                      setTitle(e.target.value);
+                      // Si on modifie manuellement, considérer comme titre personnalisé
+                      if (!isCustomTitle) {
+                        setIsCustomTitle(true);
+                        setSelectedTitleId('');
+                      }
+                    }}
+                    required
+                    placeholder={isCustomTitle ? "Entrez un titre" : ""}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+              </div>
             </div>
 
-            {/* Type d'événement */}
-            <div>
+            {/* Types d'événement (sélection multiple) */}
+            <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Type d'événement <span className="text-red-500">*</span>
+                Types d'événement <span className="text-red-500">*</span>
               </label>
-              <div className="relative">
-                <select
-                  value={eventType}
-                  onChange={(e) => setEventType(e.target.value)}
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 pr-10"
-                >
-                  <option value="">Sélectionner un type</option>
-                  {eventTypes && eventTypes.length > 0 ? (
-                    eventTypes.map((type) => (
-                      <option key={type} value={type}>
-                        {type}
-                      </option>
-                    ))
-                  ) : (
-                    <>
-                      <option value="Entretien Infirmier">Entretien Infirmier</option>
-                      <option value="Visite Médicale">Visite Médicale</option>
-                      <option value="Rappel Médical">Rappel Médical</option>
-                      <option value="Étude de Poste">Étude de Poste</option>
-                      <option value="Entretien Manager">Entretien Manager</option>
-                      <option value="Limitation de Travail">Limitation de Travail</option>
-                      <option value="Suivi Post-AT">Suivi Post-AT</option>
-                      <option value="Vaccination">Vaccination</option>
-                      <option value="Formation">Formation</option>
-                      <option value="Autre">Autre</option>
-                    </>
-                  )}
-                </select>
-                <Check className="absolute right-3 top-2.5 h-5 w-5 text-gray-400" />
+              <div className="flex flex-wrap gap-2 border border-gray-300 rounded-md p-3 min-h-[100px]">
+                {eventTypes.map((type) => (
+                  <div
+                    key={type}
+                    onClick={() => toggleEventType(type)}
+                    className={`px-3 py-1 rounded-full text-sm cursor-pointer transition-colors ${
+                      selectedEventTypes.includes(type)
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    {type}
+                  </div>
+                ))}
+                {selectedEventTypes.length === 0 && (
+                  <div className="text-gray-400 italic text-sm px-2">
+                    Sélectionnez au moins un type d'événement
+                  </div>
+                )}
               </div>
             </div>
 
             {/* Statut */}
-            <div>
+            <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Statut <span className="text-red-500">*</span>
               </label>
@@ -378,7 +494,15 @@ export const EventModal: React.FC<EventModalProps> = ({
                   </div>
                   <button
                     type="button"
-                    onClick={() => setPatientId(null)}
+                    onClick={() => {
+                      setPatientId(null);
+                      // Retirer le nom du patient du titre
+                      if (selectedPatient && title.includes(`- ${selectedPatient.nom} ${selectedPatient.prenom}`)) {
+                        // Nettoyer le titre
+                        const cleanTitle = title.replace(`- ${selectedPatient.nom} ${selectedPatient.prenom}`, '').trim();
+                        setTitle(cleanTitle);
+                      }
+                    }}
                     className="text-gray-500 hover:text-gray-700"
                   >
                     <X size={16} />
@@ -495,9 +619,9 @@ export const EventModal: React.FC<EventModalProps> = ({
               </button>
               <button
                 type="submit"
-                disabled={isSubmitting}
+                disabled={isSubmitting || selectedEventTypes.length === 0}
                 className={`px-4 py-2 bg-blue-600 border border-transparent rounded-md text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  isSubmitting ? 'opacity-70 cursor-not-allowed' : ''
+                  (isSubmitting || selectedEventTypes.length === 0) ? 'opacity-70 cursor-not-allowed' : ''
                 }`}
               >
                 {isSubmitting ? 'Enregistrement...' : event ? 'Mettre à jour' : 'Créer'}
