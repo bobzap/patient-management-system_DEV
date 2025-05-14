@@ -116,17 +116,26 @@ export default function HomePage() {
         description: "Le dossier patient a été créé avec succès",
       });
       
-    } catch (error) {
+    } 
+    
+    catch (error) {
+      const err = error as Error;
       console.error('Erreur complète:', {
-        message: error.message,
-        stack: error.stack
-      });
+        message: err.message,
+    stack: err.stack
+  });
+
+
+
       toast({
         title: "Erreur",
-        description: error.message || "Une erreur est survenue lors de la création du dossier",
+        description: err.message || "Une erreur est survenue lors de la création du dossier",
         variant: "destructive",
       });
     }
+
+
+    
   }, []);
 
   const handlePatientSelect = useCallback((patient: Patient) => {

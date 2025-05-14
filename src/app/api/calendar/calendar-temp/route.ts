@@ -1,8 +1,18 @@
 // src/app/api/calendar-temp/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 
-// Stockage temporaire en mémoire
-let mockEvents = [];
+interface CalendarEvent {
+  id: number;
+  title: string;
+  startDate: string;
+  endDate: string;
+  createdAt: string;
+  updatedAt: string;
+  [key: string]: any; // Pour permettre d'autres propriétés
+}
+
+// Stockage temporaire en mémoire avec le type correct
+let mockEvents: CalendarEvent[] = [];
 let nextId = 1;
 
 export async function GET(request: NextRequest) {
@@ -42,11 +52,12 @@ export async function POST(request: NextRequest) {
       data: newEvent
     });
   } catch (error) {
-    console.error('Erreur lors de la création de l\'événement:', error);
-    return NextResponse.json({ 
-      success: false, 
-      error: 'Erreur lors de la création de l\'événement',
-      details: error.message 
-    }, { status: 500 });
-  }
+  const err = error as Error;
+  console.error('Erreur lors de la création de l\'événement:', err);
+  return NextResponse.json({
+    success: false,
+    error: 'Erreur lors de la création de l\'événement',
+    details: err.message
+  }, { status: 500 });
+}
 }
