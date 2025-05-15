@@ -1,5 +1,4 @@
 'use client';
-
 import { useState } from 'react';
 import { PatientList } from '@/components/patients/PatientList';
 import { PatientForm } from '@/components/patients/PatientForm';
@@ -7,11 +6,10 @@ import { PatientDetails } from '@/components/patients/PatientDetails';
 
 export default function EntretiensPage() {
   const [view, setView] = useState<'list' | 'form' | 'details'>('list');
-  const [selectedPatient, setSelectedPatient] = useState(null);
+  const [selectedPatient, setSelectedPatient] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState('');
-
-  // Simulation de données pour le moment
-  const patients = []; // À remplacer par vos vraies données
+  // État pour stocker les patients
+  const [patients, setPatients] = useState<any[]>([]);
 
   const handleNewDossier = () => {
     setView('form');
@@ -33,7 +31,6 @@ export default function EntretiensPage() {
           onNewDossier={handleNewDossier}
         />
       )}
-
       {view === 'form' && (
         <PatientForm
           onSubmit={(data) => {
@@ -43,10 +40,15 @@ export default function EntretiensPage() {
           onCancel={() => setView('list')}
         />
       )}
-
       {view === 'details' && selectedPatient && (
         <PatientDetails
           patient={selectedPatient}
+          onEdit={() => console.log('Éditer patient:', selectedPatient.id)}
+          onDelete={() => {
+            console.log('Supprimer patient:', selectedPatient.id);
+            setSelectedPatient(null);
+            setView('list');
+          }}
         />
       )}
     </div>

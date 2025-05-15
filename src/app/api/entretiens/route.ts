@@ -27,7 +27,7 @@ export async function POST(req: Request) {
       
       if (existingEntretiens.length > 0) {
         // Trouver le numéro le plus élevé et ajouter 1
-        numeroEntretien = Math.max(...existingEntretiens.map(e => e.numeroEntretien)) + 1;
+        numeroEntretien = Math.max(...existingEntretiens.map((e: {numeroEntretien: number}) => e.numeroEntretien)) + 1;
       }
     }
 
@@ -101,9 +101,9 @@ export async function GET(
 
 
     return NextResponse.json({
-      success: true,
-      data: entretiens
-    });
+  success: true,
+  data: entretien  // Utilisez la variable qui existe
+});
 
   } catch (error) {
     return NextResponse.json({

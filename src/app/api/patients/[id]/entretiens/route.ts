@@ -44,10 +44,10 @@ export async function GET(
     });
 
     // Ajouter les styles de statut
-    const formattedEntretiens = entretiens.map(entretien => ({
-      ...entretien,
-      statusInfo: getStatusStyle(entretien.status)
-    }));
+    const formattedEntretiens = entretiens.map((entretien: { status: string }) => ({
+  ...entretien,
+  statusInfo: getStatusStyle(entretien.status)
+}));
 
     return NextResponse.json({
       success: true,

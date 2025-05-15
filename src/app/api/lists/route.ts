@@ -3,6 +3,9 @@
 import { prisma } from '@/lib/prisma';
 import { NextResponse } from 'next/server';
 
+
+
+
 export async function GET() {
   try {
     console.log('🔍 Début de la récupération des listes');
@@ -22,9 +25,9 @@ export async function GET() {
     });
     
     console.log('📋 Détails des catégories:');
-    categories.forEach(cat => {
-      console.log(`- ${cat.name} (${cat.listId}): ${cat.items.length} items`);
-    });
+categories.forEach((cat: { name: string; listId: string; items: any[] }) => {
+  console.log(`- ${cat.name} (${cat.listId}): ${cat.items.length} items`);
+});
     
     if (categories.length === 0) {
       console.warn('⚠️ Aucune catégorie trouvée dans la base de données');

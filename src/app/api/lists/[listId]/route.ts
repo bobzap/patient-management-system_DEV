@@ -26,7 +26,7 @@ export async function PUT(
     }
 
     // Mise à jour en une seule transaction
-    const updatedCategory = await prisma.$transaction(async (tx) => {
+    const updatedCategory = await prisma.$transaction(async (tx: any) => {
       // Vérifier l'existence de la catégorie
       const category = await tx.listCategory.findUnique({
         where: { listId }
@@ -76,25 +76,27 @@ export async function PUT(
       message: 'Liste mise à jour avec succès'
     });
 
-  } catch (error) {
-    console.error('Erreur lors de la mise à jour:', error);
-    
-    // Gestion spécifique des erreurs
-    if (error.message.includes('non trouvée')) {
-      return NextResponse.json(
-        { error: error.message },
-        { status: 404 }
-      );
-    }
-
+  } catch (error: unknown) {
+  console.error('Erreur lors de la mise à jour:', error);
+   
+  // Gestion spécifique des erreurs
+  const err = error as Error;
+  
+  if (err.message.includes('non trouvée')) {
     return NextResponse.json(
-      { 
-        success: false,
-        error: 'Une erreur est survenue lors de la mise à jour de la liste'
-      },
-      { status: 500 }
+      { error: err.message },
+      { status: 404 }
     );
   }
+  
+  return NextResponse.json(
+    {
+      success: false,
+      error: 'Une erreur est survenue lors de la mise à jour de la liste'
+    },
+    { status: 500 }
+  );
+}
 }
 
 // Ajout de la méthode GET pour récupérer une liste spécifique

@@ -60,13 +60,18 @@ export async function GET() {
       orderBy: { createdAt: 'desc' }
     });
 
-    const formattedPatients = patients.map(patient => ({
-      ...patient,
-      dateNaissance: formatDate(patient.dateNaissance),
-      dateEntree: formatDate(patient.dateEntree),
-      dateEntretien: patient.dateEntretien ? formatDate(patient.dateEntretien) : '',
-      dateCreation: formatDate(patient.dateCreation)
-    }));
+    const formattedPatients = patients.map((patient: {
+  dateNaissance: string | Date;
+  dateEntree: string | Date;
+  dateEntretien?: string | Date;
+  dateCreation: string | Date;
+}) => ({
+  ...patient,
+  dateNaissance: formatDate(patient.dateNaissance),
+  dateEntree: formatDate(patient.dateEntree),
+  dateEntretien: patient.dateEntretien ? formatDate(patient.dateEntretien) : '',
+  dateCreation: formatDate(patient.dateCreation)
+}));
 
     return NextResponse.json({ data: formattedPatients });
   } catch (error) {
