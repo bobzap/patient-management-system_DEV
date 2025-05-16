@@ -6,7 +6,7 @@ set -e
 
 # Variables d'environnement (surchargées par celles du conteneur)
 DB_HOST=${POSTGRES_HOST:-db}
-DB_PORT=${POSTGRES_PORT:-5432}
+DB_PORT=${POSTGRES_PORT:-5433}
 DB_USER=${POSTGRES_USER:-postgres}
 DB_PASSWORD=${POSTGRES_PASSWORD:-postgres}
 DB_NAME=${POSTGRES_DB:-entretiendb}

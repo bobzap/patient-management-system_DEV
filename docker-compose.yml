@@ -19,11 +19,6 @@ services:
     volumes:
       - app-data:/app/data
       - ./logs:/app/logs
-    deploy:
-      resources:
-        limits:
-          memory: 1G
-          cpus: '1'
     security_opt:
       - no-new-privileges:true
     healthcheck:
@@ -51,7 +46,7 @@ services:
     networks:
       - backend-network
     ports:
-      - "127.0.0.1:5432:5432"  # Accessible uniquement en local
+      - "127.0.0.1:5433:5432"  # Accessible uniquement en local
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
       interval: 10s
@@ -120,34 +115,6 @@ services:
       - no-new-privileges:true
 
   # Service pour la sauvegarde automatique
-  backup:
-    image: postgres:16-alpine
-    container_name: entretien-infirmier-backup
-    volumes:
-      - ./backups:/backups
-      - ./scripts/backup.sh:/backup.sh:ro
-    depends_on:
-      - db
-    networks:
-      - backend-network
-    entrypoint: ["/bin/sh", "-c"]
-    command: >
-      "chmod +x /backup.sh && 
-      while :; do 
-        /backup.sh; 
-        echo 'Sauvegarde terminée. Prochaine sauvegarde dans 24h.'; 
-        sleep 24h; 
-      done"
-    security_opt:
-      - no-new-privileges:true
-    environment:
-      POSTGRES_HOST: db
-      POSTGRES_PORT: 5432
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      POSTGRES_DB: ${POSTGRES_DB:-entretiendb}
-      BACKUP_RETENTION_DAYS: 7
-
 networks:
   app-network:
     driver: bridge
@@ -158,10 +125,6 @@ networks:
 volumes:
   app-data:
     driver: local
-    driver_opts:
-      type: none
-      device: ${PWD}/data
-      o: bind
   postgres-data:
     driver: local
   redis-data:
