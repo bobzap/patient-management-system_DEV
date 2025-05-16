@@ -17,6 +17,32 @@ interface PatientDetailsProps {
   onDelete: () => void;
 }
 
+// Définir une interface pour les données biométriques
+interface BiometricData {
+  tension: string;
+  poids: string;
+  entretienNumero: number;
+  tensionEntretienNumero?: number;
+  poidsEntretienNumero?: number;
+}
+
+
+interface Entretien {
+  id: number;
+  numeroEntretien: number;
+  dateCreation: string;
+  status: string;
+  donneesEntretien: string;
+}
+
+interface SectionTitleProps {
+  title: string;
+  badge?: React.ReactNode;
+  children?: React.ReactNode;
+}
+
+
+
 export const PatientDetails = ({ patient, onEdit, onDelete }: PatientDetailsProps) => {
   const router = useRouter();
   const { deletePatient, updatePatient } = usePatients();
@@ -26,14 +52,16 @@ export const PatientDetails = ({ patient, onEdit, onDelete }: PatientDetailsProp
   const [selectedEntretienId, setSelectedEntretienId] = useState<number | null>(null);
   const [refreshEntretiens, setRefreshEntretiens] = useState(0);
   const [isReadOnly, setIsReadOnly] = useState(true);
-  const [entretiens, setEntretiens] = useState([]);
+  const [entretiens, setEntretiens] = useState<Entretien[]>([]);
   const [isLoading, setIsLoading] = useState(false); // Nouvel état pour le chargement
   const [entretiensLoaded, setEntretiensLoaded] = useState(false);
-  const [lastBiometricData, setLastBiometricData] = useState({
-    tension: '',
-    poids: '',
-    entretienNumero: 0 // Ajout du numéro d'entretien pour la traçabilité
-  });
+  const [lastBiometricData, setLastBiometricData] = useState<BiometricData>({
+  tension: '',
+  poids: '',
+  entretienNumero: 0,
+  tensionEntretienNumero: 0,
+  poidsEntretienNumero: 0
+});
 
   // Fonction pour traiter les suppressions d'entretiens
   const handleEntretienDelete = () => {
@@ -42,11 +70,18 @@ export const PatientDetails = ({ patient, onEdit, onDelete }: PatientDetailsProp
   };
 
   // Fonction pour chercher des données biométriques dans tous les entretiens
-  const findLastBiometricData = (entretiensList) => {
-    // Si pas d'entretiens, retourner des valeurs vides
-    if (!entretiensList || entretiensList.length === 0) {
-      return { tension: '', poids: '', entretienNumero: 0 };
-    }
+  // Correction de la fonction findLastBiometricData
+const findLastBiometricData = (entretiensList: Entretien[]): BiometricData => {
+  // Si pas d'entretiens, retourner des valeurs vides
+  if (!entretiensList || entretiensList.length === 0) {
+    return {
+      tension: '',
+      poids: '',
+      entretienNumero: 0,
+      tensionEntretienNumero: 0,
+      poidsEntretienNumero: 0
+    };
+  }
 
     // Variables pour stocker les dernières données trouvées
     let latestTension = '';
@@ -84,12 +119,13 @@ export const PatientDetails = ({ patient, onEdit, onDelete }: PatientDetailsProp
 
     // Retourner les données trouvées avec les numéros d'entretiens
     return {
-      tension: latestTension,
-      poids: latestPoids,
-      tensionEntretienNumero,
-      poidsEntretienNumero
-    };
+    tension: latestTension,
+    poids: latestPoids,
+    entretienNumero: 0,
+    tensionEntretienNumero: tensionEntretienNumero || 0,
+    poidsEntretienNumero: poidsEntretienNumero || 0
   };
+};
 
   // Effet pour charger les entretiens et extraire les données biométriques
   useEffect(() => {
@@ -106,7 +142,7 @@ export const PatientDetails = ({ patient, onEdit, onDelete }: PatientDetailsProp
           setEntretiens(result.data);
           
           // Chercher le dernier entretien avec des données biométriques
-          const entretienDetailsPromises = result.data.map(async (entretien) => {
+          const entretienDetailsPromises = result.data.map(async (entretien: Entretien) => {
             const entretienResponse = await fetch(`/api/entretiens/${entretien.id}`);
             return entretienResponse.json();
           });
@@ -210,15 +246,15 @@ export const PatientDetails = ({ patient, onEdit, onDelete }: PatientDetailsProp
   }
 
 
-  const SectionTitle = ({ title, badge = null, children = null }) => (
-    <div className="border-l-4 border-blue-500 pl-3 py-1 mb-4 flex justify-between items-center">
-      <div className="flex items-center gap-2">
-        <h3 className="text-lg font-semibold text-blue-900">{title}</h3>
-        {badge && badge}
-      </div>
-      {children}
+  const SectionTitle = ({ title, badge = null, children = null }: SectionTitleProps) => (
+  <div className="border-l-4 border-blue-500 pl-3 py-1 mb-4 flex justify-between items-center">
+    <div className="flex items-center gap-2">
+      <h3 className="text-lg font-semibold text-blue-900">{title}</h3>
+      {badge && badge}
     </div>
-  );
+    {children}
+  </div>
+);
 
   // src/components/patients/PatientDetails.tsx - Return complet
 return (
@@ -526,10 +562,10 @@ return (
                   
                   {/* Constantes médicales avec icônes */}
                   {(lastBiometricData.tension || lastBiometricData.poids) && (
-                    <div className="py-3">
-                      <p className="text-sm font-medium text-gray-500 mb-2">Constantes médicales</p>
-                      
-                      <div className="grid grid-cols-2 gap-4">
+  <div className="py-3">
+    <p title="Constantes médicales" className="text-sm font-medium text-gray-500 mb-2">Constantes médicales</p>
+    
+    <div className="grid grid-cols-2 gap-4">
                         {lastBiometricData.tension && (
                           <div className="flex items-start gap-2">
                             <div className="mt-0.5 flex-shrink-0 w-6 h-6 bg-red-100 rounded-full flex items-center justify-center">
@@ -543,11 +579,11 @@ return (
                                 <p className="text-base font-semibold text-gray-900">
                                   {lastBiometricData.tension} <span className="text-sm font-normal">mmHg</span>
                                 </p>
-                                {lastBiometricData.tensionEntretienNumero > 0 && (
-                                  <span className="ml-2 text-xs text-gray-500">
-                                    (n°{lastBiometricData.tensionEntretienNumero})
-                                  </span>
-                                )}
+                                {lastBiometricData.tensionEntretienNumero && lastBiometricData.tensionEntretienNumero > 0 && (
+  <span className="ml-2 text-xs text-gray-500">
+    (n°{lastBiometricData.tensionEntretienNumero})
+  </span>
+)}
                               </div>
                             </div>
                           </div>
@@ -566,11 +602,11 @@ return (
                                 <p className="text-base font-semibold text-gray-900">
                                   {lastBiometricData.poids} <span className="text-sm font-normal">kg</span>
                                 </p>
-                                {lastBiometricData.poidsEntretienNumero > 0 && (
-                                  <span className="ml-2 text-xs text-gray-500">
-                                    (n°{lastBiometricData.poidsEntretienNumero})
-                                  </span>
-                                )}
+                                {lastBiometricData.poidsEntretienNumero && lastBiometricData.poidsEntretienNumero > 0 && (
+  <span className="ml-2 text-xs text-gray-500">
+    (n°{lastBiometricData.poidsEntretienNumero})
+  </span>
+)}
                               </div>
                             </div>
                           </div>

@@ -176,10 +176,11 @@ const Calendar: React.FC = () => {
     } else {
       toast.error(data.error || 'Erreur lors de l\'enregistrement');
     }
-  } catch (error) {
-    console.error('Erreur lors de l\'enregistrement:', error);
-    toast.error(`Erreur: ${error.message}`);
-  }
+  } catch (error: unknown) {
+  const err = error as Error;
+  console.error('Erreur lors de l\'enregistrement:', err);
+  toast.error(`Erreur: ${err.message}`);
+}
 };
 
   const handleDeleteEvent = async (eventId: number) => {
@@ -271,7 +272,7 @@ const Calendar: React.FC = () => {
       }
       
       // Tableau pour stocker tous les événements
-      let allEvents = [];
+      let allEvents: CalendarEvent[] = [];
       
       // 1. Récupérer les événements manuels du calendrier
       try {

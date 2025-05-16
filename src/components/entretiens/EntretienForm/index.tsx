@@ -60,9 +60,20 @@ interface EntretienFormProps {
   onClose?: () => void;
 }
 
+
+interface IMAAProps {
+  data: any;
+  onChange: (newData: any) => void;
+  isReadOnly?: boolean; // Ajoutez cette propriété
+}
+
+
 // Données initiales
 const initialVecuTravailData: VecuTravailData = {
-  motifVisite: { motif: '', commentaires: '' },
+  motifVisite: { 
+    motifs: [''],  // Si le type attend un tableau de chaînes
+    commentaires: '' 
+  },
   postesOccupes: '',
   posteDeTravail: {
     descriptionTaches: '',
@@ -204,7 +215,8 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
       // Préparation des données
       const now = new Date();
       const entretienToSave: EntretienToSave = {
-        patientId: patient.id,
+        
+        patientId: patient.id || 0,
         numeroEntretien: entretienData.numeroEntretien,
         status: entretienData.status,
         donneesEntretien: JSON.stringify({
@@ -579,10 +591,10 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
       case 'imaa':
         return (
           <IMAA 
-            data={entretienData.imaa || {}}
-            onChange={handleImaaChange}
-            isReadOnly={isReadOnly}
-          />
+  data={entretienData.imaa || {}}
+  onChange={handleImaaChange}
+  // Supprimez isReadOnly si le composant ne l'accepte pas
+/>
         );
         
       case 'conclusion':
@@ -691,13 +703,10 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
           setEntretienData({
             numeroEntretien: result.data.numeroEntretien,
             status: result.data.status,
-            santeTravail: donnees.santeTravail || {
-              vecuTravail: initialVecuTravailData,
-              modeVie: initialModeVieData
-            },
-            examenClinique: donnees.examenClinique || defaultExamenCliniqueData,
-            imaa: donnees.imaa || {},
-            conclusion: donnees.conclusion || defaultConclusionData
+            santeTravail: entretienData.santeTravail || { vecuTravail: initialVecuTravailData, modeVie: initialModeVieData },
+examenClinique: entretienData.examenClinique || defaultExamenCliniqueData,
+imaa: entretienData.imaa || {},
+conclusion: entretienData.conclusion || defaultConclusionData
           });
           
           // Charger les données du timer
@@ -760,9 +769,11 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
           // Calculer le prochain numéro
           let nextNumber = 1;
           if (result.success && result.data && result.data.length > 0) {
-            const maxNumber = Math.max(...result.data.map(e => e.numeroEntretien || 0));
+            const maxNumber = Math.max(...result.data.map((e: any) => e.numeroEntretien || 0));
             nextNumber = maxNumber + 1;
           }
+
+          
           
           // Mettre à jour l'état
           setEntretienData(prev => ({
@@ -887,7 +898,7 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
         <label className="text-sm font-medium text-gray-700">Statut :</label>
         <select
           value={entretienData.status}
-          onChange={(e) => setEntretienData(prev => ({ ...prev, status: e.target.value }))}
+          onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setEntretienData(prev => ({ ...prev, status: e.target.value }))}
           className="px-3 py-2 text-sm bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
           <option value="brouillon">Brouillon</option>

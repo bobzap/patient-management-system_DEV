@@ -159,37 +159,29 @@ export const DayView: React.FC<DayViewProps> = ({
               className="h-24 border-b border-gray-200"
               // Dans la fonction onClick du jour
 onClick={() => {
-  if (!isCurrentMonth) {
-    console.log("Jour hors du mois courant:", day);
-  }
+  // Créer une nouvelle date à l'heure spécifique
+  const newDate = new Date(currentDate);
+  newDate.setHours(hour, 0, 0, 0);
   
-  // Créer une nouvelle date à midi de ce jour précis
-  const newDate = new Date(day);
-  newDate.setHours(12, 0, 0, 0);
+  console.log("DayView - Heure sélectionnée:", newDate.toString());
   
-  console.log("MonthView - Date sélectionnée:", newDate.toString());
-  
-  // Passer cette date directement
+  // Passer cette date au gestionnaire
   onSelectSlot(newDate);
 }}
             >
               {/* Sous-divisions 30 minutes */}
               <div 
-                className="h-1/2 border-b border-dashed border-gray-100"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  // Créer un événement à cette demi-heure
-                  const selectedDay = new Date(day);
-                  console.log('Jour sélectionné brut:', day);
-                  console.log('Jour sélectionné Date:', selectedDay);
-                  
-                  // Définir sur midi du jour sélectionné
-                  selectedDay.setHours(12, 0, 0, 0);
-                  console.log('Jour formaté pour événement:', selectedDay);
-                  
-                  onSelectSlot(selectedDay);
-                }}
-              ></div>
+  className="h-1/2 border-b border-dashed border-gray-100"
+  onClick={(e) => {
+    e.stopPropagation();
+    // Créer un événement à cette demi-heure
+    const selectedTime = new Date(currentDate);
+    selectedTime.setHours(hour, 30, 0, 0);
+    console.log('Heure et 30min sélectionnées:', selectedTime);
+    
+    onSelectSlot(selectedTime);
+  }}
+></div>
             </div>
           ))}
           
@@ -226,23 +218,23 @@ onClick={() => {
                   {getStatusIcon(event.status)} {event.title}
                 </div>
                 
-                {position.height > 10 && (
-                  <div className="text-sm mt-1">
-                    {format(new Date(event.startDate), 'HH:mm')} - {format(new Date(event.endDate), 'HH:mm')}
-                  </div>
-                )}
+                {parseFloat(String(position.height)) > 10 && (
+  <div className="text-sm mt-1">
+    {format(new Date(event.startDate), 'HH:mm')} - {format(new Date(event.endDate), 'HH:mm')}
+  </div>
+)}
                 
-                {position.height > 15 && event.patient && (
-                  <div className="text-sm mt-1">
-                    {event.patient.civilites} {event.patient.nom} {event.patient.prenom}
-                  </div>
-                )}
-                
-                {position.height > 25 && event.description && (
-                  <div className="text-sm mt-1 opacity-80 line-clamp-3">
-                    {event.description}
-                  </div>
-                )}
+                {parseFloat(String(position.height)) > 15 && event.patient && (
+  <div className="text-sm mt-1">
+    {event.patient.civilites} {event.patient.nom} {event.patient.prenom}
+  </div>
+)}
+
+{parseFloat(String(position.height)) > 25 && event.description && (
+  <div className="text-sm mt-1 opacity-80 line-clamp-3">
+    {event.description}
+  </div>
+)}
               </div>
             );
           })}

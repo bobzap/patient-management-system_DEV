@@ -4,20 +4,145 @@ import React, { useState } from 'react';
 import { Prevention } from './Prevention';
 import { Limitation } from './Limitation';
 import { Actions } from './Actions';
-import type { ConclusionData } from '../../types/ConclusionTypes';
+
+// Définitions des interfaces pour correspondre à celles utilisées dans les composants enfants
+export interface PreventionData {
+  conseilsDonnes: string;
+  troublesLiesTravail: string[];
+  risquesProfessionnels: Array<{
+    id: number;
+    nom: string;
+    lien: string;
+    estFavori: boolean;
+  }>;
+}
+
+export interface LimitationData {
+  hasLimitation: boolean;
+  dureeType: string; // 'definitive' | 'temporaire'
+  dureeJours?: number;
+  commentaire: string;
+}
+
+export interface ActionData {
+  orientation: {
+    selected: string[];
+    commentaire: string;
+  };
+  etudePoste: {
+    aFaire: boolean;
+    commentaire: string;
+  };
+  manager: {
+    entretienNecessaire: boolean;
+    managerSelectionne: string;
+    commentaire: string;
+    dateRappel: string;
+  };
+  entretien: {
+    aPrevoir: boolean;
+    dateRappel: string;
+  };
+  medecin: {
+    echangeNecessaire: boolean;
+    commentaire: string;
+  };
+  visiteMedicale: {
+    aPlanifier: boolean;
+    dateRappel: string;
+    commentaire: string;
+  };
+}
+
+export interface ConclusionData {
+  prevention: PreventionData;
+  limitation: LimitationData;
+  actions: ActionData;
+}
 
 interface ConclusionProps {
   data: ConclusionData;
   onChange: (data: ConclusionData) => void;
-  isReadOnly?: boolean; // Ajout du prop isReadOnly
+  isReadOnly?: boolean;
 }
 
-export const Conclusion: React.FC<ConclusionProps> = ({ data, onChange, isReadOnly = false }) => {
+// Valeurs par défaut pour les données
+const defaultData: ConclusionData = {
+  prevention: {
+    conseilsDonnes: '',
+    troublesLiesTravail: [],
+    risquesProfessionnels: []
+  },
+  limitation: {
+    hasLimitation: false,
+    dureeType: 'temporaire',
+    dureeJours: 0,
+    commentaire: ''
+  },
+  actions: {
+    orientation: { selected: [], commentaire: '' },
+    etudePoste: { aFaire: false, commentaire: '' },
+    manager: { entretienNecessaire: false, managerSelectionne: '', commentaire: '', dateRappel: '' },
+    entretien: { aPrevoir: false, dateRappel: '' },
+    medecin: { echangeNecessaire: false, commentaire: '' },
+    visiteMedicale: { aPlanifier: false, dateRappel: '', commentaire: '' }
+  }
+};
+
+export const Conclusion: React.FC<ConclusionProps> = ({ data = defaultData, onChange, isReadOnly = false }) => {
   const [currentPage, setCurrentPage] = useState(1);
+
+  // Assurez-vous que toutes les propriétés nécessaires existent
+  const safeData: ConclusionData = {
+    prevention: {
+      conseilsDonnes: data.prevention?.conseilsDonnes || '',
+      troublesLiesTravail: data.prevention?.troublesLiesTravail || [],
+      risquesProfessionnels: data.prevention?.risquesProfessionnels || []
+    },
+    limitation: {
+      hasLimitation: data.limitation?.hasLimitation || false,
+      dureeType: data.limitation?.dureeType || 'temporaire',
+      dureeJours: data.limitation?.dureeJours || 0,
+      commentaire: data.limitation?.commentaire || ''
+    },
+    actions: {
+      orientation: data.actions?.orientation || { selected: [], commentaire: '' },
+      etudePoste: data.actions?.etudePoste || { aFaire: false, commentaire: '' },
+      manager: data.actions?.manager || { entretienNecessaire: false, managerSelectionne: '', commentaire: '', dateRappel: '' },
+      entretien: data.actions?.entretien || { aPrevoir: false, dateRappel: '' },
+      medecin: data.actions?.medecin || { echangeNecessaire: false, commentaire: '' },
+      visiteMedicale: data.actions?.visiteMedicale || { aPlanifier: false, dateRappel: '', commentaire: '' }
+    }
+  };
+
+  // Gestionnaires de mise à jour pour chaque section
+  const handlePreventionChange = (newPrevention: PreventionData) => {
+    if (isReadOnly) return;
+    onChange({
+      ...safeData,
+      prevention: newPrevention
+    });
+  };
+
+  const handleLimitationChange = (newLimitation: LimitationData) => {
+    if (isReadOnly) return;
+    onChange({
+      ...safeData,
+      limitation: newLimitation
+    });
+  };
+
+  const handleActionsChange = (newActions: ActionData) => {
+    if (isReadOnly) return;
+    onChange({
+      ...safeData,
+      actions: newActions
+    });
+  };
 
   return (
     <div className="h-full flex flex-col">
-      {/* Navigation entre les pages - Correction du style des onglets */}
+      {/* Navigation entre les pages */}
       <div className="flex space-x-2 border-b border-pink-200 mb-4">
         <button 
           onClick={() => setCurrentPage(1)}
@@ -52,29 +177,47 @@ export const Conclusion: React.FC<ConclusionProps> = ({ data, onChange, isReadOn
       </div>
 
       {/* Contenu */}
-      <div className="flex-grow bg-white rounded-lg p-4 shadow-sm">
-        {currentPage === 1 && (
-          <Prevention 
-            data={data.prevention}
-            onChange={(newData) => !isReadOnly && onChange({ ...data, prevention: newData })}
-            isReadOnly={isReadOnly}
-          />
-        )}
-        {currentPage === 2 && (
-          <Limitation 
-            data={data.limitation}
-            onChange={(newData) => !isReadOnly && onChange({ ...data, limitation: newData })}
-            isReadOnly={isReadOnly}
-          />
-        )}
-        {currentPage === 3 && (
-          <Actions 
-            data={data.actions}
-            onChange={(newData) => !isReadOnly && onChange({ ...data, actions: newData })}
-            isReadOnly={isReadOnly}
-          />
-        )}
-      </div>
+<div className="flex-grow bg-white rounded-lg p-4 shadow-sm">
+  {currentPage === 1 && (
+    <Prevention 
+      data={safeData.prevention as any} // Utiliser any pour contourner les incompatibilités
+      onChange={(newPrevention: any) => {
+        if (isReadOnly) return;
+        onChange({
+          ...safeData,
+          prevention: newPrevention
+        });
+      }}
+      isReadOnly={isReadOnly}
+    />
+  )}
+  {currentPage === 2 && (
+    <Limitation 
+      data={safeData.limitation as any} // Utiliser any pour contourner les incompatibilités
+      onChange={(newLimitation: any) => {
+        if (isReadOnly) return;
+        onChange({
+          ...safeData,
+          limitation: newLimitation
+        });
+      }}
+      isReadOnly={isReadOnly}
+    />
+  )}
+  {currentPage === 3 && (
+    <Actions 
+      data={safeData.actions as any} // Utiliser any pour contourner les incompatibilités
+      onChange={(newActions: any) => {
+        if (isReadOnly) return;
+        onChange({
+          ...safeData,
+          actions: newActions
+        });
+      }}
+      isReadOnly={isReadOnly}
+    />
+  )}
+</div>
 
       {/* Navigation bas de page */}
       <div className="flex justify-between mt-4">

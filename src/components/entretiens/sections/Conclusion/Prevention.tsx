@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Search, Star, X } from 'lucide-react';
 
+
 interface ListItem {
   value: string;
 }
@@ -29,7 +30,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@/components/ui/Select";
 import { Label } from "@/components/ui/label";
 
 interface PreventionProps {
