@@ -2,19 +2,20 @@
 # Multi-stage build pour optimisation et sécurité
 
 # Stage 1: Dépendances et build
-FROM node:23-alpine
+FROM node:20-alpine
 
 # Définir le répertoire de travail
 WORKDIR /app
 
 # Mise à jour des packages pour corriger les vulnérabilités
 RUN apk update && apk upgrade && \
-    apk add --no-cache python3 make g++ libc6-compat && \
-    openssl version && \
+    apk add --no-cache python3 make g++ libc6-compat openssl && \
+    openssl version
 
 # Définir les variables d'environnement de build
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
+
 
 # Copier package.json et package-lock.json
 COPY package*.json ./
@@ -32,12 +33,15 @@ RUN npx prisma generate
 RUN npm run build
 
 # Variables d'environnement
-ENV NODE_ENV=production
+#ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
 # Créer un utilisateur non-root pour la sécurité
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
+
+    RUN mkdir -p /app/prisma && \
+    chown -R nextjs:nodejs /app/prisma
     
 # Script d'initialisation
 COPY --chown=nextjs:nodejs docker-entrypoint.sh ./
