@@ -2,15 +2,14 @@
 # Multi-stage build pour optimisation et sécurité
 
 # Stage 1: Dépendances et build
-FROM node:20-alpine
+FROM node:23-alpine
 
 # Définir le répertoire de travail
 WORKDIR /app
 
 # Mise à jour des packages pour corriger les vulnérabilités
 RUN apk update && apk upgrade && \
-    apk add --no-cache python3 make g++ libc6-compat openssl && \
-    openssl version
+    apk add --no-cache python3 make g++ libc6-compat openssl
 
 # Définir les variables d'environnement de build
 ENV NODE_ENV=production

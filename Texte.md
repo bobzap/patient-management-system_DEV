@@ -6,3 +6,5 @@ git push gitlab main
 
 git remote add github https://github.com/bobzap/patient-management-system_DEV.git
 git remote add gitlab https://gitlab.com/ldaz-group/patient-management-system.git
+
+test
