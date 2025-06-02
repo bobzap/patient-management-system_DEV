@@ -10,12 +10,8 @@ services:
       - "3000:3000"
     env_file:
       - .env.production
-    depends_on:
-      - db
-      - redis
     networks:
       - app-network
-      - backend-network
     volumes:
       - app-data:/app/data
       - ./logs:/app/logs
@@ -101,7 +97,7 @@ services:
     security_opt:
       - no-new-privileges:true
 
-  # Service pour les certificats SSL
+  # Garder certbot si vous utilisez HTTPS
   certbot:
     image: certbot/certbot
     container_name: entretien-infirmier-certbot
@@ -119,9 +115,6 @@ services:
 networks:
   app-network:
     driver: bridge
-  backend-network:
-    driver: bridge
-    internal: true  # Réseau interne non accessible de l'extérieur
 
 volumes:
   app-data:
