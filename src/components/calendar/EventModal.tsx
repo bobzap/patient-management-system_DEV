@@ -54,7 +54,10 @@ export const EventModal: React.FC<EventModalProps> = ({
   const [showPatientSearch, setShowPatientSearch] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  
+  const isGeneratedEvent = event && typeof event.id === 'string' && event.id.toString().startsWith('entretien-');
+const isReadOnly = isGeneratedEvent;
+const [hasChanges, setHasChanges] = useState(false);
+const [originalData, setOriginalData] = useState<any>(null);
   // États pour les titres prédéfinis
   const [predefinedTitles, setPredefinedTitles] = useState<PredefinedTitle[]>([
     { id: '1', title: 'Visite annuelle' },
@@ -136,6 +139,54 @@ export const EventModal: React.FC<EventModalProps> = ({
       setIsCustomTitle(true);
     }
   }, [event, initialDate, eventTypes, predefinedTitles]);
+
+// Sauvegarder les données originales
+useEffect(() => {
+  if (event) {
+    setOriginalData({
+      title: event.title,
+      description: event.description || '',
+      startDate: format(new Date(event.startDate), 'yyyy-MM-dd'),
+      startTime: format(new Date(event.startDate), 'HH:mm'),
+      endDate: format(new Date(event.endDate), 'yyyy-MM-dd'),
+      endTime: format(new Date(event.endDate), 'HH:mm'),
+      allDay: event.allDay,
+      selectedEventTypes: typeof event.eventType === 'string' 
+        ? event.eventType.split(',') 
+        : event.eventType,
+      status: event.status,
+      patientId: event.patientId || null
+    });
+  }
+}, [event]);
+
+// Détecter les changements
+useEffect(() => {
+  if (!originalData) return;
+  
+  console.log('Current values:', { title, description });
+  console.log('Original values:', { title: originalData.title, description: originalData.description });
+  
+
+  const hasChanged = (
+    title !== originalData.title ||
+    description !== originalData.description ||
+    startDate !== originalData.startDate ||
+    startTime !== originalData.startTime ||
+    endDate !== originalData.endDate ||
+    endTime !== originalData.endTime ||
+    allDay !== originalData.allDay ||
+    status !== originalData.status ||
+    patientId !== originalData.patientId ||
+    JSON.stringify(selectedEventTypes) !== JSON.stringify(originalData.selectedEventTypes)
+  );
+
+  console.log('Has changes:', hasChanged);
+  
+  setHasChanges(hasChanged);
+}, [title, description, startDate, startTime, endDate, endTime, allDay, status, patientId, selectedEventTypes, originalData]);
+
+
 
   // Effet pour mettre à jour le titre lorsqu'un patient est sélectionné
   useEffect(() => {

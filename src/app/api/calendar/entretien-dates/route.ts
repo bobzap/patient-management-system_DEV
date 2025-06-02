@@ -1,61 +1,64 @@
 // src/app/api/calendar/entretien-dates/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { createServerSupabase } from '@/lib/supabase';
 
 export async function GET(request: NextRequest) {
   try {
-    // Récupérer les entretiens finalisés
-    const entretiens = await prisma.entretien.findMany({
-      where: {
-        status: 'finalise' // Ou le statut que vous utilisez pour les entretiens finalisés
-      },
-      include: {
-        patient: {
-          select: {
-            id: true,
-            civilites: true,
-            nom: true,
-            prenom: true,
-            departement: true,
-          },
-        },
-      }
-    });
+    const supabase = createServerSupabase();
     
-    // Extraire les dates importantes de chaque entretien
+    // Récupérer les entretiens finalisés avec patients
+    const { data: entretiens, error } = await supabase
+      .from('entretiens')
+      .select(`
+        *,
+        patients (
+          id,
+          civilites,
+          nom,
+          prenom,
+          departement
+        )
+      `)
+      .eq('status', 'finalise');
+
+    if (error) {
+      console.error('Erreur Supabase:', error);
+      return NextResponse.json(
+        { success: false, error: error.message },
+        { status: 500 }
+      );
+    }
+   
     const events = [];
-    
+   
     for (const entretien of entretiens) {
       try {
-        // Transformer les données JSON en objet JavaScript
-        const donneesEntretien = JSON.parse(entretien.donneesEntretien);
+        if (!entretien.donnees_entretien) continue;
         
-        // Chercher des champs de date dans l'entretien
-        // Par exemple, si vous avez des champs comme "dateProchainRDV", "dateRappel", etc.
+        const donneesEntretien = JSON.parse(entretien.donnees_entretien);
+       
+        // Chercher des dates dans l'entretien
         if (donneesEntretien.dateProchainRDV) {
           events.push({
             id: `entretien-${entretien.id}-prochain-rdv`,
-            title: `Prochain RDV - ${entretien.patient.prenom} ${entretien.patient.nom}`,
+            title: `Prochain RDV - ${entretien.patients.prenom} ${entretien.patients.nom}`,
             description: "Rendez-vous planifié lors d'un entretien",
             startDate: new Date(donneesEntretien.dateProchainRDV),
-            endDate: new Date(new Date(donneesEntretien.dateProchainRDV).getTime() + 60*60*1000), // +1 heure par défaut
+            endDate: new Date(new Date(donneesEntretien.dateProchainRDV).getTime() + 60*60*1000),
             allDay: false,
             eventType: "Rendez-vous planifié",
             status: "Planifié",
-            patientId: entretien.patientId,
-            patient: entretien.patient,
+            patientId: entretien.patient_id,
+            patient: entretien.patients,
             entretienId: entretien.id
           });
         }
-        
-        // Autres dates à extraire selon votre structure...
-        
+       
       } catch (error) {
         console.error(`Erreur lors du traitement de l'entretien ${entretien.id}:`, error);
-        // Continuer avec le prochain entretien
       }
     }
-    
+   
     return NextResponse.json({
       success: true,
       data: events

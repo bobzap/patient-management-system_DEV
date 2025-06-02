@@ -126,21 +126,27 @@ const Calendar: React.FC = () => {
   };
 
   // 5. Fonctions de gestion des événements
-  const handleSaveEvent = async (eventData: Partial<CalendarEvent>) => {
+const handleSaveEvent = async (eventData: Partial<CalendarEvent>) => {
   try {
+    // Vérifier si c'est un événement généré par son ID (entretien-xxx)
+    if (selectedEvent && typeof selectedEvent.id === 'string' && selectedEvent.id.startsWith('entretien-')) {
+      toast.warning('Cet événement provient d\'un entretien et ne peut pas être modifié');
+      return;
+    }
+    
     let response;
     
     // Prétraiter eventData pour s'assurer que eventType est correctement formaté
     const processedEventData = { 
       ...eventData,
-      // Si eventType est un tableau, le convertir en chaîne
+      // Convertir le tableau en string séparée par des virgules pour l'API
       eventType: Array.isArray(eventData.eventType) 
         ? eventData.eventType.join(',') 
         : eventData.eventType
     };
     
-    if (selectedEvent) {
-      // Mise à jour d'un événement existant
+    if (selectedEvent && typeof selectedEvent.id === 'number') {
+      // Mise à jour d'un événement existant (ID numérique = événement manuel)
       response = await fetch(`/api/calendar/${selectedEvent.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -177,10 +183,10 @@ const Calendar: React.FC = () => {
       toast.error(data.error || 'Erreur lors de l\'enregistrement');
     }
   } catch (error: unknown) {
-  const err = error as Error;
-  console.error('Erreur lors de l\'enregistrement:', err);
-  toast.error(`Erreur: ${err.message}`);
-}
+    const err = error as Error;
+    console.error('Erreur lors de l\'enregistrement:', err);
+    toast.error(`Erreur: ${err.message}`);
+  }
 };
 
   const handleDeleteEvent = async (eventId: number) => {

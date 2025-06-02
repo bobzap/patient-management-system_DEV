@@ -1,8 +1,6 @@
 // src/app/api/patients/[id]/entretiens/route.ts
-// Modifions cette partie pour corriger l'erreur
-
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { createServerSupabase } from '@/lib/supabase';
 
 // Fonction de formatage du statut
 function getStatusStyle(status: string) {
@@ -31,23 +29,47 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
+    const supabase = createServerSupabase();
     const patientId = parseInt(params.id);
-    
+   
     if (isNaN(patientId)) {
       return NextResponse.json({ success: false, error: 'ID patient invalide' }, { status: 400 });
     }
 
-    // Récupérer les entretiens du patient
-    const entretiens = await prisma.entretien.findMany({
-      where: { patientId },
-      orderBy: { dateCreation: 'desc' },
-    });
+    // Récupérer les entretiens du patient depuis Supabase
+    const { data: entretiens, error } = await supabase
+      .from('entretiens')
+      .select('*')
+      .eq('patient_id', patientId)
+      .order('date_creation', { ascending: false });
 
-    // Ajouter les styles de statut
-    const formattedEntretiens = entretiens.map((entretien: { status: string }) => ({
-  ...entretien,
-  statusInfo: getStatusStyle(entretien.status)
-}));
+    if (error) {
+      console.error('Erreur Supabase:', error);
+      return NextResponse.json(
+        { success: false, error: error.message },
+        { status: 500 }
+      );
+    }
+
+    // Conversion snake_case → camelCase et ajout des styles de statut
+    const formattedEntretiens = entretiens.map((entretien: any) => ({
+      ...entretien,
+      // Conversion des noms de colonnes
+      patientId: entretien.patient_id,
+      numeroEntretien: entretien.numero_entretien,
+      dateCreation: entretien.date_creation,
+      dateModification: entretien.date_modification,
+      isTemplate: entretien.is_template,
+      baseEntretienId: entretien.base_entretien_id,
+      donneesEntretien: entretien.donnees_entretien,
+      tempsDebut: entretien.temps_debut,
+      tempsFin: entretien.temps_fin,
+      tempsPause: entretien.temps_pause,
+      enPause: entretien.en_pause,
+      dernierePause: entretien.derniere_pause,
+      // Ajout du style de statut
+      statusInfo: getStatusStyle(entretien.status)
+    }));
 
     return NextResponse.json({
       success: true,

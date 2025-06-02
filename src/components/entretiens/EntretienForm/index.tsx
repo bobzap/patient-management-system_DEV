@@ -215,17 +215,16 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
       // Préparation des données
       const now = new Date();
       const entretienToSave: EntretienToSave = {
-        
-        patientId: patient.id || 0,
-        numeroEntretien: entretienData.numeroEntretien,
-        status: entretienData.status,
-        donneesEntretien: JSON.stringify({
-          santeTravail: entretienData.santeTravail,
-          examenClinique: entretienData.examenClinique,
-          imaa: entretienData.imaa,
-          conclusion: entretienData.conclusion
-        })
-      };
+  patientId: patient.id || 0,
+  numeroEntretien: entretienData.numeroEntretien,
+  status: entretienData.status,
+  donneesEntretien: JSON.stringify({
+    santeTravail: entretienData.santeTravail,
+    examenClinique: entretienData.examenClinique,
+    imaa: entretienData.imaa,
+    conclusion: entretienData.conclusion
+  })
+};
       
       // Si c'est un nouvel entretien, ajouter les données du timer
       if (!currentId) {
