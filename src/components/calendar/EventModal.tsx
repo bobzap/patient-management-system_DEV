@@ -14,14 +14,35 @@ interface PredefinedTitle {
   title: string;
 }
 
+
+export type CalendarEvent = {
+  id: number | string; // ← Modification ici
+  title: string;
+  description?: string;
+  startDate: Date | string;
+  endDate: Date | string;
+  allDay: boolean;
+  eventType: string | string[];
+  status: string;
+  patientId?: number;
+  entretienId?: number;
+  metadata?: string;
+  patient?: {
+    id: number;
+    civilites: string;
+    nom: string;
+    prenom: string;
+    departement: string;
+  };
+};
 interface EventModalProps {
   event: CalendarEvent | null;
   initialDate: Date | null;
   isOpen: boolean;
   onClose: () => void;
   onSave: (event: Partial<CalendarEvent>) => void;
-  onDelete: (eventId: number) => void;
-  onUpdateStatus: (eventId: number, status: string) => void;
+  onDelete: (eventId: number | string) => void; // ← Modification ici
+  onUpdateStatus: (eventId: number | string, status: string) => void; // ← Modification ici
   eventTypes: string[];
   statusTypes: string[];
 }
@@ -54,8 +75,8 @@ export const EventModal: React.FC<EventModalProps> = ({
   const [showPatientSearch, setShowPatientSearch] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const isGeneratedEvent = event && typeof event.id === 'string' && event.id.toString().startsWith('entretien-');
-const isReadOnly = isGeneratedEvent;
+    const isGeneratedEvent = event && typeof event.id === 'string' && event.id.toString().startsWith('entretien-');
+  const isReadOnly = isGeneratedEvent;
 const [hasChanges, setHasChanges] = useState(false);
 const [originalData, setOriginalData] = useState<any>(null);
   // États pour les titres prédéfinis

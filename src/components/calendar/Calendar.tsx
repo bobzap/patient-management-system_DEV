@@ -128,25 +128,25 @@ const Calendar: React.FC = () => {
   // 5. Fonctions de gestion des événements
 const handleSaveEvent = async (eventData: Partial<CalendarEvent>) => {
   try {
-    // Vérifier si c'est un événement généré par son ID (entretien-xxx)
+    // Vérifier si c'est un événement généré (ID string commençant par 'entretien-')
     if (selectedEvent && typeof selectedEvent.id === 'string' && selectedEvent.id.startsWith('entretien-')) {
       toast.warning('Cet événement provient d\'un entretien et ne peut pas être modifié');
       return;
     }
-    
+
     let response;
     
     // Prétraiter eventData pour s'assurer que eventType est correctement formaté
     const processedEventData = { 
       ...eventData,
-      // Convertir le tableau en string séparée par des virgules pour l'API
+      // Convertir eventType en chaîne si c'est un tableau
       eventType: Array.isArray(eventData.eventType) 
         ? eventData.eventType.join(',') 
         : eventData.eventType
     };
     
     if (selectedEvent && typeof selectedEvent.id === 'number') {
-      // Mise à jour d'un événement existant (ID numérique = événement manuel)
+      // Mise à jour d'un événement existant (seulement si ID numérique)
       response = await fetch(`/api/calendar/${selectedEvent.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -189,52 +189,64 @@ const handleSaveEvent = async (eventData: Partial<CalendarEvent>) => {
   }
 };
 
-  const handleDeleteEvent = async (eventId: number) => {
-    try {
-      const response = await fetch(`/api/calendar/${eventId}`, {
-        method: 'DELETE',
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Erreur HTTP: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      
-      if (data.success) {
-        toast.success('Événement supprimé');
-        handleCloseModal();
-        fetchEvents(); // Recharger les événements
-      } else {
-        toast.error(data.error || 'Erreur lors de la suppression');
-      }
-    } catch (error) {
-      console.error('Erreur lors de la suppression:', error);
-      toast.error('Erreur lors de la suppression de l\'événement');
+const handleDeleteEvent = async (eventId: number | string) => {
+  try {
+    // Bloquer la suppression des événements générés
+    if (typeof eventId === 'string' && eventId.startsWith('entretien-')) {
+      toast.warning('Cet événement provient d\'un entretien et ne peut pas être supprimé');
+      return;
     }
-  };
 
-  const handleUpdateStatus = async (eventId: number, newStatus: string) => {
-    try {
-      const response = await fetch(`/api/calendar/${eventId}/status`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus })
-      });
-      
-      const data = await response.json();
-      
-      if (data.success) {
-        toast.success(`Statut changé en: ${newStatus}`);
-        fetchEvents(); // Recharger les événements
-      } else {
-        toast.error(data.error || 'Erreur lors du changement de statut');
-      }
-    } catch (error) {
-      console.error('Erreur lors du changement de statut:', error);
-      toast.error('Erreur lors du changement de statut');
+    const response = await fetch(`/api/calendar/${eventId}`, {
+      method: 'DELETE',
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Erreur HTTP: ${response.status}`);
     }
-  };
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      toast.success('Événement supprimé');
+      handleCloseModal();
+      fetchEvents(); // Recharger les événements
+    } else {
+      toast.error(data.error || 'Erreur lors de la suppression');
+    }
+  } catch (error) {
+    console.error('Erreur lors de la suppression:', error);
+    toast.error('Erreur lors de la suppression de l\'événement');
+  }
+};
+
+const handleUpdateStatus = async (eventId: number | string, newStatus: string) => {
+  try {
+    // Bloquer les changements de statut pour les événements générés
+    if (typeof eventId === 'string' && eventId.startsWith('entretien-')) {
+      toast.warning('Le statut de cet événement ne peut pas être modifié');
+      return;
+    }
+
+    const response = await fetch(`/api/calendar/${eventId}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: newStatus })
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      toast.success(`Statut changé en: ${newStatus}`);
+      fetchEvents(); // Recharger les événements
+    } else {
+      toast.error(data.error || 'Erreur lors du changement de statut');
+    }
+  } catch (error) {
+    console.error('Erreur lors du changement de statut:', error);
+    toast.error('Erreur lors du changement de statut');
+  }
+};
 
 
   // Fonction pour traiter les types d'événements multiples

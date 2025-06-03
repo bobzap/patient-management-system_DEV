@@ -1,84 +1,85 @@
 // src/app/api/calendar/[id]/status/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerSupabase } from '@/lib/supabase';
+import { prisma } from '@/lib/prisma';
 
+// PATCH: Mettre à jour uniquement le statut d'un événement
 export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const supabase = createServerSupabase();
     const id = parseInt(params.id);
-   
+    
     if (isNaN(id)) {
       return NextResponse.json(
-        { success: false, error: 'ID invalide' },
+        {
+          success: false,
+          error: 'ID invalide',
+        },
         { status: 400 }
       );
     }
-   
+    
     const data = await request.json();
-   
+    
+    // Vérifier que le statut est fourni
     if (!data.status) {
       return NextResponse.json(
-        { success: false, error: 'Statut non spécifié' },
+        {
+          success: false,
+          error: 'Statut non spécifié',
+        },
         { status: 400 }
       );
     }
-   
-    const { data: updatedEvent, error } = await supabase
-      .from('calendar_events')
-      .update({ status: data.status })
-      .eq('id', id)
-      .select(`
-        *,
-        patients (
-          id,
-          civilites,
-          nom,
-          prenom,
-          departement
-        )
-      `)
-      .single();
-   
-    if (error) {
-      if (error.code === 'PGRST116') {
-        return NextResponse.json(
-          { success: false, error: 'Événement non trouvé' },
-          { status: 404 }
-        );
-      }
+    
+    // Vérification que l'événement existe
+    const existingEvent = await prisma.calendarEvent.findUnique({
+      where: { id },
+    });
+    
+    if (!existingEvent) {
       return NextResponse.json(
-        { success: false, error: error.message },
-        { status: 500 }
+        {
+          success: false,
+          error: 'Événement non trouvé',
+        },
+        { status: 404 }
       );
     }
-
-    // Conversion pour le frontend
-    const formattedEvent = {
-      ...updatedEvent,
-      startDate: updatedEvent.start_date,
-      endDate: updatedEvent.end_date,
-      allDay: updatedEvent.all_day,
-      eventTypeString: updatedEvent.event_type_string,
-      patientId: updatedEvent.patient_id,
-      entretienId: updatedEvent.entretien_id,
-      createdAt: updatedEvent.created_at,
-      updatedAt: updatedEvent.date_modification,
-      createdBy: updatedEvent.created_by,
-      parentEventId: updatedEvent.parent_event_id,
-      patient: updatedEvent.patients
-    };
-   
+    
+    // Mise à jour du statut
+    const updatedEvent = await prisma.calendarEvent.update({
+      where: { id },
+      data: {
+        status: data.status,
+        // Mise à jour de la date de modification
+        updatedAt: new Date(),
+      },
+      include: {
+        patient: {
+          select: {
+            id: true,
+            civilites: true,
+            nom: true,
+            prenom: true,
+            departement: true,
+          },
+        },
+      },
+    });
+    
     return NextResponse.json({
       success: true,
-      data: formattedEvent,
+      data: updatedEvent,
     });
   } catch (error) {
     console.error('Erreur lors de la mise à jour du statut:', error);
     return NextResponse.json(
-      { success: false, error: 'Erreur serveur' },
+      {
+        success: false,
+        error: 'Erreur lors de la mise à jour du statut',
+      },
       { status: 500 }
     );
   }
