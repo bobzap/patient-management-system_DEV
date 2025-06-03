@@ -700,13 +700,13 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
           
           // Mise à jour de l'état
           setEntretienData({
-            numeroEntretien: result.data.numeroEntretien,
-            status: result.data.status,
-            santeTravail: entretienData.santeTravail || { vecuTravail: initialVecuTravailData, modeVie: initialModeVieData },
-examenClinique: entretienData.examenClinique || defaultExamenCliniqueData,
-imaa: entretienData.imaa || {},
-conclusion: entretienData.conclusion || defaultConclusionData
-          });
+  numeroEntretien: result.data.numeroEntretien,
+  status: result.data.status,
+  santeTravail: donnees.santeTravail || { vecuTravail: initialVecuTravailData, modeVie: initialModeVieData },
+  examenClinique: donnees.examenClinique || defaultExamenCliniqueData,
+  imaa: donnees.imaa || {},
+  conclusion: donnees.conclusion || defaultConclusionData
+});
           
           // Charger les données du timer
           if (result.data.tempsDebut) {
