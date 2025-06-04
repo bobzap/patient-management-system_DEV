@@ -6,3 +6,8 @@
 .env.keys
 .env.local
 .env.*.local
+
+
+
+supabase-local-setup.md
+supabase-production-setup.md
