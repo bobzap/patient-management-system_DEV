@@ -1,0 +1,88 @@
+# 📋 ROADMAP VITAL-SYNC - Ce qui reste à faire
+
+## ✅ **PHASE 1 & 2 TERMINÉES - BRAVO !**
+- ✅ Base de données isolée d'Internet
+- ✅ Firewall restrictif configuré
+- ✅ SSL automatique (Let's Encrypt)
+- ✅ Architecture Traefik professionnelle
+- ✅ Domaines sécurisés (vital-sync.ch)
+
+## 🚨 **PHASE 3 : AUTHENTIFICATION - URGENT !**
+
+### **Problème actuel :**
+- ❌ **Supabase Studio** accessible à TOUS sur Internet
+- ❌ **Votre future app** sera publique sans protection
+- ❌ **Données médicales** consultables par n'importe qui
+
+### **Solution : Authentification obligatoire**
+**Objectif :** Seuls les utilisateurs autorisés peuvent accéder
+
+#### **Option A : Infomaniak Auth** (Recommandé Swiss-made)
+- ✅ **100% Swiss** (données en Suisse)
+- ✅ **Conformité RGPD** native
+- ✅ **Support français**
+- ✅ **Intégration** avec vos autres services Infomaniak
+
+#### **Option B : Authentification basique Traefik**
+- ✅ **Rapide à mettre en place** (1-2h)
+- ✅ **Protection immédiate** du Studio
+- ✅ **Users/passwords** simples
+- ❌ **Moins sophistiqué** qu'Infomaniak Auth
+
+## 🎯 **PROCHAINES PHASES**
+
+### **PHASE 4 : GESTION DES RÔLES** (après auth)
+- **INFIRMIER** → Accès patient + entretiens
+- **ADMIN** → Accès complet + gestion utilisateurs
+- **SUPER_ADMIN** → Accès système + base de données
+
+### **PHASE 5 : APPLICATION MÉTIER** 
+- **Interface patient** sécurisée
+- **Formulaires d'entretien** 
+- **Calendrier** intégré
+- **Exports** sécurisés
+
+### **PHASE 6 : CONFORMITÉ RGPD**
+- **Consentements** patients
+- **Audit trails** (qui a consulté quoi, quand)
+- **Export/suppression** données personnelles
+- **Documentation** conformité
+
+## ⚡ **ACTION IMMÉDIATE RECOMMANDÉE**
+
+### **Option RAPIDE (2-3h) : Auth basique Traefik**
+**Protection immédiate du Studio :**
+```
+https://admin.vital-sync.ch → Login/Password requis
+```
+
+### **Option COMPLETE (1-2 semaines) : Infomaniak Auth**
+**Système complet :**
+- Pages de connexion personnalisées
+- Gestion utilisateurs avancée
+- Audit logs automatiques
+
+## 🤔 **VOTRE PRIORITÉ ?**
+
+### **Si sécurité URGENTE :**
+→ **Auth basique Traefik** (protection immédiate)
+
+### **Si vous avez du temps :**
+→ **Infomaniak Auth** (solution professionnelle)
+
+### **Si vous voulez tester d'abord :**
+→ **Restriction IP** temporaire (seulement votre IP)
+
+## 🔒 **SÉCURITÉ ACTUELLE**
+
+**BIEN sécurisé :**
+- ✅ Base de données (isolée)
+- ✅ Infrastructure (SSL + firewall)
+- ✅ Réseau (Traefik + headers sécurisés)
+
+**À SÉCURISER d'urgence :**
+- ❌ Accès aux interfaces (Studio + future app)
+- ❌ Gestion des utilisateurs
+- ❌ Protection des données médicales
+
+**Votre infrastructure est excellente, il faut maintenant protéger l'accès !** 🎯

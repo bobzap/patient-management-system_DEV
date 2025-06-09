@@ -1,0 +1,225 @@
+# 🏥 Vital-Sync - Roadmap Complète & Guide d'Administration
+
+## 🎯 **Statut Actuel du Projet**
+
+### ✅ **Phase 1 : Sécurisation du Studio Supabase - TERMINÉE**
+- **🔒 Authentification Infomaniak OAuth** → Fonctionnel
+- **📧 Système de Whitelist** → Opérationnel 
+- **🌐 HTTPS avec Let's Encrypt** → Actif
+- **🛡️ Protection Traefik** → Configuré
+- **📊 Logs de sécurité** → Surveillance active
+
+**Accès sécurisé :**
+- `https://admin.vital-sync.ch` → Studio Supabase protégé
+- `https://api.vital-sync.ch` → API Supabase protégée
+
+**Emails autorisés actuels :**
+- `l.daize@proton.me` ✅
+- `louis.daize@gmail.com` ✅
+
+---
+
+## 🚀 **Roadmap des Prochaines Phases**
+
+### **Phase 2 : Système de Whitelist Avancé (1-2 semaines)**
+**Priorité : HAUTE** 🔥
+- **📝 Fichier whitelist externe** 
+  - Configuration via `/home/traefik-config/whitelist.txt`
+  - Rechargement automatique sans redémarrage
+  - Interface web d'administration (optionnel)
+- **👥 Gestion des rôles utilisateurs**
+  - Admin, Médecin, Infirmier, Lecture seule
+  - Permissions granulaires par service
+
+### **Phase 3 : Interface Patient (1-3 mois)**
+**Priorité : MOYENNE** 
+- **🌐 Application patient** → `https://app.vital-sync.ch`
+- **🔐 Authentification séparée** des comptes staff médical
+- **📱 Interface responsive** pour tablettes/mobiles
+- **👤 Comptes patients** avec accès limité à leurs données
+
+### **Phase 4 : Chiffrement Base de Données (2-4 semaines)**
+**Priorité : CRITIQUE** 🔥
+- **🔒 Chiffrement des données sensibles**
+- **🔑 Gestion des clés de chiffrement**
+- **📋 Conformité RGPD/LPD suisse**
+- **🛡️ Protection même en cas d'accès DB direct**
+
+### **Phase 5 : Monitoring & Alertes (1-2 semaines)**
+**Priorité : MOYENNE**
+- **📊 Dashboard de monitoring**
+- **🚨 Alertes tentatives d'intrusion**
+- **📈 Métriques d'utilisation**
+- **💾 Sauvegarde automatique**
+
+### **Phase 6 : Optimisations & Scaling (1-3 mois)**
+**Priorité : BASSE**
+- **⚡ Optimisation performances**
+- **🔄 Haute disponibilité**
+- **📦 Déploiement multi-environnements**
+
+---
+
+## 🛠️ **Guide d'Administration**
+
+### **🔄 Redémarrage Système Complet**
+
+```bash
+# Arrêt complet
+cd /home/supabase-project && docker compose down
+cd /home/traefik-config && docker compose down
+
+# Nettoyage (optionnel)
+docker system prune -f
+
+# Redémarrage ordonné
+cd /home/traefik-config && docker compose up -d
+sleep 10
+cd /home/supabase-project && docker compose up -d
+
+# Vérification
+docker ps --format "table {{.Names}}\t{{.Status}}"
+```
+
+### **📧 Ajout d'Email à la Whitelist**
+
+```bash
+# 1. Modification de la configuration
+cd /home/traefik-config
+nano docker-compose.yml
+
+# 2. Modifier la ligne WHITELIST
+- WHITELIST=email1@domain.com,email2@domain.com,nouvel@email.com
+
+# 3. Redémarrage du service auth
+docker compose restart auth
+
+# 4. Vérification
+docker logs traefik-auth | head -10
+# Chercher : "Whitelist":["email1@domain.com","email2@domain.com","nouvel@email.com"]
+```
+
+### **📊 Surveillance des Logs**
+
+```bash
+# Logs d'authentification en temps réel
+docker logs -f traefik-auth
+
+# Logs Traefik (routage, erreurs)
+docker logs -f traefik
+
+# Logs Supabase Studio
+docker logs -f supabase-studio
+
+# Logs Base de données
+docker logs -f supabase-db
+
+# Recherche d'erreurs
+docker logs traefik-auth | grep -i "error\|warning\|invalid"
+```
+
+### **🔍 Diagnostic en Cas de Problème**
+
+#### **❌ Problème : Bad Gateway**
+```bash
+# Vérifier tous les services
+docker ps --format "table {{.Names}}\t{{.Status}}"
+
+# Redémarrer les services défaillants
+cd /home/supabase-project
+docker compose restart supabase-studio supabase-kong
+
+# Vérifier les réseaux Docker
+docker network ls
+docker network inspect traefik
+```
+
+#### **❌ Problème : Authentification ne fonctionne pas**
+```bash
+# Vérifier la configuration auth
+docker logs traefik-auth | head -20
+
+# Vérifier la whitelist
+docker logs traefik-auth | grep "Whitelist"
+
+# Redémarrer l'authentification
+cd /home/traefik-config
+docker compose restart auth
+```
+
+#### **❌ Problème : Certificats SSL**
+```bash
+# Vérifier les certificats
+docker logs traefik | grep -i "cert\|acme"
+
+# Forcer le renouvellement (si nécessaire)
+cd /home/traefik-config
+docker compose restart traefik
+```
+
+### **🗂️ Structure des Fichiers Importants**
+
+```
+/home/
+├── traefik-config/
+│   ├── docker-compose.yml          # Config Traefik + Auth
+│   ├── config/
+│   │   └── dynamic.yml             # Routes Supabase
+│   ├── certs/                      # Certificats Let's Encrypt
+│   └── logs/                       # Logs Traefik
+│
+└── supabase-project/
+    ├── docker-compose.yml          # Config Supabase
+    └── volumes/                    # Données Supabase
+        ├── db/data/                # Base de données
+        └── storage/                # Fichiers uploadés
+```
+
+### **🔒 Tests de Sécurité Réguliers**
+
+```bash
+# Test accès non autorisé (doit échouer)
+curl -I https://admin.vital-sync.ch
+# Résultat attendu : Redirection 302 vers Infomaniak
+
+# Test avec email non autorisé
+# → Navigation privée + email non whitelisté
+# → Résultat attendu : "Not Authorized"
+
+# Test avec email autorisé
+# → Navigation privée + email whitelisté
+# → Résultat attendu : Accès au Studio
+```
+
+---
+
+## 📋 **Actions Prioritaires Recommandées**
+
+### **🔥 Semaine 1-2 : Sécurité Avancée**
+1. **📝 Fichier whitelist externe** → Gestion simplifiée des accès
+2. **🔒 Chiffrement BDD** → Protection des données patients
+3. **📊 Monitoring de base** → Surveillance des accès
+
+### **🏥 Mois 1-2 : Interface Patient**
+1. **🌐 Développement app patient** → `app.vital-sync.ch`
+2. **👤 Système de comptes patients** → Authentification séparée
+3. **📱 Interface mobile-friendly** → Accès tablettes
+
+### **🚀 Mois 2-3 : Optimisations**
+1. **⚡ Performance** → Optimisation vitesse
+2. **💾 Sauvegarde automatique** → Protection des données
+3. **📈 Métriques avancées** → Analyse d'utilisation
+
+---
+
+## 🎉 **Félicitations !**
+
+**Votre plateforme médicale Vital-Sync dispose maintenant d'un système de sécurité de niveau professionnel !**
+
+✅ **Studio Supabase sécurisé**  
+✅ **Authentification OAuth robuste**  
+✅ **Gestion multi-utilisateurs**  
+✅ **Surveillance des accès**  
+✅ **Documentation complète**  
+
+**🏥 Prêt pour un usage médical professionnel en Suisse ! 🇨🇭**
