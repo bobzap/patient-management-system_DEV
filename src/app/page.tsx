@@ -1,72 +1,81 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
+import { useAuth } from '@/hooks/useAuth';
 import { Patient } from '@/types';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { PatientList } from '@/components/patients/PatientList';
 import { PatientDetails } from '@/components/patients/PatientDetails';
 import { PatientForm } from '@/components/patients/PatientForm';
 import { Dashboard } from '@/components/dashboard/Dashboard';
-import { toast } from '@/components/ui/use-toast';
-import { Toaster } from 'sonner';
-import AdminPage from '@/app/admin/page';
+import { UserManagement } from '@/components/admin/UserManagement';
 import { CalendarPage } from '@/components/calendar/CalendarPage';
+import AdminPage from '@/app/admin/page'; // Votre système d'administration existant
+import { toast } from 'sonner';
+import { Toaster } from 'sonner';
 
-// Types
-type NavigationTab = 'dashboard' | 'patients' | 'newDossier' | 'admin' | 'calendar';
+// Types mis à jour
+type NavigationTab = 'dashboard' | 'patients' | 'newDossier' | 'admin' | 'userManagement' | 'calendar';
 
 export default function HomePage() {
+  const { 
+    isAuthenticated, 
+    isLoading, 
+    user, 
+    requireAuth,
+    canViewPatients,
+    canAccessAdmin 
+  } = useAuth();
+
   // États
   const [activeTab, setActiveTab] = useState<NavigationTab>('dashboard');
   const [patients, setPatients] = useState<Patient[]>([]);
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
+  const [isPatientsLoading, setIsPatientsLoading] = useState(false);
 
-  // Charger les patients au montage du composant
+  // Vérifier l'authentification
   useEffect(() => {
-    const fetchPatients = async () => {
-      try {
-        const response = await fetch('/api/patients');
-        const result = await response.json();
-        // Mise à jour pour utiliser result.data qui contient le tableau de patients
-        setPatients(result.data || []);
-      } catch (error) {
-        console.error('Erreur lors du chargement des patients:', error);
-        toast({
-          title: "Erreur",
-          description: "Impossible de charger les patients",
-          variant: "destructive",
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-  
-    fetchPatients();
-  
-    // Ajout des écouteurs d'événements pour la navigation
-    const handleNavigateTo = (e: CustomEvent) => {
-      const { tab } = e.detail;
-      setActiveTab(tab as NavigationTab);
-    };
+    if (!isLoading && !isAuthenticated) {
+      return;
+    }
+  }, [isAuthenticated, isLoading]);
+
+  // Charger les patients si autorisé
+  useEffect(() => {
+    if (isAuthenticated && canViewPatients() && patients.length === 0) {
+      fetchPatients();
+    }
+  }, [isAuthenticated, canViewPatients]);
+
+  const fetchPatients = async () => {
+    if (!canViewPatients()) return;
     
-    const handleViewPatient = (e: CustomEvent) => {
-      const { patient } = e.detail;
-      setSelectedPatient(patient);
-    };
-    
-    window.addEventListener('navigateTo', handleNavigateTo as EventListener);
-    window.addEventListener('viewPatient', handleViewPatient as EventListener);
-    
-    // Nettoyage des écouteurs d'événements à la destruction du composant
-    return () => {
-      window.removeEventListener('navigateTo', handleNavigateTo as EventListener);
-      window.removeEventListener('viewPatient', handleViewPatient as EventListener);
-    };
-  }, []);
+    setIsPatientsLoading(true);
+    try {
+      const response = await fetch('/api/patients');
+      const result = await response.json();
+      setPatients(result.data || []);
+    } catch (error) {
+      console.error('Erreur lors du chargement des patients:', error);
+      toast.error('Impossible de charger les patients');
+    } finally {
+      setIsPatientsLoading(false);
+    }
+  };
 
   const handleTabChange = useCallback((newTab: NavigationTab) => {
+    // Vérifier les permissions avant de changer d'onglet
+    if ((newTab === 'admin' || newTab === 'userManagement') && !canAccessAdmin()) {
+      toast.error('Accès non autorisé à l\'administration');
+      return;
+    }
+    
+    if ((newTab === 'patients' || newTab === 'newDossier') && !canViewPatients()) {
+      toast.error('Accès non autorisé aux dossiers patients');
+      return;
+    }
+
     if (selectedPatient) {
       if (window.confirm('Voulez-vous vraiment quitter la vue détaillée ?')) {
         setSelectedPatient(null);
@@ -75,13 +84,15 @@ export default function HomePage() {
     } else {
       setActiveTab(newTab);
     }
-  }, [selectedPatient]);
+  }, [selectedPatient, canAccessAdmin, canViewPatients]);
 
   const handlePatientSubmit = useCallback(async (patientData: Omit<Patient, 'id'>) => {
+    if (!canViewPatients()) {
+      toast.error('Permission insuffisante');
+      return;
+    }
+
     try {
-      // Log détaillé des données envoyées
-      console.log('Données envoyées:', JSON.stringify(patientData, null, 2));
-      
       const response = await fetch('/api/patients', {
         method: 'POST',
         headers: {
@@ -89,65 +100,43 @@ export default function HomePage() {
         },
         body: JSON.stringify(patientData),
       });
-  
-      // Log du statut de la réponse
-      console.log('Statut de la réponse:', response.status, response.statusText);
-      
-      const responseText = await response.text();
-      console.log('Réponse brute du serveur:', responseText);
-  
+
       if (!response.ok) {
-        throw new Error(`Erreur HTTP: ${response.status} - ${responseText}`);
-      }
-  
-      let result;
-      try {
-        result = JSON.parse(responseText);
-      } catch (e) {
-        throw new Error(`Réponse invalide: ${responseText}`);
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Erreur lors de la création');
       }
 
-      // Mise à jour pour utiliser result.data qui contient le nouveau patient
+      const result = await response.json();
       setPatients(prev => [...prev, result.data]);
       setActiveTab('patients');
       
-      toast({
-        title: "Succès",
-        description: "Le dossier patient a été créé avec succès",
-      });
+      toast.success('Dossier patient créé avec succès');
       
-    } 
-    
-    catch (error) {
-      const err = error as Error;
-      console.error('Erreur complète:', {
-        message: err.message,
-    stack: err.stack
-  });
-
-
-
-      toast({
-        title: "Erreur",
-        description: err.message || "Une erreur est survenue lors de la création du dossier",
-        variant: "destructive",
-      });
+    } catch (error) {
+      console.error('Erreur:', error);
+      toast.error(error instanceof Error ? error.message : 'Erreur lors de la création du dossier');
     }
-
-
-    
-  }, []);
+  }, [canViewPatients]);
 
   const handlePatientSelect = useCallback((patient: Patient) => {
     setSelectedPatient(patient);
   }, []);
 
+  // Affichage pendant le chargement
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="flex justify-center items-center h-screen bg-gray-100">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent mx-auto mb-4"></div>
+          <p className="text-gray-600">Vérification de l'authentification...</p>
+        </div>
       </div>
     );
+  }
+
+  // Si pas authentifié, ne rien afficher (middleware gère la redirection)
+  if (!isAuthenticated) {
+    return null;
   }
 
   return (
@@ -163,7 +152,10 @@ export default function HomePage() {
             <PatientDetails 
               patient={selectedPatient} 
               onEdit={() => console.log('Edit patient:', selectedPatient)} 
-              onDelete={() => console.log('Delete patient:', selectedPatient)} 
+              onDelete={() => {
+                console.log('Delete patient:', selectedPatient);
+                setSelectedPatient(null);
+              }}
             />
           </div>
         ) : (
@@ -172,7 +164,7 @@ export default function HomePage() {
               <Dashboard patients={{ data: patients }} />
             )}
             
-            {activeTab === 'patients' && (
+            {activeTab === 'patients' && canViewPatients() && (
               <PatientList
                 patients={patients}
                 searchTerm={searchTerm}
@@ -182,26 +174,55 @@ export default function HomePage() {
               />
             )}
             
-            {activeTab === 'newDossier' && (
+            {activeTab === 'newDossier' && canViewPatients() && (
               <PatientForm
                 onSubmit={handlePatientSubmit}
                 onCancel={() => handleTabChange('patients')}
               />
             )}
 
-            {activeTab === 'admin' && (
+            {/* VOTRE SYSTÈME D'ADMINISTRATION EXISTANT */}
+            {activeTab === 'admin' && canAccessAdmin() && (
               <AdminPage />
+            )}
+
+            {/* MON NOUVEAU SYSTÈME DE GESTION UTILISATEURS */}
+            {activeTab === 'userManagement' && canAccessAdmin() && (
+              <div className="p-6">
+                <UserManagement />
+              </div>
             )}
             
             {activeTab === 'calendar' && (
               <CalendarPage />
             )}
+
+            {/* Messages si accès refusé */}
+            {((activeTab === 'patients' || activeTab === 'newDossier') && !canViewPatients()) && (
+              <div className="flex items-center justify-center h-full">
+                <div className="text-center">
+                  <div className="text-6xl mb-4">🚫</div>
+                  <h2 className="text-2xl font-bold text-gray-900 mb-2">Accès Refusé</h2>
+                  <p className="text-gray-600">Vous n'avez pas les permissions pour accéder aux dossiers patients.</p>
+                </div>
+              </div>
+            )}
+
+            {((activeTab === 'admin' || activeTab === 'userManagement') && !canAccessAdmin()) && (
+              <div className="flex items-center justify-center h-full">
+                <div className="text-center">
+                  <div className="text-6xl mb-4">🔒</div>
+                  <h2 className="text-2xl font-bold text-gray-900 mb-2">Administration</h2>
+                  <p className="text-gray-600">Seuls les administrateurs peuvent accéder à cette section.</p>
+                </div>
+              </div>
+            )}
           </>
         )}
       </main>
       
-      {/* Toaster pour les notifications */}
-      <Toaster position="top-right" />
+      {/* Toast notifications */}
+      <Toaster position="top-right" richColors />
     </div>
   );
 }

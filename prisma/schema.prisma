@@ -1,4 +1,4 @@
-// prisma/schema.prisma
+// prisma/schema.prisma - Version corrigée après db pull
 generator client {
   provider = "prisma-client-js"
 }
@@ -8,73 +8,169 @@ datasource db {
   url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
-model ListCategory {
-  id        Int         @id @default(autoincrement())
-  listId    String      @unique // Identifiant unique pour référencement facile
-  name      String // Nom lisible de la liste
-  items     ListItem[]
-  fields    FormField[] // Relation avec les champs qui utilisent cette liste
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
+
+// ============================================
+// AUTHENTIFICATION (Générés par db pull)
+// ============================================
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String  @map("user_id")
+  type              String
+  provider          String
+  providerAccountId String  @map("provider_account_id")
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  user AuthUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
 }
 
-model ListItem {
-  id         Int          @id @default(autoincrement())
-  value      String
-  order      Int
-  category   ListCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  categoryId Int
-  createdAt  DateTime     @default(now())
-  updatedAt  DateTime     @updatedAt
+model AuthLog {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  action    String
+  ipAddress String?  @map("ip_address")
+  userAgent String?  @map("user_agent")
+  success   Boolean
+  details   Json?
+  createdAt DateTime @default(now()) @map("created_at")
 
-  @@unique([categoryId, value])
-  @@index([categoryId, order])
+  user AuthUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("auth_logs")
 }
 
-model Patient {
-  id            Int    @id @default(autoincrement())
-  // Informations personnelles
-  civilites     String
-  nom           String
-  prenom        String
-  dateNaissance String
-  age           Int
-  etatCivil     String
+model AuthUser {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
-  // Informations professionnelles
-  poste        String
-  numeroLigne  String?
-  manager      String
-  zone         String
-  horaire      String?
-  contrat      String
-  tauxActivite String
-  departement  String
-  dateEntree   String
-  anciennete   String
+  accounts Account[]
+  logs     AuthLog[]
+  profile  UserProfile?
+  sessions Session[]
 
-  // Informations de transport
-  tempsTrajetAller  String
-  tempsTrajetRetour String
-  typeTransport     String
+  @@map("auth_users")
+}
 
-  // Informations d'entretien
-  numeroEntretien Int?
-  nomEntretien    String?
-  dateEntretien   String?
-  heureDebut      String?
-  heureFin        String?
-  duree           String?
-  typeEntretien   String?
-  consentement    String?
-  dateCreation    String?
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique @map("session_token")
+  userId       String   @map("user_id")
+  expires      DateTime
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
 
-  // Timestamps
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
-  calendarEvents CalendarEvent[]
+  user AuthUser @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  entretiens Entretien[]
+  @@map("sessions")
+}
+
+model UserProfile {
+  id            String    @id @default(cuid())
+  userId        String    @unique @map("user_id")
+  name          String?
+  email         String    @unique
+  role          UserRole  @default(INFIRMIER)
+  isActive      Boolean   @default(true) @map("is_active")
+  isWhitelisted Boolean   @default(false) @map("is_whitelisted")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  lastLogin     DateTime? @map("last_login")
+
+  user AuthUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_profiles")
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@id([identifier, token])
+  @@map("verification_tokens")
+}
+
+enum UserRole {
+  ADMIN
+  INFIRMIER
+  INFIRMIER_CHEF
+  MEDECIN
+
+  @@map("user_role")
+}
+
+// ============================================
+// MODÈLES EXISTANTS (inchangés)
+// ============================================
+
+model CalendarEvent {
+  id              Int         @id @default(autoincrement())
+  title           String
+  description     String?
+  startDate       DateTime
+  endDate         DateTime
+  allDay          Boolean     @default(false)
+  eventTypeString String?     @map("eventType")
+  status          String      @default("planifie")
+  patientId       Int?
+  entretienId     Int?
+  metadata        String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  createdBy       String?
+  recurrence      String?
+  parentEventId   Int?
+  entretien       Entretien?  @relation(fields: [entretienId], references: [id], onDelete: SetNull)
+  patient         Patient?    @relation(fields: [patientId], references: [id])
+  eventTypes      EventType[] @relation("EventTypeToCalendarEvent")
+
+  @@index([entretienId])
+  @@index([patientId])
+  @@index([startDate, endDate])
+}
+
+model Entretien {
+  id               Int             @id @default(autoincrement())
+  patientId        Int
+  numeroEntretien  Int
+  dateCreation     DateTime        @default(now())
+  dateModification DateTime        @updatedAt
+  status           String          @default("brouillon")
+  isTemplate       Boolean         @default(false)
+  baseEntretienId  Int?
+  donneesEntretien String
+  tempsDebut       DateTime?
+  tempsFin         DateTime?
+  tempsPause       Int?
+  enPause          Boolean         @default(false)
+  dernierePause    DateTime?
+  calendarEvents   CalendarEvent[]
+  patient          Patient         @relation(fields: [patientId], references: [id])
+}
+
+model EventType {
+  id        Int             @id @default(autoincrement())
+  name      String          @unique
+  color     String?         @default("#3b82f6")
+  icon      String?
+  active    Boolean         @default(true)
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+  events    CalendarEvent[] @relation("EventTypeToCalendarEvent")
 }
 
 model FormConfiguration {
@@ -88,122 +184,108 @@ model FormConfiguration {
   @@index([pageId])
 }
 
-model FormSection {
-  id        Int               @id @default(autoincrement())
-  name      String
-  label     String
-  order     Int
-  formId    Int
-  form      FormConfiguration @relation(fields: [formId], references: [id], onDelete: Cascade)
-  fields    FormField[]
-  createdAt DateTime          @default(now())
-  updatedAt DateTime          @updatedAt
-
-  @@unique([formId, name])
-  @@index([formId, order])
-}
-
 model FormField {
   id           Int           @id @default(autoincrement())
   sectionId    Int
-  section      FormSection   @relation(fields: [sectionId], references: [id], onDelete: Cascade)
   name         String
   label        String
   type         String
   required     Boolean       @default(false)
   order        Int
   listId       String?
-  list         ListCategory? @relation(fields: [listId], references: [listId])
   defaultValue String?
-  validation   String? // règles de validation en JSON
+  validation   String?
   positionX    Int           @default(0)
   positionY    Int           @default(0)
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
+  list         ListCategory? @relation(fields: [listId], references: [listId])
+  section      FormSection   @relation(fields: [sectionId], references: [id], onDelete: Cascade)
 
   @@unique([sectionId, name])
-  @@index([sectionId, order])
   @@index([listId])
+  @@index([sectionId, order])
 }
 
-model Entretien {
-  id              Int             @id @default(autoincrement())
-  calendarEvents  CalendarEvent[]
-  patient         Patient         @relation(fields: [patientId], references: [id])
-  patientId       Int
-  numeroEntretien Int
+model FormSection {
+  id        Int               @id @default(autoincrement())
+  name      String
+  label     String
+  order     Int
+  formId    Int
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+  fields    FormField[]
+  form      FormConfiguration @relation(fields: [formId], references: [id], onDelete: Cascade)
 
-  // Structure commune
-  dateCreation     DateTime @default(now())
-  dateModification DateTime @updatedAt
-  status           String   @default("brouillon")
-  isTemplate       Boolean  @default(false)
-  baseEntretienId  Int?
-
-  // Données des sections
-  donneesEntretien String // Stocké comme TEXT mais contiendra du JSON
-
-  // Nouveaux champs pour le timer
-  tempsDebut    DateTime? // Moment où l'entretien a démarré
-  tempsFin      DateTime? // Moment où l'entretien a été finalisé
-  tempsPause    Int? // Temps total en pause (en secondes)
-  enPause       Boolean   @default(false) // Si le timer est actuellement en pause
-  dernierePause DateTime? // Moment où la dernière pause a commencé
+  @@unique([formId, name])
+  @@index([formId, order])
 }
 
-
-// Ajouter ce modèle à votre schéma existant
-model EventType {
-  id        Int      @id @default(autoincrement())
-  name      String   @unique
-  color     String?  @default("#3b82f6") 
-  icon      String?
-  active    Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  
-  // Relation many-to-many avec CalendarEvent
-  events    CalendarEvent[] @relation("EventTypeToCalendarEvent")
+model ListCategory {
+  id        Int         @id @default(autoincrement())
+  listId    String      @unique
+  name      String
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  fields    FormField[]
+  items     ListItem[]
 }
 
-// prisma/schema.prisma
+model ListItem {
+  id         Int          @id @default(autoincrement())
+  value      String
+  order      Int
+  categoryId Int
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+  category   ListCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([categoryId, value])
+  @@index([categoryId, order])
+}
+
+model Patient {
+  id                Int             @id @default(autoincrement())
+  civilites         String
+  nom               String
+  prenom            String
+  dateNaissance     String
+  age               Int
+  etatCivil         String
+  poste             String
+  numeroLigne       String?
+  manager           String
+  zone              String
+  horaire           String?
+  contrat           String
+  tauxActivite      String
+  departement       String
+  dateEntree        String
+  anciennete        String
+  tempsTrajetAller  String
+  tempsTrajetRetour String
+  typeTransport     String
+  numeroEntretien   Int?
+  nomEntretien      String?
+  dateEntretien     String?
+  heureDebut        String?
+  heureFin          String?
+  duree             String?
+  typeEntretien     String?
+  consentement      String?
+  dateCreation      String?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  calendarEvents    CalendarEvent[]
+  entretiens        Entretien[]
+}
+
 model RisqueProfessionnel {
   id        Int      @id @default(autoincrement())
   nom       String
-  lien      String // URL vers la ressource
+  lien      String
   estFavori Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-}
-
-model CalendarEvent {
-  id          Int      @id @default(autoincrement())
-  title       String
-  description String?
-  startDate   DateTime
-  endDate     DateTime
-  allDay      Boolean  @default(false)
-  
-  // Changer le champ eventType en relation many-to-many avec EventType
-  // Les types d'événements (multiple) reliés à cet événement
-  eventTypes  EventType[] @relation("EventTypeToCalendarEvent")
-  
-  // Pour la rétrocompatibilité - stocke les types sous forme de chaîne séparée par des virgules
-  eventTypeString String? @map("eventType")
-  
-  status      String    @default("planifie")
-  patientId   Int?
-  patient     Patient?  @relation(fields: [patientId], references: [id])
-  entretienId Int?
-  entretien   Entretien? @relation(fields: [entretienId], references: [id], onDelete: SetNull)
-  metadata    String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  createdBy   String?
-  recurrence  String?
-  parentEventId Int?
-  
-  @@index([patientId])
-  @@index([entretienId])
-  @@index([startDate, endDate])
 }
