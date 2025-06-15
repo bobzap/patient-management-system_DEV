@@ -85,9 +85,9 @@ export const Sidebar = ({ activeTab, onTabChange }: SidebarProps) => {
     },
     {
       id: 'admin' as NavigationTab,
-      label: 'Administration',
+      label: 'Gestion des listes',
       icon: <Settings className="w-5 h-5" />,
-      show: canAccessAdmin(),
+      show: true,
       description: 'Listes, Formulaires, Risques'
     },
     {

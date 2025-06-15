@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Patient } from '@/types';
-import { Filter, X } from 'lucide-react'; // Importez ces icônes
+import { Filter, X } from 'lucide-react';
 
 interface PatientListProps {
   patients: Patient[];
@@ -31,66 +31,90 @@ export const PatientList = ({
   // Liste des départements uniques
   const [departments, setDepartments] = useState<string[]>([]);
   
+  // 🔧 CORRECTION 1: Ref pour éviter les rechargements multiples
+  const loadedPatientsRef = useRef<number[]>([]);
+  const isLoadingRef = useRef(false);
+  
   // Extraire les départements uniques des patients
   useEffect(() => {
     const uniqueDepartments = Array.from(new Set(patients.map(p => p.departement))).filter(Boolean);
     setDepartments(uniqueDepartments);
   }, [patients]);
 
-
-
-
-  useEffect(() => {
-    const loadPatientsWithEntretiens = async () => {
-      setIsLoading(true);
-      const enrichedPatients = [];
-      
-      for (const patient of patients) {
-        try {
-          const response = await fetch(`/api/patients/${patient.id}/entretiens`);
-          const result = await response.json();
-          
-          let lastEntretien = null;
-          if (result.success && result.data && result.data.length > 0) {
-            // Prendre le premier entretien (le plus récent)
-            lastEntretien = result.data[0];
-          }
-          
-          enrichedPatients.push({
-            ...patient,
-            lastEntretien
-          });
-        } catch (error) {
-          console.error(`Erreur pour patient ${patient.id}:`, error);
-          enrichedPatients.push({
-            ...patient,
-            lastEntretien: null
-          });
-        }
-      }
-      
-      setPatientsWithEntretiens(enrichedPatients);
-      setIsLoading(false);
-    };
+  // 🔧 CORRECTION 2: Fonction mémorisée pour charger les entretiens
+  const loadPatientsWithEntretiens = useCallback(async () => {
+    // Éviter les chargements multiples simultanés
+    if (isLoadingRef.current) {
+      console.log('⏭️ Chargement déjà en cours, ignorer');
+      return;
+    }
     
+    // Vérifier si on a déjà chargé ces patients
+    const currentPatientIds = patients.map(p => p.id).sort();
+    const loadedIds = loadedPatientsRef.current.sort();
+    
+    if (JSON.stringify(currentPatientIds) === JSON.stringify(loadedIds)) {
+      console.log('✅ Patients déjà chargés, ignorer');
+      return;
+    }
+    
+    console.log('🔄 Chargement des entretiens pour', patients.length, 'patients');
+    setIsLoading(true);
+    isLoadingRef.current = true;
+    
+    const enrichedPatients = [];
+    
+    for (const patient of patients) {
+      try {
+        const response = await fetch(`/api/patients/${patient.id}/entretiens`);
+        const result = await response.json();
+        
+        let lastEntretien = null;
+        if (result.success && result.data && result.data.length > 0) {
+          // Prendre le premier entretien (le plus récent)
+          lastEntretien = result.data[0];
+        }
+        
+        enrichedPatients.push({
+          ...patient,
+          lastEntretien
+        });
+      } catch (error) {
+        console.error(`Erreur pour patient ${patient.id}:`, error);
+        enrichedPatients.push({
+          ...patient,
+          lastEntretien: null
+        });
+      }
+    }
+    
+    setPatientsWithEntretiens(enrichedPatients);
+    loadedPatientsRef.current = patients.map(p => p.id);
+    setIsLoading(false);
+    isLoadingRef.current = false;
+    console.log('✅ Entretiens chargés pour', enrichedPatients.length, 'patients');
+  }, [patients]);
+
+  // 🔧 CORRECTION 3: useEffect optimisé
+  useEffect(() => {
     if (patients.length > 0) {
       loadPatientsWithEntretiens();
     } else {
       setPatientsWithEntretiens([]);
+      loadedPatientsRef.current = [];
     }
-  }, [patients]);
+  }, [patients.length, loadPatientsWithEntretiens]); // ⚠️ Dépendance sur patients.length, pas patients
 
-// Fonction pour réinitialiser tous les filtres
-const resetFilters = () => {
-  setDepartmentFilter('');
-  setStatusFilter('');
-  setDateFilter('');
-  onSearchChange('');
-};
-
+  // Fonction pour réinitialiser tous les filtres
+  const resetFilters = () => {
+    setDepartmentFilter('');
+    setStatusFilter('');
+    setDateFilter('');
+    onSearchChange('');
+  };
 
   // Fonction d'assistance pour obtenir la classe de couleur selon le statut
-  const getStatusColorClass = (status) => {
+  const getStatusColorClass = (status: string) => {
     switch (status) {
       case 'finalise':
         return 'bg-green-100 text-green-800';
@@ -102,10 +126,8 @@ const resetFilters = () => {
     }
   };
 
-
-
   // Fonction d'assistance pour formater le texte du statut
-  const getStatusText = (status) => {
+  const getStatusText = (status: string) => {
     switch (status) {
       case 'finalise':
         return 'Finalisé';
@@ -116,11 +138,6 @@ const resetFilters = () => {
         return 'Brouillon';
     }
   };
-
-
-
-
-
 
   // Filtrage avancé combinant recherche texte et filtres
   const filteredPatients = patientsWithEntretiens.filter(patient => {
@@ -316,110 +333,114 @@ const resetFilters = () => {
         </div>
       )}
 
+      {/* 🔧 CORRECTION 4: Indicateur de chargement amélioré */}
+      {isLoading && (
+        <div className="mb-4 bg-blue-50 border border-blue-200 rounded-lg p-3">
+          <div className="flex items-center">
+            <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent mr-2"></div>
+            <span className="text-blue-700 text-sm">Chargement des informations d'entretiens...</span>
+          </div>
+        </div>
+      )}
+
       {/* Tableau - garde le code existant */}
       <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-        {isLoading ? (
-          <div className="flex justify-center items-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent"></div>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    Nom & Prénom
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    Département
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    Poste
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    Manager
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    Dernier Entretien
-                  </th>
-                  <th className="px-6 py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200 bg-white">
-                {filteredPatients.map((patient, index) => (
-                  <tr 
-                    key={patient.id}
-                    className={`hover:bg-blue-50 transition-colors duration-150
-                              ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}
-                  >
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="h-10 w-10 flex-shrink-0 rounded-full bg-blue-100 
-                                    flex items-center justify-center">
-                          <span className="text-blue-900 font-semibold">
-                            {`${patient.prenom[0]}${patient.nom[0]}`}
-                          </span>
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  Nom & Prénom
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  Département
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  Poste
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  Manager
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  Dernier Entretien
+                </th>
+                <th className="px-6 py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200 bg-white">
+              {filteredPatients.map((patient, index) => (
+                <tr 
+                  key={patient.id}
+                  className={`hover:bg-blue-50 transition-colors duration-150
+                            ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}
+                >
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center">
+                      <div className="h-10 w-10 flex-shrink-0 rounded-full bg-blue-100 
+                                  flex items-center justify-center">
+                        <span className="text-blue-900 font-semibold">
+                          {`${patient.prenom[0]}${patient.nom[0]}`}
+                        </span>
+                      </div>
+                      <div className="ml-4">
+                        <div className="text-sm font-semibold text-gray-900">
+                          {`${patient.civilites} ${patient.nom} ${patient.prenom}`}
                         </div>
-                        <div className="ml-4">
-                          <div className="text-sm font-semibold text-gray-900">
-                            {`${patient.civilites} ${patient.nom} ${patient.prenom}`}
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            Entrée en fonction : {patient.dateEntree?.replace(/\//g, '.')}
-                          </div>
+                        <div className="text-sm text-gray-500">
+                          Entrée en fonction : {patient.dateEntree?.replace(/\//g, '.')}
                         </div>
                       </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="px-3 py-1 inline-flex text-sm leading-5 font-semibold 
-                                   rounded-full bg-blue-100 text-blue-800">
-                        {patient.departement}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {patient.poste}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {patient.manager}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {patient.lastEntretien ? (
-                        <>
-                          <div className="text-sm text-gray-900">
-                            {new Date(patient.lastEntretien.dateCreation).toLocaleDateString('fr-FR')}
-                          </div>
-                          <div className="mt-1">
-                            <span className={`inline-flex px-2 py-0.5 text-xs font-medium rounded-full ${getStatusColorClass(patient.lastEntretien.status)}`}>
-                              {getStatusText(patient.lastEntretien.status)}
-                            </span>
-                          </div>
-                        </>
-                      ) : (
-                        <div className="text-sm text-gray-500">Aucun entretien</div>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <button
-                        onClick={() => onSelectPatient(patient)}
-                        className="text-blue-600 hover:text-blue-900 font-semibold 
-                                 flex items-center gap-2 ml-auto"
-                      >
-                        Consulter le dossier
-                        <svg width="16" height="16" fill="none" stroke="currentColor" 
-                             viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" 
-                                strokeWidth="2" d="M9 5l7 7-7 7" />
-                        </svg>
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className="px-3 py-1 inline-flex text-sm leading-5 font-semibold 
+                                 rounded-full bg-blue-100 text-blue-800">
+                      {patient.departement}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {patient.poste}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {patient.manager}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {patient.lastEntretien ? (
+                      <>
+                        <div className="text-sm text-gray-900">
+                          {new Date(patient.lastEntretien.dateCreation).toLocaleDateString('fr-FR')}
+                        </div>
+                        <div className="mt-1">
+                          <span className={`inline-flex px-2 py-0.5 text-xs font-medium rounded-full ${getStatusColorClass(patient.lastEntretien.status)}`}>
+                            {getStatusText(patient.lastEntretien.status)}
+                          </span>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="text-sm text-gray-500">Aucun entretien</div>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <button
+                      onClick={() => onSelectPatient(patient)}
+                      className="text-blue-600 hover:text-blue-900 font-semibold 
+                               flex items-center gap-2 ml-auto"
+                    >
+                      Consulter le dossier
+                      <svg width="16" height="16" fill="none" stroke="currentColor" 
+                           viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" 
+                              strokeWidth="2" d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
 
         {/* Message si aucun résultat */}
         {filteredPatients.length === 0 && !isLoading && (

@@ -1,9 +1,10 @@
+// src/app/auth/login/page.tsx - Version avec redirection améliorée
 'use client'
 
 import { useState, useEffect } from 'react'
 import { signIn, getSession } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Eye, EyeOff, AlertCircle, Lock, Mail } from 'lucide-react'
+import { Eye, EyeOff, AlertCircle, Lock, Mail, CheckCircle } from 'lucide-react'
 import { toast } from 'sonner'
 
 export default function LoginPage() {
@@ -12,11 +13,26 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+  const [successMessage, setSuccessMessage] = useState('')
   
   const router = useRouter()
   const searchParams = useSearchParams()
   const callbackUrl = searchParams.get('callbackUrl') || '/'
   const urlError = searchParams.get('error')
+  const message = searchParams.get('message')
+
+  // Gestion des messages de succès
+  useEffect(() => {
+    if (message) {
+      switch (message) {
+        case 'AccountActivated':
+          setSuccessMessage('Votre compte a été activé avec succès ! Vous pouvez maintenant vous connecter.')
+          break
+        default:
+          break
+      }
+    }
+  }, [message])
 
   // Gestion des erreurs URL
   useEffect(() => {
@@ -42,11 +58,12 @@ export default function LoginPage() {
     const checkSession = async () => {
       const session = await getSession()
       if (session) {
-        router.push(callbackUrl)
+        console.log('🔐 Session existante détectée, redirection...')
+        window.location.href = callbackUrl // 🔧 Utiliser window.location pour forcer la redirection
       }
     }
     checkSession()
-  }, [callbackUrl, router])
+  }, [callbackUrl])
 
   const validateForm = () => {
     if (!email || !password) {
@@ -67,17 +84,22 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+    setSuccessMessage('')
     
     if (!validateForm()) return
     
     setIsLoading(true)
     
     try {
+      console.log('🔐 Tentative de connexion pour:', email)
+      
       const result = await signIn('credentials', {
         email,
         password,
-        redirect: false,
+        redirect: false, // 🔧 Important: pas de redirection automatique
       })
+
+      console.log('🔐 Résultat connexion:', result)
 
       if (result?.error) {
         switch (result.error) {
@@ -88,12 +110,16 @@ export default function LoginPage() {
             setError('Erreur de connexion. Veuillez réessayer.')
         }
       } else if (result?.ok) {
+        console.log('✅ Connexion réussie, redirection vers:', callbackUrl)
         toast.success('Connexion réussie')
-        router.push(callbackUrl)
-        router.refresh()
+        
+        // 🔧 Redirection améliorée avec délai
+        setTimeout(() => {
+          window.location.href = callbackUrl
+        }, 500)
       }
     } catch (error) {
-      console.error('Login error:', error)
+      console.error('❌ Erreur login:', error)
       setError('Erreur de connexion. Veuillez réessayer.')
     } finally {
       setIsLoading(false)
@@ -115,6 +141,14 @@ export default function LoginPage() {
         {/* Formulaire */}
         <div className="bg-white rounded-xl shadow-lg p-8">
           <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Message de succès */}
+            {successMessage && (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-start">
+                <CheckCircle className="h-5 w-5 text-green-500 mt-0.5 mr-3 flex-shrink-0" />
+                <div className="text-sm text-green-800">{successMessage}</div>
+              </div>
+            )}
+
             {/* Affichage des erreurs */}
             {error && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start">
@@ -220,6 +254,17 @@ export default function LoginPage() {
               )}
             </button>
           </form>
+
+          {/* Aide pour l'activation */}
+          <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+            <h3 className="text-sm font-medium text-blue-900 mb-2">
+              Nouveau sur Vital Sync ?
+            </h3>
+            <p className="text-sm text-blue-700">
+              Si vous avez reçu un lien d'invitation, cliquez dessus pour activer votre compte 
+              et définir votre mot de passe avant de vous connecter.
+            </p>
+          </div>
 
           {/* Footer */}
           <div className="mt-6 text-center text-sm text-gray-600">

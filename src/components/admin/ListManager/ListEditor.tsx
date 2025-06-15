@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
 
 interface ListEditorProps {
@@ -18,11 +18,13 @@ export const ListEditor = ({ list, onUpdate }: ListEditorProps) => {
 
   // Synchroniser les items quand la liste change
   useEffect(() => {
-    console.log('📋 Mise à jour des items:', list.items);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('📋 Mise à jour des items:', list.items);
+    }
     setItems(list.items || []);
-  }, [list.id, list.items]); // Se met à jour quand l'ID de la liste ou ses items changent
+  }, [list.id, list.items]);
 
-  const handleAdd = () => {
+  const handleAdd = useCallback(() => {
     if (!newItem.trim()) {
       toast.error('Veuillez entrer une valeur');
       return;
@@ -34,20 +36,20 @@ export const ListEditor = ({ list, onUpdate }: ListEditorProps) => {
     }
 
     const updatedItems = [...items, newItem.trim()];
-    console.log('➕ Ajout d\'un nouvel item:', newItem.trim());
     setItems(updatedItems);
     onUpdate(updatedItems);
     setNewItem('');
-  };
+    toast.success('Élément ajouté');
+  }, [items, newItem, onUpdate]);
 
-  const handleRemove = (index: number) => {
-    console.log('❌ Suppression de l\'item à l\'index:', index);
+  const handleRemove = useCallback((index: number) => {
     const updatedItems = items.filter((_, i) => i !== index);
     setItems(updatedItems);
     onUpdate(updatedItems);
-  };
+    toast.success('Élément supprimé');
+  }, [items, onUpdate]);
 
-  const handleMove = (index: number, direction: 'up' | 'down') => {
+  const handleMove = useCallback((index: number, direction: 'up' | 'down') => {
     if (
       (direction === 'up' && index === 0) ||
       (direction === 'down' && index === items.length - 1)
@@ -57,16 +59,15 @@ export const ListEditor = ({ list, onUpdate }: ListEditorProps) => {
     const newIndex = direction === 'up' ? index - 1 : index + 1;
     [newItems[index], newItems[newIndex]] = [newItems[newIndex], newItems[index]];
     
-    console.log(`🔄 Déplacement de l'item ${direction === 'up' ? 'vers le haut' : 'vers le bas'}:`, index);
     setItems(newItems);
     onUpdate(newItems);
-  };
+  }, [items, onUpdate]);
 
-  console.log('🖼️ Rendu de ListEditor:', {
-    listId: list.id,
-    listName: list.name,
-    itemCount: items.length
-  });
+  const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleAdd();
+    }
+  }, [handleAdd]);
 
   return (
     <div>
@@ -77,7 +78,7 @@ export const ListEditor = ({ list, onUpdate }: ListEditorProps) => {
           onChange={(e) => setNewItem(e.target.value)}
           placeholder={`Ajouter un élément à ${list.name}`}
           className="flex-grow px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          onKeyPress={(e) => e.key === 'Enter' && handleAdd()}
+          onKeyPress={handleKeyPress}
         />
         <button
           onClick={handleAdd}
@@ -104,6 +105,7 @@ export const ListEditor = ({ list, onUpdate }: ListEditorProps) => {
                   disabled={index === 0}
                   className={`p-2 rounded hover:bg-gray-200 transition-colors
                     ${index === 0 ? 'text-gray-300' : 'text-gray-500 hover:text-gray-700'}`}
+                  title="Déplacer vers le haut"
                 >
                   ↑
                 </button>
@@ -112,6 +114,7 @@ export const ListEditor = ({ list, onUpdate }: ListEditorProps) => {
                   disabled={index === items.length - 1}
                   className={`p-2 rounded hover:bg-gray-200 transition-colors
                     ${index === items.length - 1 ? 'text-gray-300' : 'text-gray-500 hover:text-gray-700'}`}
+                  title="Déplacer vers le bas"
                 >
                   ↓
                 </button>
@@ -119,6 +122,7 @@ export const ListEditor = ({ list, onUpdate }: ListEditorProps) => {
                   onClick={() => handleRemove(index)}
                   className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded
                            transition-colors duration-200"
+                  title="Supprimer"
                 >
                   ×
                 </button>

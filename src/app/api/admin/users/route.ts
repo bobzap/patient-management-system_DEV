@@ -1,4 +1,4 @@
-// src/app/api/admin/users/route.ts - Version corrigée
+// src/app/api/admin/users/route.ts - Version corrigée pour contrainte FK
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
@@ -12,10 +12,10 @@ const createUserSchema = z.object({
   email: z.string().email('Email invalide'),
   name: z.string().min(2, 'Le nom doit contenir au moins 2 caractères'),
   role: z.enum(['ADMIN', 'INFIRMIER', 'INFIRMIER_CHEF', 'MEDECIN']),
-  sendInvite: z.boolean().default(false)
+  generateInvitation: z.boolean().default(true)
 })
 
-// GET: Récupérer tous les utilisateurs (Admin uniquement)
+// GET: Récupérer tous les utilisateurs avec leurs tokens d'invitation
 export async function GET(request: NextRequest) {
   try {
     console.log('🔍 API /admin/users - Début de la requête GET')
@@ -33,10 +33,22 @@ export async function GET(request: NextRequest) {
 
     console.log('📊 Recherche des utilisateurs...')
     
-    // Récupérer tous les utilisateurs avec leurs profils
+    // Récupérer tous les utilisateurs avec leurs profils et tokens d'invitation
     const users = await prisma.authUser.findMany({
       include: {
         profile: true,
+        receivedInvitations: {
+          where: {
+            isUsed: false,
+            expiresAt: {
+              gt: new Date()
+            }
+          },
+          orderBy: {
+            createdAt: 'desc'
+          },
+          take: 1 // Prendre seulement la plus récente
+        },
         _count: {
           select: {
             logs: {
@@ -56,17 +68,25 @@ export async function GET(request: NextRequest) {
     console.log(`✅ ${users.length} utilisateurs trouvés`)
 
     // Formater la réponse
-    const formattedUsers = users.map(user => ({
-      id: user.id,
-      email: user.email,
-      name: user.profile?.name || 'Non défini',
-      role: user.profile?.role || 'INFIRMIER',
-      isActive: user.profile?.isActive ?? true,
-      isWhitelisted: user.profile?.isWhitelisted ?? false,
-      createdAt: user.createdAt.toISOString(),
-      lastLogin: user.profile?.lastLogin?.toISOString() || null,
-      loginCount: user._count?.logs || 0
-    }))
+    const formattedUsers = users.map(user => {
+      const activeInvitation = user.receivedInvitations[0] // La plus récente
+      
+      return {
+        id: user.id,
+        email: user.email,
+        name: user.profile?.name || 'Non défini',
+        role: user.profile?.role || 'INFIRMIER',
+        isActive: user.profile?.isActive ?? true,
+        isWhitelisted: user.profile?.isWhitelisted ?? false,
+        createdAt: user.createdAt.toISOString(),
+        lastLogin: user.profile?.lastLogin?.toISOString() || null,
+        loginCount: user._count?.logs || 0,
+        // Informations sur l'invitation
+        hasActiveInvitation: !!activeInvitation,
+        invitationToken: activeInvitation?.token || null,
+        invitationExpiresAt: activeInvitation?.expiresAt?.toISOString() || null
+      }
+    })
 
     console.log('📤 Envoi de la réponse avec', formattedUsers.length, 'utilisateurs')
 
@@ -79,7 +99,6 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('❌ Erreur dans API /admin/users:', error)
     
-    // Log détaillé de l'erreur
     if (error instanceof Error) {
       console.error('Message:', error.message)
       console.error('Stack:', error.stack)
@@ -96,7 +115,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST: Créer un nouvel utilisateur (Admin uniquement)
+// POST: Créer un nouvel utilisateur avec token d'invitation
 export async function POST(request: NextRequest) {
   try {
     console.log('🔍 API /admin/users - Début de la requête POST')
@@ -115,6 +134,23 @@ export async function POST(request: NextRequest) {
     
     const validatedData = createUserSchema.parse(body)
 
+    // 🔧 CORRECTION: Vérifier l'existence de l'utilisateur connecté
+    console.log('🔍 Vérification de l\'utilisateur connecté:', session.user.id)
+    const currentUser = await prisma.authUser.findUnique({
+      where: { id: session.user.id },
+      include: { profile: true }
+    })
+
+    if (!currentUser) {
+      console.error('❌ Utilisateur connecté non trouvé en base:', session.user.id)
+      return NextResponse.json(
+        { error: 'Session invalide - utilisateur non trouvé' },
+        { status: 401 }
+      )
+    }
+
+    console.log('✅ Utilisateur connecté vérifié:', currentUser.email)
+
     // Vérifier si l'email existe déjà
     const existingUser = await prisma.authUser.findUnique({
       where: { email: validatedData.email }
@@ -127,21 +163,23 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Générer un mot de passe temporaire sécurisé
-    const tempPassword = crypto.randomBytes(12).toString('base64')
+    // Générer un mot de passe temporaire (sera remplacé lors de l'activation)
+    const tempPassword = crypto.randomBytes(32).toString('hex')
     const hashedPassword = await bcrypt.hash(tempPassword, 12)
 
     console.log('🔐 Mot de passe temporaire généré')
 
-    // Créer l'utilisateur et son profil dans une transaction
-    const newUser = await prisma.$transaction(async (tx) => {
+    // Créer l'utilisateur, son profil et le token d'invitation dans une transaction
+    const result = await prisma.$transaction(async (tx) => {
       // Créer l'utilisateur
       const user = await tx.authUser.create({
         data: {
           email: validatedData.email,
-          password: hashedPassword
+          password: hashedPassword // Sera remplacé lors de l'activation
         }
       })
+
+      console.log('👤 Utilisateur créé:', user.id)
 
       // Créer le profil
       const profile = await tx.userProfile.create({
@@ -150,53 +188,77 @@ export async function POST(request: NextRequest) {
           email: validatedData.email,
           name: validatedData.name,
           role: validatedData.role,
-          isActive: true,
+          isActive: false, // Inactif jusqu'à l'activation
           isWhitelisted: validatedData.role === 'ADMIN'
         }
       })
 
-      return { user, profile }
+      console.log('📋 Profil créé pour:', profile.email)
+
+      // Générer le token d'invitation si demandé
+      let invitationToken = null
+      if (validatedData.generateInvitation) {
+        const tokenValue = crypto.randomBytes(32).toString('base64url')
+        const expiresAt = new Date()
+        expiresAt.setDate(expiresAt.getDate() + 7) // Expire dans 7 jours
+
+        console.log('🎫 Création du token d\'invitation...')
+        console.log('   - User ID:', user.id)
+        console.log('   - Created by:', currentUser.id)
+        console.log('   - Email:', validatedData.email)
+
+        invitationToken = await tx.invitationToken.create({
+          data: {
+            email: validatedData.email,
+            token: tokenValue,
+            userId: user.id,
+            createdBy: currentUser.id, // 🔧 Utiliser l'ID vérifié
+            expiresAt
+          }
+        })
+
+        console.log('✅ Token d\'invitation créé:', invitationToken.id)
+      }
+
+      return { user, profile, invitationToken }
     })
 
-    console.log('✅ Utilisateur créé avec succès:', newUser.user.id)
+    console.log('✅ Utilisateur créé avec succès:', result.user.id)
 
     // Logger la création
     await prisma.authLog.create({
       data: {
-        userId: session.user.id,
+        userId: currentUser.id, // 🔧 Utiliser l'ID vérifié
         action: 'USER_CREATED',
         success: true,
         details: {
-          createdUserId: newUser.user.id,
+          createdUserId: result.user.id,
           createdUserEmail: validatedData.email,
-          createdUserRole: validatedData.role
+          createdUserRole: validatedData.role,
+          invitationGenerated: !!result.invitationToken
         }
       }
     })
 
-    // Envoyer l'email d'invitation si demandé
-    if (validatedData.sendInvite) {
-      try {
-        await sendInvitationEmail(validatedData.email, validatedData.name, tempPassword)
-        console.log('📧 Email d\'invitation envoyé')
-      } catch (emailError) {
-        console.error('⚠️ Erreur envoi email:', emailError)
-        // Continuer même si l'email échoue
-      }
-    }
+    // Construire l'URL d'invitation
+    const invitationUrl = result.invitationToken ? 
+      `${process.env.NEXTAUTH_URL || 'http://localhost:3002'}/auth/activate?token=${result.invitationToken.token}` : 
+      null
 
-    // Réponse (sans le mot de passe)
+    // Réponse
     return NextResponse.json({
       success: true,
       user: {
-        id: newUser.user.id,
+        id: result.user.id,
         email: validatedData.email,
         name: validatedData.name,
         role: validatedData.role,
-        isActive: true,
+        isActive: false,
         isWhitelisted: validatedData.role === 'ADMIN',
-        createdAt: newUser.user.createdAt.toISOString(),
-        tempPassword: validatedData.sendInvite ? undefined : tempPassword // Seulement si pas d'email
+        createdAt: result.user.createdAt.toISOString(),
+        hasInvitation: !!result.invitationToken,
+        invitationUrl,
+        invitationExpiresAt: result.invitationToken?.expiresAt?.toISOString()
       },
       message: 'Utilisateur créé avec succès'
     }, { status: 201 })
@@ -221,14 +283,109 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Fonction pour envoyer l'email d'invitation
-async function sendInvitationEmail(email: string, name: string, tempPassword: string) {
-  // À implémenter selon votre provider email (Resend, SendGrid, etc.)
-  console.log(`📧 Email d'invitation pour ${email}:`, {
-    name,
-    tempPassword,
-    loginUrl: `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/auth/login`
-  })
-  
-  // TODO: Implémenter l'envoi d'email réel
+// Fonction pour régénérer un token d'invitation (nouvelle route)
+export async function PATCH(request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions)
+    
+    if (!session?.user || session.user.role !== 'ADMIN') {
+      return NextResponse.json(
+        { error: 'Accès non autorisé' },
+        { status: 403 }
+      )
+    }
+
+    // 🔧 CORRECTION: Vérifier l'existence de l'utilisateur connecté
+    const currentUser = await prisma.authUser.findUnique({
+      where: { id: session.user.id }
+    })
+
+    if (!currentUser) {
+      return NextResponse.json(
+        { error: 'Session invalide - utilisateur non trouvé' },
+        { status: 401 }
+      )
+    }
+
+    const body = await request.json()
+    const { userId, action } = body
+
+    if (action !== 'regenerateInvitation') {
+      return NextResponse.json(
+        { error: 'Action non supportée' },
+        { status: 400 }
+      )
+    }
+
+    // Vérifier que l'utilisateur cible existe
+    const user = await prisma.authUser.findUnique({
+      where: { id: userId },
+      include: { profile: true }
+    })
+
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Utilisateur non trouvé' },
+        { status: 404 }
+      )
+    }
+
+    // Supprimer les anciens tokens et créer un nouveau
+    const result = await prisma.$transaction(async (tx) => {
+      // Supprimer les anciens tokens
+      await tx.invitationToken.deleteMany({
+        where: { userId, isUsed: false }
+      })
+
+      // Créer un nouveau token
+      const tokenValue = crypto.randomBytes(32).toString('base64url')
+      const expiresAt = new Date()
+      expiresAt.setDate(expiresAt.getDate() + 7)
+
+      const newToken = await tx.invitationToken.create({
+        data: {
+          email: user.email,
+          token: tokenValue,
+          userId,
+          createdBy: currentUser.id, // 🔧 Utiliser l'ID vérifié
+          expiresAt
+        }
+      })
+
+      return newToken
+    })
+
+    // Logger l'action
+    await prisma.authLog.create({
+      data: {
+        userId: currentUser.id, // 🔧 Utiliser l'ID vérifié
+        action: 'INVITATION_REGENERATED',
+        success: true,
+        details: {
+          targetUserId: userId,
+          targetUserEmail: user.email
+        }
+      }
+    })
+
+    const invitationUrl = `${process.env.NEXTAUTH_URL || 'http://localhost:3002'}/auth/activate?token=${result.token}`
+
+    return NextResponse.json({
+      success: true,
+      invitationUrl,
+      expiresAt: result.expiresAt.toISOString(),
+      message: 'Nouveau lien d\'invitation généré'
+    })
+
+  } catch (error) {
+    console.error('❌ Erreur régénération invitation:', error)
+    
+    return NextResponse.json(
+      { 
+        error: 'Erreur lors de la régénération du lien d\'invitation',
+        details: error instanceof Error ? error.message : 'Erreur inconnue'
+      },
+      { status: 500 }
+    )
+  }
 }

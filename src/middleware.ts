@@ -1,4 +1,4 @@
-// src/middleware.ts
+// src/middleware.ts - Version corrigée pour réduire les logs
 import { withAuth } from "next-auth/middleware"
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
@@ -6,11 +6,12 @@ import type { NextRequest } from "next/server"
 // Configuration des routes et leurs permissions
 const ROUTE_PERMISSIONS = {
   // Routes publiques (pas d'auth requise)
-  public: [
+   public: [
     '/auth/login',
     '/auth/register',
     '/auth/error',
     '/auth/forgot-password',
+    '/auth/invite',
     '/api/auth',
   ],
   
@@ -44,6 +45,17 @@ const ROUTE_PERMISSIONS = {
     '/api/medical',
   ]
 }
+
+// 🔧 AJOUT: Routes à ne pas logger pour éviter le spam
+const SILENT_ROUTES = [
+  '/api/patients',
+  '/api/entretiens',
+  '/api/calendar',
+  '/api/lists',
+  '/_next',
+  '/favicon.ico',
+  '/images'
+]
 
 // Fonction pour vérifier les permissions
 function hasPermission(userRole: string, pathname: string): boolean {
@@ -87,39 +99,53 @@ function checkSessionTimeout(token: any): boolean {
   return sessionAge < maxAge
 }
 
+// 🔧 AJOUT: Fonction pour déterminer si on doit logger
+function shouldLog(pathname: string): boolean {
+  // Ne pas logger les routes fréquentes pour éviter le spam
+  return !SILENT_ROUTES.some(route => pathname.startsWith(route))
+}
 
 export default withAuth(
   function middleware(req: NextRequest) {
     const token = req.nextauth.token
     const { pathname } = req.nextUrl
     
-    // Vérifier le timeout de session
-    if (token && !checkSessionTimeout(token)) {
-      // Session expirée, rediriger vers login
-      const loginUrl = new URL('/auth/login', req.url)
-      loginUrl.searchParams.set('error', 'SessionExpired')
-      return NextResponse.redirect(loginUrl)
-    }
-    
-    // Vérifier les permissions de rôle
-    if (token && !hasPermission(token.role as string, pathname)) {
-      // Pas d'autorisation, rediriger vers une page d'erreur
-      const errorUrl = new URL('/auth/error', req.url)
-      errorUrl.searchParams.set('error', 'AccessDenied')
-      return NextResponse.redirect(errorUrl)
-    }
+   // Vérifier le timeout de session
+if (token && !checkSessionTimeout(token)) {
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`⏰ Session expirée`)
+  }
+  const loginUrl = new URL('/auth/login', req.url)
+  loginUrl.searchParams.set('error', 'SessionExpired')
+  return NextResponse.redirect(loginUrl)
+}
+
+// Vérifier les permissions de rôle
+if (token && !hasPermission(token.role as string, pathname)) {
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`🚫 Accès refusé: ${pathname}`)
+  }
+  const errorUrl = new URL('/auth/error', req.url)
+  errorUrl.searchParams.set('error', 'AccessDenied')
+  return NextResponse.redirect(errorUrl)
+}
     
     // Vérifier si l'utilisateur est actif
     if (token && !token.isActive) {
+      console.log(`⛔ Compte désactivé: ${token.email}`)
       const errorUrl = new URL('/auth/error', req.url)
       errorUrl.searchParams.set('error', 'AccountDeactivated')
       return NextResponse.redirect(errorUrl)
     }
     
-    // Logger l'accès pour audit
-    if (token && !pathname.startsWith('/api/auth')) {
-      // Note: En production, implémenter un système de logging async
-      console.log(`Access: ${token.email} -> ${pathname}`)
+    // 🔧 CORRECTION: Logger seulement les accès importants
+    if (token && shouldLog(pathname)) {
+      // En développement, masquer partiellement l'email
+      const maskedEmail = process.env.NODE_ENV === 'development' 
+        ? token.email.substring(0, 3) + '***@' + token.email.split('@')[1]
+        : token.email
+      
+      console.log(`🔐 ${maskedEmail} -> ${pathname}`)
     }
     
     return NextResponse.next()

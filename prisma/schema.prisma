@@ -1,4 +1,4 @@
-// prisma/schema.prisma - Version corrigée après db pull
+// prisma/schema.prisma - Version corrigée des relations
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,7 +10,7 @@ datasource db {
 }
 
 // ============================================
-// AUTHENTIFICATION (Générés par db pull)
+// AUTHENTIFICATION
 // ============================================
 
 model Account {
@@ -61,6 +61,10 @@ model AuthUser {
   logs     AuthLog[]
   profile  UserProfile?
   sessions Session[]
+  
+  // Relations pour les tokens d'invitation (CORRIGÉES)
+  createdInvitations  InvitationToken[] @relation("InvitationCreator")
+  receivedInvitations InvitationToken[] @relation("InvitationRecipient")
 
   @@map("auth_users")
 }
@@ -102,6 +106,33 @@ model VerificationToken {
 
   @@id([identifier, token])
   @@map("verification_tokens")
+}
+
+// ============================================
+// TOKENS D'INVITATION (RELATIONS CORRIGÉES)
+// ============================================
+
+model InvitationToken {
+  id        String    @id @default(cuid())
+  email     String
+  token     String    @unique
+  userId    String    @map("user_id")
+  createdBy String    @map("created_by")
+  expiresAt DateTime  @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+  isUsed    Boolean   @default(false) @map("is_used")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  // Relations corrigées (one-to-many)
+  user    AuthUser @relation("InvitationRecipient", fields: [userId], references: [id], onDelete: Cascade)
+  creator AuthUser @relation("InvitationCreator", fields: [createdBy], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([email])
+  @@index([expiresAt])
+  @@index([isUsed])
+  @@map("invitation_tokens")
 }
 
 enum UserRole {

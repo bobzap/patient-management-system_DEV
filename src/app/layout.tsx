@@ -47,33 +47,40 @@ export default function RootLayout({
         <meta httpEquiv="X-Frame-Options" content="DENY" />
         <meta httpEquiv="X-XSS-Protection" content="1; mode=block" />
         <meta httpEquiv="Referrer-Policy" content="strict-origin-when-cross-origin" />
-        
+       
         {/* CSP basique - à adapter selon vos besoins */}
-        <meta httpEquiv="Content-Security-Policy" content="
-          default-src 'self';
-          script-src 'self' 'unsafe-inline' 'unsafe-eval';
-          style-src 'self' 'unsafe-inline';
-          img-src 'self' data: https:;
-          font-src 'self';
-          connect-src 'self';
-        " />
+        <meta 
+          httpEquiv="Content-Security-Policy" 
+          content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; connect-src 'self';" 
+        />
       </head>
-      
-      <body 
+     
+      <body
         className={`${geistSans.variable} ${geistMono.variable} ${nunito.variable} font-nunito antialiased`}
       >
         {/* Provider d'authentification pour toute l'application */}
         <AuthProvider>
           {children}
         </AuthProvider>
-        
+       
         {/* Toast notifications */}
-        <Toaster 
-          position="top-right"
-          richColors
-          closeButton
-          duration={4000}
-        />
+      <Toaster
+        position="top-right"
+        richColors
+        closeButton
+        duration={4000}
+        expand={false}
+        visibleToasts={3}
+        gap={8}
+        toastOptions={{
+          style: {
+            background: 'white',
+            border: '1px solid #e5e7eb',
+            color: '#374151',
+          },
+          className: 'toast-custom'
+        }}
+      />
       </body>
     </html>
   );

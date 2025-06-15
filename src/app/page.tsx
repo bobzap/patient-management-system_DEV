@@ -1,6 +1,7 @@
+// src/app/page.tsx - Version corrigée pour éviter les boucles infinies
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Patient } from '@/types';
 import { Sidebar } from '@/components/layout/Sidebar';
@@ -10,11 +11,10 @@ import { PatientForm } from '@/components/patients/PatientForm';
 import { Dashboard } from '@/components/dashboard/Dashboard';
 import { UserManagement } from '@/components/admin/UserManagement';
 import { CalendarPage } from '@/components/calendar/CalendarPage';
-import AdminPage from '@/app/admin/page'; // Votre système d'administration existant
+import AdminPage from '@/app/admin/page';
 import { toast } from 'sonner';
-import { Toaster } from 'sonner';
+//import { Toaster } from 'sonner';
 
-// Types mis à jour
 type NavigationTab = 'dashboard' | 'patients' | 'newDossier' | 'admin' | 'userManagement' | 'calendar';
 
 export default function HomePage() {
@@ -22,7 +22,6 @@ export default function HomePage() {
     isAuthenticated, 
     isLoading, 
     user, 
-    requireAuth,
     canViewPatients,
     canAccessAdmin 
   } = useAuth();
@@ -33,41 +32,56 @@ export default function HomePage() {
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [isPatientsLoading, setIsPatientsLoading] = useState(false);
+  
+  // Refs pour éviter les re-renders infinis
+  const patientsLoadedRef = useRef(false);
+  const fetchPatientsRef = useRef<() => Promise<void>>();
 
-  // Vérifier l'authentification
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
+  // Fonction fetchPatients mémorisée
+  const fetchPatients = useCallback(async () => {
+    if (!canViewPatients() || patientsLoadedRef.current) {
       return;
     }
-  }, [isAuthenticated, isLoading]);
-
-  // Charger les patients si autorisé
-  useEffect(() => {
-    if (isAuthenticated && canViewPatients() && patients.length === 0) {
-      fetchPatients();
-    }
-  }, [isAuthenticated, canViewPatients]);
-
-  const fetchPatients = async () => {
-    if (!canViewPatients()) return;
     
     setIsPatientsLoading(true);
     try {
+      console.log('🔄 Chargement des patients...');
       const response = await fetch('/api/patients');
       const result = await response.json();
       setPatients(result.data || []);
+      patientsLoadedRef.current = true;
+      console.log('✅ Patients chargés:', result.data?.length || 0);
     } catch (error) {
-      console.error('Erreur lors du chargement des patients:', error);
+      console.error('❌ Erreur lors du chargement des patients:', error);
       toast.error('Impossible de charger les patients');
     } finally {
       setIsPatientsLoading(false);
     }
-  };
+  }, [canViewPatients]);
+
+  // Stocker la référence pour les autres fonctions
+  fetchPatientsRef.current = fetchPatients;
+
+  // Charger les patients seulement une fois quand l'auth est OK
+  useEffect(() => {
+    if (isAuthenticated && !isLoading && canViewPatients() && !patientsLoadedRef.current) {
+      console.log('🚀 Initialisation - Chargement des patients');
+      fetchPatients();
+    }
+  }, [isAuthenticated, isLoading, canViewPatients, fetchPatients]);
+
+  // Reset du flag quand l'utilisateur change
+  useEffect(() => {
+    if (!isAuthenticated) {
+      patientsLoadedRef.current = false;
+      setPatients([]);
+    }
+  }, [isAuthenticated]);
 
   const handleTabChange = useCallback((newTab: NavigationTab) => {
     // Vérifier les permissions avant de changer d'onglet
-    if ((newTab === 'admin' || newTab === 'userManagement') && !canAccessAdmin()) {
-      toast.error('Accès non autorisé à l\'administration');
+    if (newTab === 'userManagement' && !canAccessAdmin()) {
+      toast.error('Accès non autorisé à la gestion des utilisateurs');
       return;
     }
     
@@ -85,7 +99,8 @@ export default function HomePage() {
       setActiveTab(newTab);
     }
   }, [selectedPatient, canAccessAdmin, canViewPatients]);
-
+  
+  
   const handlePatientSubmit = useCallback(async (patientData: Omit<Patient, 'id'>) => {
     if (!canViewPatients()) {
       toast.error('Permission insuffisante');
@@ -93,6 +108,7 @@ export default function HomePage() {
     }
 
     try {
+      console.log('📝 Création d\'un nouveau patient...');
       const response = await fetch('/api/patients', {
         method: 'POST',
         headers: {
@@ -107,19 +123,32 @@ export default function HomePage() {
       }
 
       const result = await response.json();
-      setPatients(prev => [...prev, result.data]);
+      
+      // Mettre à jour la liste sans refetch
+      setPatients(prev => [result.data, ...prev]);
       setActiveTab('patients');
       
       toast.success('Dossier patient créé avec succès');
+      console.log('✅ Patient créé:', result.data.id);
       
     } catch (error) {
-      console.error('Erreur:', error);
+      console.error('❌ Erreur création patient:', error);
       toast.error(error instanceof Error ? error.message : 'Erreur lors de la création du dossier');
     }
   }, [canViewPatients]);
 
   const handlePatientSelect = useCallback((patient: Patient) => {
+    console.log('👤 Sélection du patient:', patient.id);
     setSelectedPatient(patient);
+  }, []);
+
+  // Fonction pour forcer le rechargement des patients
+  const refreshPatients = useCallback(async () => {
+    console.log('🔄 Rechargement forcé des patients...');
+    patientsLoadedRef.current = false;
+    if (fetchPatientsRef.current) {
+      await fetchPatientsRef.current();
+    }
   }, []);
 
   // Affichage pendant le chargement
@@ -155,6 +184,8 @@ export default function HomePage() {
               onDelete={() => {
                 console.log('Delete patient:', selectedPatient);
                 setSelectedPatient(null);
+                // Optionnel: rafraîchir la liste après suppression
+                refreshPatients();
               }}
             />
           </div>
@@ -171,6 +202,7 @@ export default function HomePage() {
                 onSearchChange={setSearchTerm}
                 onSelectPatient={handlePatientSelect}
                 onNewDossier={() => handleTabChange('newDossier')}
+                isLoading={isPatientsLoading}
               />
             )}
             
@@ -181,12 +213,10 @@ export default function HomePage() {
               />
             )}
 
-            {/* VOTRE SYSTÈME D'ADMINISTRATION EXISTANT */}
-            {activeTab === 'admin' && canAccessAdmin() && (
+            {activeTab === 'admin' && (
               <AdminPage />
             )}
 
-            {/* MON NOUVEAU SYSTÈME DE GESTION UTILISATEURS */}
             {activeTab === 'userManagement' && canAccessAdmin() && (
               <div className="p-6">
                 <UserManagement />
@@ -221,8 +251,8 @@ export default function HomePage() {
         )}
       </main>
       
-      {/* Toast notifications */}
-      <Toaster position="top-right" richColors />
+     
+    
     </div>
   );
 }

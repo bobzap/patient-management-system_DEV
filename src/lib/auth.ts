@@ -24,73 +24,86 @@ export const authOptions: NextAuthOptions = {
         password: { label: 'Password', type: 'password' }
       },
       async authorize(credentials) {
-        console.log('🔐 Tentative de connexion pour:', credentials?.email)
-        
-        if (!credentials?.email || !credentials?.password) {
-          console.log('❌ Credentials manquantes')
-          return null
-        }
+  if (process.env.NODE_ENV === 'development') {
+    console.log('🔐 Tentative de connexion')
+  }
+ 
+  if (!credentials?.email || !credentials?.password) {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('❌ Credentials manquantes')
+    }
+    return null
+  }
 
-        try {
-          // Chercher l'utilisateur dans la base
-          const user = await prisma.authUser.findUnique({
-            where: { email: credentials.email },
-            include: { profile: true }
-          })
+  try {
+    const user = await prisma.authUser.findUnique({
+      where: { email: credentials.email },
+      include: { profile: true }
+    })
+    
+    if (process.env.NODE_ENV === 'development') {
+      console.log('👤 Utilisateur trouvé:', user ? 'OUI' : 'NON')
+      console.log('📋 Profil:', user?.profile ? 'OUI' : 'NON')
+    }
 
-          console.log('👤 Utilisateur trouvé:', user ? 'OUI' : 'NON')
-          console.log('📋 Profil:', user?.profile ? 'OUI' : 'NON')
+    if (!user || !user.profile) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('❌ Utilisateur ou profil manquant')
+      }
+      return null
+    }
 
-          if (!user || !user.profile) {
-            console.log('❌ Utilisateur ou profil manquant')
-            return null
-          }
+    if (!user.profile.isActive) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('❌ Compte désactivé')
+      }
+      throw new Error('Compte désactivé')
+    }
 
-          // Vérifier que l'utilisateur est actif
-          if (!user.profile.isActive) {
-            console.log('❌ Compte désactivé')
-            throw new Error('Compte désactivé')
-          }
+    const isPasswordValid = await bcrypt.compare(
+      credentials.password,
+      user.password
+    )
+    
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔒 Vérification mot de passe terminée')
+    }
 
-          // Vérifier le mot de passe
-          const isPasswordValid = await bcrypt.compare(
-            credentials.password, 
-            user.password
-          )
+    if (!isPasswordValid) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('❌ Mot de passe incorrect')
+      }
+      return null
+    }
 
-          console.log('🔒 Mot de passe valide:', isPasswordValid ? 'OUI' : 'NON')
-
-          if (!isPasswordValid) {
-            console.log('❌ Mot de passe incorrect')
-            return null
-          }
-
-          // Logger la connexion pour audit
-          await prisma.authLog.create({
-            data: {
-              userId: user.id,
-              action: 'LOGIN',
-              success: true,
-              details: {
-                timestamp: new Date().toISOString()
-              }
-            }
-          })
-
-          console.log('✅ Connexion réussie pour:', user.email, 'Rôle:', user.profile.role)
-
-          return {
-            id: user.id,
-            email: user.email,
-            name: user.profile.name || user.email,
-            role: user.profile.role,
-            isActive: user.profile.isActive
-          }
-        } catch (error) {
-          console.error('❌ Erreur dans authorize:', error)
-          return null
+    // Logger la connexion pour audit (GARDEZ - c'est sécurisé)
+    await prisma.authLog.create({
+      data: {
+        userId: user.id,
+        action: 'LOGIN',
+        success: true,
+        details: {
+          timestamp: new Date().toISOString()
         }
       }
+    })
+
+    if (process.env.NODE_ENV === 'development') {
+      console.log('✅ Connexion réussie')
+    }
+
+    return {
+      id: user.id,
+      email: user.email,
+      name: user.profile.name || user.email,
+      role: user.profile.role,
+      isActive: user.profile.isActive
+    }
+  } catch (error) {
+    console.error('❌ Erreur dans authorize:', error.message) // ← GARDEZ mais sans détails
+    return null
+  }
+}
     })
   ],
 
@@ -104,16 +117,20 @@ export const authOptions: NextAuthOptions = {
     maxAge: 4 * 60 * 60, // 4 heures
   },
 
-  callbacks: {
+callbacks: {
     async jwt({ token, user }) {
-      console.log('🎫 JWT Callback - User:', user ? 'OUI' : 'NON', 'Token sub:', token.sub)
-      
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🎫 JWT Callback')
+      }
+     
       if (user) {
-        console.log('🎫 Ajout données user au token:', user.role)
+        if (process.env.NODE_ENV === 'development') {
+          console.log('🎫 Ajout données user au token')
+        }
         token.role = user.role
         token.isActive = user.isActive
       }
-      
+     
       return token
     },
 
@@ -149,7 +166,9 @@ export const authOptions: NextAuthOptions = {
 
   events: {
     async signOut({ token }) {
-      console.log('🚪 SignOut Event pour:', token?.sub)
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🚪 SignOut Event')
+      }
       if (token?.sub) {
         await prisma.authLog.create({
           data: {
