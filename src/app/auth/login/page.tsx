@@ -1,13 +1,14 @@
-// src/app/auth/login/page.tsx - Version avec redirection améliorée
+// src/app/auth/login/page.tsx - VOTRE DESIGN PRÉSERVÉ + Suspense
 'use client'
 
-import { useState, useEffect } from 'react'
+import { Suspense, useState, useEffect } from 'react'
 import { signIn, getSession } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Eye, EyeOff, AlertCircle, Lock, Mail, CheckCircle } from 'lucide-react'
 import { toast } from 'sonner'
 
-export default function LoginPage() {
+// 🔧 JUSTE WRAPPER VOTRE COMPOSANT EXISTANT
+function LoginContent() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -59,7 +60,7 @@ export default function LoginPage() {
       const session = await getSession()
       if (session) {
         console.log('🔐 Session existante détectée, redirection...')
-        window.location.href = callbackUrl // 🔧 Utiliser window.location pour forcer la redirection
+        window.location.href = callbackUrl
       }
     }
     checkSession()
@@ -96,7 +97,7 @@ export default function LoginPage() {
       const result = await signIn('credentials', {
         email,
         password,
-        redirect: false, // 🔧 Important: pas de redirection automatique
+        redirect: false,
       })
 
       console.log('🔐 Résultat connexion:', result)
@@ -113,7 +114,6 @@ export default function LoginPage() {
         console.log('✅ Connexion réussie, redirection vers:', callbackUrl)
         toast.success('Connexion réussie')
         
-        // 🔧 Redirection améliorée avec délai
         setTimeout(() => {
           window.location.href = callbackUrl
         }, 500)
@@ -279,5 +279,21 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+// 🔧 SEUL CHANGEMENT : Wrapper avec Suspense
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent mx-auto mb-4"></div>
+          <p className="text-gray-600">Chargement...</p>
+        </div>
+      </div>
+    }>
+      <LoginContent />
+    </Suspense>
   )
 }

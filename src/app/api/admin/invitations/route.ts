@@ -1,4 +1,4 @@
-// src/app/api/admin/invitations/route.ts
+// src/app/api/admin/invitations/route.ts - VERSION RÉELLE avec vraie DB
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
@@ -13,7 +13,7 @@ const createInvitationSchema = z.object({
   customMessage: z.string().optional()
 })
 
-// GET: Récupérer toutes les invitations (Admin uniquement)
+// GET: Récupérer toutes les invitations RÉELLES
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
@@ -25,39 +25,77 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Note: Pour cet exemple, nous simulons des invitations
-    // Dans une vraie implémentation, vous auriez une table `invitations`
-    const mockInvitations = [
-      {
-        id: '1',
-        email: 'infirmier.test@example.com',
-        role: 'INFIRMIER',
-        status: 'PENDING',
-        token: crypto.randomBytes(32).toString('hex'),
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-        createdAt: new Date().toISOString(),
-        invitedBy: session.user.email
+    console.log('📋 Récupération des invitations réelles...')
+
+    // 🔧 VRAIE REQUÊTE: Récupérer les tokens d'invitation de la DB
+    const invitations = await prisma.invitationToken.findMany({
+      include: {
+        user: {
+          select: {
+            email: true,
+            profile: {
+              select: {
+                name: true,
+                role: true,
+                isActive: true
+              }
+            }
+          }
+        },
+        creator: {
+          select: {
+            email: true,
+            profile: {
+              select: {
+                name: true
+              }
+            }
+          }
+        }
       },
-      {
-        id: '2',
-        email: 'medecin.test@example.com',
-        role: 'MEDECIN',
-        status: 'ACCEPTED',
-        token: crypto.randomBytes(32).toString('hex'),
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-        createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-        invitedBy: session.user.email,
-        acceptedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString()
+      orderBy: {
+        createdAt: 'desc'
       }
-    ]
+    })
+
+    console.log(`✅ ${invitations.length} invitations trouvées`)
+
+    // Formater les données pour l'interface
+    const formattedInvitations = invitations.map(invitation => {
+      // Déterminer le statut
+      let status = 'PENDING'
+      if (invitation.isUsed) {
+        status = 'ACCEPTED'
+      } else if (invitation.expiresAt < new Date()) {
+        status = 'EXPIRED'
+      }
+
+      return {
+        id: invitation.id,
+        email: invitation.email,
+        role: invitation.user?.profile?.role || 'INFIRMIER',
+        status,
+        token: invitation.token,
+        expiresAt: invitation.expiresAt.toISOString(),
+        createdAt: invitation.createdAt.toISOString(),
+        usedAt: invitation.usedAt?.toISOString() || null,
+        invitedBy: invitation.creator?.profile?.name || invitation.creator?.email || 'Système',
+        // Informations sur l'utilisateur cible
+        targetUser: {
+          name: invitation.user?.profile?.name,
+          isActive: invitation.user?.profile?.isActive,
+          hasAccount: !!invitation.user
+        }
+      }
+    })
 
     return NextResponse.json({
       success: true,
-      invitations: mockInvitations
+      invitations: formattedInvitations
     })
 
   } catch (error) {
-    console.error('Error fetching invitations:', error)
+    console.error('❌ Erreur récupération invitations:', error)
     return NextResponse.json(
       { error: 'Erreur lors de la récupération des invitations' },
       { status: 500 }
@@ -65,7 +103,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST: Créer une nouvelle invitation (Admin uniquement)
+// POST: Créer une nouvelle invitation RÉELLE
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
@@ -80,6 +118,8 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const validatedData = createInvitationSchema.parse(body)
 
+    console.log('🎫 Création d\'invitation pour:', validatedData.email)
+
     // Vérifier si l'utilisateur existe déjà
     const existingUser = await prisma.authUser.findUnique({
       where: { email: validatedData.email }
@@ -92,35 +132,64 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Générer un token sécurisé
-    const invitationToken = crypto.randomBytes(32).toString('hex')
-    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 jours
+    // Vérifier s'il y a déjà une invitation active
+    const activeInvitation = await prisma.invitationToken.findFirst({
+      where: {
+        email: validatedData.email,
+        isUsed: false,
+        expiresAt: {
+          gt: new Date()
+        }
+      }
+    })
 
-    // Dans une vraie implémentation, vous stockeriez ceci en base
-    const newInvitation = {
-      id: crypto.randomUUID(),
-      email: validatedData.email,
-      role: validatedData.role,
-      status: 'PENDING' as const,
-      token: invitationToken,
-      expiresAt: expiresAt.toISOString(),
-      createdAt: new Date().toISOString(),
-      invitedBy: session.user.email,
-      customMessage: validatedData.customMessage
-    }
-
-    // Envoyer l'email d'invitation
-    try {
-      await sendInvitationEmail(
-        validatedData.email,
-        validatedData.role,
-        invitationToken,
-        validatedData.customMessage
+    if (activeInvitation) {
+      return NextResponse.json(
+        { error: 'Une invitation active existe déjà pour cet email' },
+        { status: 400 }
       )
-    } catch (emailError) {
-      console.error('Error sending invitation email:', emailError)
-      // Continuer même si l'email échoue pour permettre le test
     }
+
+    // Générer un token sécurisé
+    const invitationToken = crypto.randomBytes(32).toString('base64url')
+    const expiresAt = new Date()
+    expiresAt.setDate(expiresAt.getDate() + 7) // 7 jours
+
+    // 🔧 CRÉATION RÉELLE: Pas de mock, vraie création en DB
+    const newInvitation = await prisma.$transaction(async (tx) => {
+      // Créer d'abord l'utilisateur (inactif)
+      const user = await tx.authUser.create({
+        data: {
+          email: validatedData.email,
+          password: crypto.randomBytes(32).toString('hex') // Temporaire, sera remplacé
+        }
+      })
+
+      // Créer le profil (inactif)
+      await tx.userProfile.create({
+        data: {
+          userId: user.id,
+          email: validatedData.email,
+          name: validatedData.email.split('@')[0], // Nom temporaire
+          role: validatedData.role,
+          isActive: false, // Inactif jusqu'à l'activation
+          isWhitelisted: validatedData.role === 'ADMIN'
+        }
+      })
+
+      // Créer le token d'invitation
+      const invitation = await tx.invitationToken.create({
+        data: {
+          email: validatedData.email,
+          token: invitationToken,
+          userId: user.id,
+          createdBy: session.user.id,
+          expiresAt
+        }
+      })
+
+      return invitation
+    })
 
     // Logger la création
     await prisma.authLog.create({
@@ -131,15 +200,32 @@ export async function POST(request: NextRequest) {
         details: {
           invitedEmail: validatedData.email,
           invitedRole: validatedData.role,
-          token: invitationToken
+          tokenId: newInvitation.id
         }
       }
     })
 
+    console.log('✅ Invitation créée:', newInvitation.id)
+
+    // URL d'invitation
+    const inviteUrl = `${process.env.NEXTAUTH_URL || 'http://localhost:3002'}/auth/activate?token=${invitationToken}`
+
+    console.log('📧 URL d\'invitation:', inviteUrl)
+
     return NextResponse.json({
       success: true,
-      invitation: newInvitation,
-      message: 'Invitation créée et envoyée avec succès'
+      invitation: {
+        id: newInvitation.id,
+        email: validatedData.email,
+        role: validatedData.role,
+        status: 'PENDING',
+        token: invitationToken,
+        expiresAt: expiresAt.toISOString(),
+        createdAt: newInvitation.createdAt.toISOString(),
+        invitedBy: session.user.name || session.user.email,
+        inviteUrl
+      },
+      message: 'Invitation créée avec succès'
     }, { status: 201 })
 
   } catch (error) {
@@ -150,30 +236,10 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.error('Error creating invitation:', error)
+    console.error('❌ Erreur création invitation:', error)
     return NextResponse.json(
       { error: 'Erreur lors de la création de l\'invitation' },
       { status: 500 }
     )
   }
-}
-
-// Fonction pour envoyer l'email d'invitation
-async function sendInvitationEmail(
-  email: string, 
-  role: string, 
-  token: string, 
-  customMessage?: string
-) {
-  const inviteUrl = `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/auth/invite/${token}`
-  
-  // Pour l'instant, juste un log
-  console.log(`📧 Email d'invitation pour ${email}:`, {
-    role,
-    inviteUrl,
-    customMessage
-  })
-  
-  // TODO: Implémenter l'envoi d'email réel avec votre service préféré
-  // Exemple avec Resend, SendGrid, ou autre service
 }

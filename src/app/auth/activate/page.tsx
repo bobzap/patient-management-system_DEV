@@ -1,7 +1,7 @@
-// src/app/auth/activate/page.tsx
+// src/app/auth/activate/page.tsx - CORRIGÉ
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Eye, EyeOff, CheckCircle, XCircle, AlertCircle, Lock, Mail, User, Shield } from 'lucide-react'
 import { toast } from 'sonner'
@@ -12,7 +12,8 @@ interface UserInfo {
   role: string
 }
 
-export default function ActivationPage() {
+// 🔧 CHANGEMENT : Fonction normale (pas export default)
+function ActivationContent() {
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -408,5 +409,22 @@ export default function ActivationPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+// 🔧 SEUL EXPORT DEFAULT - Wrapper avec Suspense
+export default function ActivationPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+        <div className="bg-white rounded-xl shadow-lg p-8 text-center max-w-md w-full">
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent mx-auto mb-4"></div>
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Chargement</h2>
+          <p className="text-gray-600">Préparation de la page d'activation...</p>
+        </div>
+      </div>
+    }>
+      <ActivationContent />
+    </Suspense>
   )
 }

@@ -1,4 +1,4 @@
-// src/app/auth/invite/[token]/page.tsx
+// src/app/auth/invite/[token]/page.tsx - Corrigé pour Next.js 15
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -14,7 +14,12 @@ interface InvitationData {
   isValid: boolean
 }
 
-export default function InviteAcceptPage({ params }: { params: { token: string } }) {
+// 🔧 CORRECTION: params est maintenant Promise
+export default function InviteAcceptPage({ 
+  params 
+}: { 
+  params: Promise<{ token: string }> 
+}) {
   const [invitationData, setInvitationData] = useState<InvitationData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [showPassword, setShowPassword] = useState(false)
@@ -24,13 +29,30 @@ export default function InviteAcceptPage({ params }: { params: { token: string }
     confirmPassword: ''
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [token, setToken] = useState<string>('')
   const router = useRouter()
 
-  // Charger les données de l'invitation
+  // 🔧 CORRECTION: Charger le token de manière asynchrone
   useEffect(() => {
+    const loadToken = async () => {
+      try {
+        const resolvedParams = await params
+        setToken(resolvedParams.token)
+      } catch (error) {
+        console.error('Error loading token:', error)
+        router.push('/auth/login')
+      }
+    }
+    loadToken()
+  }, [params, router])
+
+  // Charger les données de l'invitation seulement quand le token est prêt
+  useEffect(() => {
+    if (!token) return
+
     const validateInvitation = async () => {
       try {
-        const response = await fetch(`/api/auth/invite/${params.token}`)
+        const response = await fetch(`/api/auth/invite/${token}`)
         const data = await response.json()
         
         if (response.ok && data.valid) {
@@ -49,7 +71,7 @@ export default function InviteAcceptPage({ params }: { params: { token: string }
     }
 
     validateInvitation()
-  }, [params.token, router])
+  }, [token, router]) // 🔧 CORRECTION: Dépend maintenant de token au lieu de params.token
 
   const validateForm = () => {
     if (!formData.name.trim()) {
@@ -73,12 +95,12 @@ export default function InviteAcceptPage({ params }: { params: { token: string }
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (!validateForm()) return
+    if (!validateForm() || !token) return
     
     setIsSubmitting(true)
     
     try {
-      const response = await fetch(`/api/auth/invite/${params.token}/accept`, {
+      const response = await fetch(`/api/auth/invite/${token}/accept`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -113,7 +135,8 @@ export default function InviteAcceptPage({ params }: { params: { token: string }
     return roleNames[role] || role
   }
 
-  if (isLoading) {
+  // Affichage pendant le chargement du token ou de l'invitation
+  if (isLoading || !token) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
         <div className="bg-white rounded-xl shadow-lg p-8 w-full max-w-md text-center">

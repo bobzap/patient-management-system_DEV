@@ -1,4 +1,4 @@
-// src/app/api/auth/activate/route.ts
+// src/app/api/auth/activate/route.ts - VERSION RÉELLE avec vraie DB
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
@@ -14,7 +14,7 @@ const activationSchema = z.object({
   path: ["confirmPassword"]
 })
 
-// GET: Vérifier la validité d'un token d'invitation
+// GET: Vérifier la validité d'un token d'invitation RÉEL
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
@@ -27,7 +27,9 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Vérifier le token
+    console.log('🔍 Vérification token d\'activation...')
+
+    // 🔧 VRAIE VÉRIFICATION: Chercher le token dans la DB
     const invitation = await prisma.invitationToken.findUnique({
       where: { token },
       include: {
@@ -62,12 +64,14 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Token valide
+    console.log('✅ Token valide pour:', invitation.email)
+
+    // Token valide - retourner les infos utilisateur
     return NextResponse.json({
       success: true,
       user: {
         email: invitation.user.email,
-        name: invitation.user.profile?.name || '',
+        name: invitation.user.profile?.name || invitation.email.split('@')[0],
         role: invitation.user.profile?.role || 'INFIRMIER'
       },
       expiresAt: invitation.expiresAt.toISOString()
@@ -82,15 +86,15 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST: Activer un compte avec un token d'invitation
+// POST: Activer un compte avec un token d'invitation RÉEL
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    console.log('🔐 Tentative d\'activation avec token')
+    console.log('🔐 Tentative d\'activation de compte')
     
     const validatedData = activationSchema.parse(body)
 
-    // Vérifier le token
+    // 🔧 VRAIE ACTIVATION: Chercher le token dans la DB
     const invitation = await prisma.invitationToken.findUnique({
       where: { token: validatedData.token },
       include: {
@@ -136,9 +140,11 @@ export async function POST(request: NextRequest) {
     // Hasher le nouveau mot de passe
     const hashedPassword = await bcrypt.hash(validatedData.password, 12)
 
+    console.log('🔐 Activation du compte pour:', invitation.email)
+
     // Activer le compte dans une transaction
     const result = await prisma.$transaction(async (tx) => {
-      // Mettre à jour le mot de passe et activer le compte
+      // Mettre à jour le mot de passe
       const updatedUser = await tx.authUser.update({
         where: { id: invitation.userId },
         data: {
@@ -172,6 +178,7 @@ export async function POST(request: NextRequest) {
           success: true,
           details: {
             activationMethod: 'invitation_token',
+            tokenId: invitation.id,
             activatedAt: new Date().toISOString()
           }
         }

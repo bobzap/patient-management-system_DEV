@@ -1,4 +1,4 @@
-// src/app/api/auth/invite/[token]/route.ts
+// src/app/api/auth/invite/[token]/route.ts - Corrigé pour Next.js 15
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import crypto from 'crypto'
@@ -6,10 +6,11 @@ import crypto from 'crypto'
 // GET: Valider un token d'invitation
 export async function GET(
   request: NextRequest,
-  { params }: { params: { token: string } }
+  { params }: { params: Promise<{ token: string }> } // 🔧 CORRECTION: params est maintenant Promise
 ) {
   try {
-    const token = params.token
+    // 🔧 CORRECTION: Attendre la résolution des paramètres
+    const { token } = await params
 
     // Dans une vraie implémentation, vous chercheriez en base
     // const invitation = await prisma.invitation.findUnique({
@@ -49,14 +50,14 @@ export async function GET(
   }
 }
 
-// src/app/api/auth/invite/[token]/accept/route.ts
 // POST: Accepter une invitation et créer le compte
 export async function POST(
   request: NextRequest,
-  { params }: { params: { token: string } }
+  { params }: { params: Promise<{ token: string }> } // 🔧 CORRECTION: params est maintenant Promise
 ) {
   try {
-    const token = params.token
+    // 🔧 CORRECTION: Attendre la résolution des paramètres
+    const { token } = await params
     const body = await request.json()
     const { name, password } = body
 
