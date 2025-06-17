@@ -1,0 +1,201 @@
+# Configuration VPS Production - Vital Sync
+
+## 🏗️ Architecture Fonctionnelle (17/06/2025)
+
+### **Services déployés et opérationnels :**
+
+- ✅ **App Next.js** : `https://app.vital-sync.ch`
+- ✅ **Supabase Studio** : `https://admin.vital-sync.ch`  
+- ✅ **API Supabase** : `https://api.vital-sync.ch`
+- ✅ **Traefik Dashboard** : Port 8080 (interne)
+- ✅ **Portainer** : Ports 8000, 9443
+
+### **Réseaux Docker :**
+- `traefik` : Réseau principal (172.18.0.0/16)
+- `supabase_default` : Réseau Supabase interne
+
+### **Certificats SSL :**
+- ✅ Let's Encrypt automatique via Traefik
+- ✅ Renouvellement automatique
+
+---
+
+## 📁 Structure des dossiers
+
+```
+/home/
+├── patient-management-current/     # Application Next.js
+│   ├── compose.yaml               # Docker Compose de l'app
+│   ├── Dockerfile                 # Image Next.js optimisée
+│   ├── .env.production           # Variables d'environnement
+│   └── prisma/schema.prisma      # Schéma base de données
+├── supabase-project/              # Backend Supabase
+│   └── docker-compose.yml        # Stack Supabase complète
+└── traefik-config/                # Reverse proxy
+    ├── docker-compose.yml         # Traefik + Auth
+    └── config/                    # Configuration Traefik
+```
+
+---
+
+## 🔧 Fichiers de configuration critiques
+
+### **1. App Next.js (`/home/patient-management-current/compose.yaml`)**
+```yaml
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: entretien-infirmier-app
+    restart: unless-stopped
+    networks:
+      - traefik
+      - supabase_default
+    env_file:
+      - .env.production
+    labels:
+      # Router HTTP (redirection vers HTTPS)
+      - "traefik.enable=true"
+      - "traefik.http.routers.myapp-web.rule=Host(`app.vital-sync.ch`)"
+      - "traefik.http.routers.myapp-web.entrypoints=web"
+      - "traefik.http.routers.myapp-web.middlewares=https-redirect"
+      
+      # Router HTTPS
+      - "traefik.http.routers.myapp.rule=Host(`app.vital-sync.ch`)"
+      - "traefik.http.routers.myapp.entrypoints=websecure"
+      - "traefik.http.routers.myapp.tls.certresolver=letsencrypt"
+      
+      # Service
+      - "traefik.http.services.myapp.loadbalancer.server.port=3000"
+      
+      # Middleware de redirection HTTPS
+      - "traefik.http.middlewares.https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.https-redirect.redirectscheme.permanent=true"
+
+networks:
+  traefik:
+    external: true
+  supabase_default:
+    external: true
+```
+
+### **2. Dockerfile optimisé (Multi-stage avec fichiers statiques)**
+- ✅ Build Next.js en mode standalone
+- ✅ Copie des fichiers statiques (.next/static/)
+- ✅ Utilisateur non-root pour la sécurité
+- ✅ Variables d'environnement de production
+
+### **3. Variables d'environnement critiques**
+```bash
+NEXTAUTH_URL=https://app.vital-sync.ch
+NEXT_PUBLIC_SUPABASE_URL=https://api.vital-sync.ch
+DATABASE_URL=postgresql://postgres:PASSWORD@supabase-db:5432/postgres
+NODE_ENV=production
+```
+
+---
+
+## 🗄️ Base de données
+
+### **Tables créées et fonctionnelles :**
+- ✅ `auth_users` - Authentification
+- ✅ `user_profiles` - Profils utilisateurs  
+- ✅ `patients` - Données patients
+- ✅ `entretiens` - Entretiens infirmiers
+- ✅ `calendar_events` - Événements calendrier
+- ✅ Toutes les tables du schéma Prisma
+
+### **Admin créé :**
+- ✅ Email : `l.daize@proton.me`
+- ✅ Rôle : ADMIN
+- ✅ Mot de passe : (défini dans .env.production)
+
+---
+
+## 🚀 Processus de déploiement validé
+
+### **1. Construction et démarrage :**
+```bash
+cd /home/patient-management-current
+docker compose build --no-cache
+docker compose up -d
+```
+
+### **2. Synchronisation base de données :**
+```bash
+# Copier le schéma Prisma
+docker cp prisma/schema.prisma entretien-infirmier-app:/app/schema.prisma
+
+# Appliquer le schéma
+docker exec -it entretien-infirmier-app npx prisma db push --schema=/app/schema.prisma
+```
+
+### **3. Création d'utilisateurs :**
+```bash
+# Via SQL direct dans Supabase
+docker exec -it supabase-db psql -U postgres -d postgres -c "..."
+```
+
+---
+
+## ⚠️ Points critiques à ne pas modifier
+
+1. **Réseaux Docker** : `traefik` et `supabase_default` doivent rester externes
+2. **Labels Traefik** : La configuration HTTP/HTTPS est critique
+3. **Variables d'environnement** : NEXTAUTH_URL, DATABASE_URL
+4. **Dockerfile** : Le multi-stage build avec fichiers statiques
+5. **Port mapping** : L'app doit rester sur port 3000 interne
+
+---
+
+## 🔄 Workflow dev → prod recommandé
+
+### **Pour les modifications futures :**
+
+1. **Développement local** avec `.env.local`
+2. **Test en local** avec Docker si nécessaire  
+3. **Commit/Push** vers Git
+4. **Sur VPS** : Pull + rebuild sélectif
+5. **Vérification** que la config Docker reste intacte
+
+### **Fichiers à synchroniser Git ↔ VPS :**
+- ✅ Code source Next.js
+- ✅ `package.json` / `package-lock.json`
+- ✅ `prisma/schema.prisma`
+- ⚠️ **PAS** les fichiers `.env.production` (secrets)
+- ⚠️ **PAS** les `compose.yaml` (config VPS spécifique)
+
+---
+
+## 🛡️ Sauvegardes automatiques
+
+### **À mettre en place :**
+```bash
+# Script de sauvegarde hebdomadaire
+# - Export base Supabase
+# - Sauvegarde configuration Docker
+# - Archive des images
+```
+
+---
+
+
+## Recommandations pour le développement futur :
+### **1. Fichiers à gitignorer côté VPS :**
+
+*.env.production (secrets spécifiques VPS)*
+*compose.yaml (config Docker VPS)*
+*Certificats SSL*
+*Données de base*
+
+### **2. Workflow recommandé :**
+
+*Dev local → Commit → Push Git*
+*VPS → Pull Git → Build sélectif*
+*Jamais écraser compose.yaml et .env.production*
+
+**✅ Configuration figée et documentée - Prête pour le développement !**
+
+
+

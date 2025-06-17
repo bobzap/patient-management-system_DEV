@@ -166,3 +166,25 @@
 
 
 Mise à jour le 09/06/2025
+
+Mise à jour le 09/06/2025
+
+
+SUR VPS : 16.06.2025
+
+✅ Traefik : Configuration correcte avec routeurs HTTP/HTTPS séparés
+✅ Certificats SSL : Let's Encrypt fonctionnel
+✅ Réseau Docker : Application sur le bon réseau
+✅ Next.js : Build standalone avec fichiers statiques correctement copiés
+✅ Next.js Auth : Authentification opérationnelle
+✅ Supabase : Backend connecté et fonctionnel
+Votre stack complète fonctionne :
+🌐 https://app.vital-sync.ch → Votre application Next.js
+🔧 https://admin.vital-sync.ch → Supabase Studio
+📡 https://api.vital-sync.ch → API Supabase
+Prochaines étapes suggestions :
+
+Testez toutes les fonctionnalités de votre app
+Configurez un backup de votre base Supabase
+Monitoring avec les logs Traefik/Docker
+Optimisations de performance si nécessaire
