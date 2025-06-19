@@ -22,7 +22,11 @@
     "tokens:all": "node scripts/cleanup-expired-tokens.js all",
     "type-check": "tsc --noEmit",
     "test": "jest",
-    "test:watch": "jest --watch"
+    "test:watch": "jest --watch",
+    "dev:up": "docker compose -f compose.dev.yaml up -d",
+    "dev:down": "docker compose -f compose.dev.yaml down",
+    "prod:up": "docker compose -f compose.prod.yaml up -d",
+    "prod:down": "docker compose -f compose.prod.yaml down"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

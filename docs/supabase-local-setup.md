@@ -1,6 +1,31 @@
 # Guide Setup Supabase - Développement Local
 
 
+🔄 Workflow de développement
+# Démarrer l'environnement de dev
+docker compose -f compose.dev.yaml up -d
+
+# Rebuilder après changements
+docker compose -f compose.dev.yaml build --no-cache app
+docker compose -f compose.dev.yaml up -d
+
+# Arrêter proprement
+docker compose -f compose.dev.yaml down
+
+
+
+🔄 Workflow de déploiement
+Local :
+docker compose -f compose.dev.yaml up -d
+# Accès: http://localhost:3002
+
+VPS :
+git pull
+docker compose -f compose.prod.yaml up -d
+# Accès: https://app.vital-sync.ch
+
+
+
 
 
 ## 📋 Récapitulatif de ce qui a été fait

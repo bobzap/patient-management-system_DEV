@@ -1,0 +1,38 @@
+# compose.prod.yaml - Configuration production VPS (basée sur ta version fonctionnelle)
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    container_name: entretien-infirmier-app
+    restart: unless-stopped
+    networks:
+      - traefik
+      - supabase_default
+    env_file:
+      - .env.production
+    labels:
+      - "traefik.enable=true"
+     
+      # Router HTTP (redirection vers HTTPS)
+      - "traefik.http.routers.myapp-web.rule=Host(`app.vital-sync.ch`)"
+      - "traefik.http.routers.myapp-web.entrypoints=web"
+      - "traefik.http.routers.myapp-web.middlewares=https-redirect"
+     
+      # Router HTTPS
+      - "traefik.http.routers.myapp.rule=Host(`app.vital-sync.ch`)"
+      - "traefik.http.routers.myapp.entrypoints=websecure"
+      - "traefik.http.routers.myapp.tls.certresolver=letsencrypt"
+     
+      # Service
+      - "traefik.http.services.myapp.loadbalancer.server.port=3000"
+     
+      # Middleware de redirection HTTPS
+      - "traefik.http.middlewares.https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.https-redirect.redirectscheme.permanent=true"
+
+networks:
+  traefik:
+    external: true
+  supabase_default:
+    external: true
