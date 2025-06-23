@@ -1,11 +1,11 @@
-// src/components/entretiens/EntretienForm/index.tsx
+// src/components/entretiens/EntretienForm/index.tsx - Version Finale Corrigée
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+
+import '@/styles/entretien.css';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { toast } from 'sonner';
 import { Patient } from '@/types';
-import { TabBar } from './TabBar';
-import { ResizableSection } from './ResizableSection';
 import { SanteTravail } from '../sections/SanteAuTravail';
 import { ExamenClinique } from '../sections/ExamenClinique';
 import { Conclusion } from '../sections/Conclusion';
@@ -14,12 +14,12 @@ import { defaultConclusionData } from '../types/defaultData';
 import type { VecuTravailData } from '../sections/SanteAuTravail/VecuTravail';
 import type { ModeVieData } from '../sections/SanteAuTravail/ModeVie';
 import { IMAA } from '../sections/IMAA';
-import { ZoomIn, ZoomOut } from 'lucide-react';
+import { ZoomIn, ZoomOut, ChevronDown, ChevronUp, Check, Clock, Edit3 } from 'lucide-react';
 import { Timer } from '@/components/ui/timer';
 import { useEntretienTimer } from '@/hooks/useEntretienTimer';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 
-// Interfaces et types
+// Interfaces
 interface EntretienData {
   numeroEntretien: number;
   status: string;
@@ -45,12 +45,10 @@ interface EntretienToSave {
 interface Section {
   id: string;
   title: string;
+  icon: React.ReactNode;
   color: string;
-  width: number;
-  height: number;
-  zIndex: number;
-  position: number;
-  isMinimized: boolean;
+  isCompleted: boolean;
+  isActive: boolean;
 }
 
 interface EntretienFormProps {
@@ -60,18 +58,10 @@ interface EntretienFormProps {
   onClose?: () => void;
 }
 
-
-interface IMAAProps {
-  data: any;
-  onChange: (newData: any) => void;
-  isReadOnly?: boolean; // Ajoutez cette propriété
-}
-
-
 // Données initiales
 const initialVecuTravailData: VecuTravailData = {
   motifVisite: { 
-    motifs: [''],  // Si le type attend un tableau de chaînes
+    motifs: [''],
     commentaires: '' 
   },
   postesOccupes: '',
@@ -109,60 +99,17 @@ const initialModeVieData: ModeVieData = {
   }
 };
 
-const initialSections: Section[] = [
-  { 
-    id: 'sante', 
-    title: 'SANTÉ AU TRAVAIL', 
-    color: 'bg-amber-50', 
-    width: 900, 
-    height: 500, 
-    zIndex: 1, 
-    position: 0,
-    isMinimized: true
-  },
-  { 
-    id: 'examen', 
-    title: 'EXAMEN CLINIQUE', 
-    color: 'bg-purple-50', 
-    width: 900, 
-    height: 500, 
-    zIndex: 1, 
-    position: 1,
-    isMinimized: true
-  },
-  { 
-    id: 'imaa', 
-    title: 'IMAA', 
-    color: 'bg-green-50', 
-    width: 900, 
-    height: 500, 
-    zIndex: 1, 
-    position: 2,
-    isMinimized: true
-  },
-  { 
-    id: 'conclusion', 
-    title: 'CONCLUSION', 
-    color: 'bg-pink-50', 
-    width: 900, 
-    height: 500, 
-    zIndex: 1, 
-    position: 3,
-    isMinimized: true
-  }
-];
-
-// Le composant principal
 export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClose }: EntretienFormProps) => {
-  // État pour suivre l'ID de l'entretien localement (après sauvegarde initiale)
+  // États principaux
   const [localEntretienId, setLocalEntretienId] = useState<number | null>(entretienId || null);
-  
-  // États UI
-  const [focusedSection, setFocusedSection] = useState<string | null>(null);
-  const [maxZIndex, setMaxZIndex] = useState(1);
   const [globalZoom, setGlobalZoom] = useState(100);
-  const [sections, setSections] = useState<Section[]>(initialSections);
   const [showSaveConfirmDialog, setShowSaveConfirmDialog] = useState(false);
+  const [activeSection, setActiveSection] = useState<string>('sante');
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['sante']));
+
+  // Refs pour le scroll
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const sectionRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
   
   // État de l'entretien
   const [entretienData, setEntretienData] = useState<EntretienData>({
@@ -177,18 +124,15 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
     conclusion: defaultConclusionData
   });
   
-  // État pour initialiser le timer
   const [initialTimerState, setInitialTimerState] = useState({
     initialSeconds: 0,
     initialPaused: entretienId ? true : false
   });
   
-  // Hook pour la gestion du timer
+  // Hook timer
   const { 
     seconds, 
     isPaused, 
-    isStarted, 
-    formatTime, 
     togglePause, 
     forcePause 
   } = useEntretienTimer({
@@ -198,49 +142,121 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
     initialSeconds: initialTimerState.initialSeconds,
     initialPaused: initialTimerState.initialPaused
   });
-  
-  // Effet pour synchroniser localEntretienId avec entretienId
-  useEffect(() => {
-    if (entretienId) {
-      setLocalEntretienId(entretienId);
+
+  // Configuration des sections avec statut de complétion
+  const sections: Section[] = [
+  {
+    id: 'sante',
+    title: 'Santé au Travail',
+    icon: <div className="w-5 h-5 bg-yellow-500 rounded-full flex items-center justify-center text-white text-xs">1</div>,
+    color: 'border-yellow-500 bg-yellow-50',
+    isCompleted: !!(entretienData.santeTravail.vecuTravail.motifVisite.motifs[0] || entretienData.santeTravail.vecuTravail.postesOccupes),
+    isActive: activeSection === 'sante'
+  },
+  {
+    id: 'examen',
+    title: 'Examen Clinique',
+    icon: <div className="w-5 h-5 bg-purple-500 rounded-full flex items-center justify-center text-white text-xs">2</div>,
+    color: 'border-purple-500 bg-purple-50',
+    isCompleted: !!(entretienData.examenClinique?.biometrie?.poids || entretienData.examenClinique?.biometrie?.tension),
+    isActive: activeSection === 'examen'
+  },
+    {
+      id: 'imaa',
+      title: 'IMAA',
+      icon: <div className="w-5 h-5 bg-orange-500 rounded-full flex items-center justify-center text-white text-xs">3</div>,
+      color: 'border-orange-500 bg-orange-50',
+      isCompleted: Object.keys(entretienData.imaa || {}).length > 0,
+      isActive: activeSection === 'imaa'
+    },
+    {
+      id: 'conclusion',
+      title: 'Conclusion',
+      icon: <div className="w-5 h-5 bg-pink-500 rounded-full flex items-center justify-center text-white text-xs">4</div>,
+      color: 'border-pink-500 bg-pink-50',
+      isCompleted: !!(entretienData.conclusion?.aptitude || entretienData.conclusion?.recommandations),
+      isActive: activeSection === 'conclusion'
     }
-  }, [entretienId]);
-  
-  // Fonction de sauvegarde optimisée
+  ];
+
+  // Fonction de scroll intelligent vers une section
+  const scrollToSection = useCallback((sectionId: string) => {
+    const element = sectionRefs.current[sectionId];
+    if (element && scrollContainerRef.current) {
+      const container = scrollContainerRef.current;
+      const scrollTop = element.offsetTop - 80;
+      
+      container.scrollTo({
+        top: scrollTop,
+        behavior: 'smooth'
+      });
+      
+      setActiveSection(sectionId);
+      
+      if (!expandedSections.has(sectionId)) {
+        setExpandedSections(prev => new Set([...prev, sectionId]));
+      }
+    }
+  }, [expandedSections]);
+
+  // Navigation suivant/précédent
+  const goToNextSection = useCallback(() => {
+    const currentIndex = sections.findIndex(s => s.id === activeSection);
+    if (currentIndex < sections.length - 1) {
+      scrollToSection(sections[currentIndex + 1].id);
+    }
+  }, [activeSection, sections, scrollToSection]);
+
+  const goToPrevSection = useCallback(() => {
+    const currentIndex = sections.findIndex(s => s.id === activeSection);
+    if (currentIndex > 0) {
+      scrollToSection(sections[currentIndex - 1].id);
+    }
+  }, [activeSection, sections, scrollToSection]);
+
+  // Toggle expansion d'une section
+  const toggleSection = useCallback((sectionId: string) => {
+    setExpandedSections(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(sectionId)) {
+        newSet.delete(sectionId);
+      } else {
+        newSet.add(sectionId);
+      }
+      return newSet;
+    });
+    
+    if (!expandedSections.has(sectionId)) {
+      setTimeout(() => scrollToSection(sectionId), 100);
+    }
+  }, [expandedSections, scrollToSection]);
+
+  // Fonctions de sauvegarde
   const saveEntretien = useCallback(async () => {
     try {
       const currentId = localEntretienId || entretienId;
-      console.log(`Sauvegarde de l'entretien ${currentId || 'nouveau'}`);
-      
-      // Préparation des données
       const now = new Date();
       const entretienToSave: EntretienToSave = {
-  patientId: patient.id || 0,
-  numeroEntretien: entretienData.numeroEntretien,
-  status: entretienData.status,
-  donneesEntretien: JSON.stringify({
-    santeTravail: entretienData.santeTravail,
-    examenClinique: entretienData.examenClinique,
-    imaa: entretienData.imaa,
-    conclusion: entretienData.conclusion
-  })
-};
+        patientId: patient.id || 0,
+        numeroEntretien: entretienData.numeroEntretien,
+        status: entretienData.status,
+        donneesEntretien: JSON.stringify({
+          santeTravail: entretienData.santeTravail,
+          examenClinique: entretienData.examenClinique,
+          imaa: entretienData.imaa,
+          conclusion: entretienData.conclusion
+        })
+      };
       
-      // Si c'est un nouvel entretien, ajouter les données du timer
       if (!currentId) {
         entretienToSave.tempsDebut = now.toISOString();
         entretienToSave.enPause = false;
         entretienToSave.tempsPause = 0;
       }
       
-      // URL et méthode selon création ou modification
-      const url = currentId ? 
-        `/api/entretiens/${currentId}` : 
-        '/api/entretiens';
-      
+      const url = currentId ? `/api/entretiens/${currentId}` : '/api/entretiens';
       const method = currentId ? 'PUT' : 'POST';
       
-      // Envoi de la requête
       const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
@@ -253,16 +269,10 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
       }
       
       const result = await response.json();
-      console.log("Sauvegarde réussie:", result);
       
-      // Si c'est un nouvel entretien, mettre à jour l'ID local
       if (!currentId && result.data && result.data.id) {
         const newEntretienId = result.data.id;
-        console.log(`Nouvel entretien créé avec ID: ${newEntretienId}`);
-        
-        // Mettre à jour l'état local
         setLocalEntretienId(newEntretienId);
-        
         toast.success('Entretien créé avec succès');
         return newEntretienId;
       } else {
@@ -275,397 +285,72 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
       return null;
     }
   }, [localEntretienId, entretienId, patient.id, entretienData]);
-  
-  // Fonction optimisée pour fermer l'entretien
+
   const handleCloseEntretien = useCallback(async () => {
-    console.log("Fermeture d'entretien demandée");
     const currentId = localEntretienId || entretienId;
     
     try {
-      // Pour un nouvel entretien ou un entretien non sauvegardé avec des modifications
       if (!currentId && !isPaused) {
-        // Afficher la boîte de dialogue personnalisée
         setShowSaveConfirmDialog(true);
-        return; // Important: arrêter l'exécution ici
-      } 
-      // Pour un entretien existant, mettre en pause puis quitter
-      else if (currentId && !isPaused && entretienData.status === 'brouillon') {
-        // Mettre en pause avant de quitter
+        return;
+      } else if (currentId && !isPaused && entretienData.status === 'brouillon') {
         await forcePause();
-        console.log("Entretien mis en pause avec succès");
       }
       
-      // Pour tous les autres cas, fermer directement
       if (onClose) {
         onClose();
       }
     } catch (error) {
       console.error("Erreur lors de la fermeture de l'entretien:", error);
-      // Fermer quand même en cas d'erreur de mise en pause
       if (onClose) onClose();
     }
   }, [localEntretienId, entretienId, isPaused, entretienData.status, forcePause, onClose]);
-  
-  // Ajoutez cette fonction pour gérer la confirmation
-  const handleConfirmSave = useCallback(async () => {
-    // Fermer la boîte de dialogue
-    setShowSaveConfirmDialog(false);
-    
-    // Sauvegarder l'entretien
-    const savedId = await saveEntretien();
-    
-    if (savedId) {
-      try {
-        console.log(`Entretien sauvegardé avec l'ID ${savedId}, mise en pause`);
-        await fetch(`/api/entretiens/${savedId}/timer`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ enPause: true })
-        });
-      } catch (error) {
-        console.error("Erreur lors de la mise en pause après sauvegarde:", error);
-      }
-    }
-    
-    // Fermer l'entretien
-    if (onClose) {
-      onClose();
-    }
-  }, [saveEntretien, onClose]);
-  
-  // Ajoutez cette fonction pour gérer l'annulation
-  // Dans le composant EntretienForm, modifiez la fonction handleCancelSave
-  const handleCancelSave = useCallback(() => {
-    // Fermer la boîte de dialogue
-    setShowSaveConfirmDialog(false);
-    
-    // Fermer l'entretien directement sans sauvegarder
-    if (onClose) {
-      onClose();
-    }
-  }, [onClose]);
 
-
-  // Effet pour assurer la mise en pause au démontage
-  useEffect(() => {
-    return () => {
-      const currentId = localEntretienId || entretienId;
-      
-      if (currentId && !isPaused && entretienData.status === 'brouillon') {
-        console.log(`Démontage - Mise en pause forcée de l'entretien ${currentId}`);
-        
-        // Appel synchrone pour s'assurer qu'il s'exécute même pendant le démontage
-        fetch(`/api/entretiens/${currentId}/timer`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ enPause: true })
-        }).catch(error => {
-          console.error("Erreur lors de la mise en pause au démontage:", error);
-        });
-      }
-    };
-  }, [localEntretienId, entretienId, isPaused, entretienData.status]);
-  
-  // Fonctions de gestion des sections
-  const updateSectionOrder = useCallback((sectionId: string, newPosition: number) => {
-    // Obtenir les indices actuels
-    const currentIndex = sections.findIndex(s => s.id === sectionId);
-    if (currentIndex === -1 || newPosition === currentIndex) return;
-    
-    // Créer une copie des sections et réordonner
-    const newSections = [...sections];
-    const [movedSection] = newSections.splice(currentIndex, 1);
-    newSections.splice(newPosition, 0, movedSection);
-    
-    // Mettre à jour les positions
-    setSections(newSections.map((section, index) => ({
-      ...section,
-      position: index
-    })));
-  }, [sections]);
-  
-  // Gestion de l'affichage des sections
-  const arrangeWindowsVertically = useCallback(() => {
-    // Récupérer les sections non minimisées
-    const visibleSections = sections.filter(s => !s.isMinimized);
-    
-    if (visibleSections.length === 0) return;
-    
-    // Obtenir les dimensions réelles du conteneur
-    const container = document.querySelector('.max-w-\\[98\\%\\]');
-    if (!container) return;
-    
-    const containerRect = container.getBoundingClientRect();
-    const containerWidth = containerRect.width - 40;
-    const containerHeight = window.innerHeight - containerRect.top - 150;
-    
-    // Calculer les dimensions optimales
-    const sectionMargin = 20;
-    const totalMargins = sectionMargin * (visibleSections.length - 1);
-    const optimalWidth = Math.max(400, (containerWidth - totalMargins) / visibleSections.length);
-    const optimalHeight = Math.max(550, containerHeight - 100);
-    
-    // Mettre à jour chaque section
-    setSections(prev => prev.map(section => {
-      if (section.isMinimized) return section;
-      
-      // Calculer la position
-      const visibleIndex = visibleSections.findIndex(s => s.id === section.id);
-      const leftPosition = visibleIndex * (optimalWidth + sectionMargin);
-      
-      // Appliquer directement les styles au DOM
-      const element = document.querySelector(`[data-section-id="${section.id}"]`);
-      if (element instanceof HTMLElement) {
-        element.style.left = `${leftPosition}px`;
-        element.style.top = '20px';
-        element.style.width = `${optimalWidth}px`;
-        element.style.height = `${optimalHeight}px`;
-      }
-      
-      return {
-        ...section,
-        width: optimalWidth,
-        height: optimalHeight,
-        position: visibleIndex
-      };
-    }));
-  }, [sections]);
-  
-  const arrangeWindowsEvenly = useCallback(() => {
-    // Récupérer les sections non minimisées
-    const visibleSections = sections.filter(s => !s.isMinimized);
-    
-    if (visibleSections.length === 0) return;
-    
-    // Obtenir les dimensions du conteneur
-    const container = document.querySelector('.max-w-\\[98\\%\\]');
-    if (!container) return;
-    
-    const containerRect = container.getBoundingClientRect();
-    const containerWidth = containerRect.width - 40;
-    const containerHeight = window.innerHeight - containerRect.top - 150;
-    
-    // Calculer la grille optimale
-    const columns = visibleSections.length <= 2 ? Math.min(visibleSections.length, 2) : 2;
-    const rows = Math.ceil(visibleSections.length / columns);
-    
-    const sectionMargin = 20;
-    const totalHorizontalMargins = sectionMargin * (columns - 1);
-    const totalVerticalMargins = sectionMargin * (rows - 1);
-    
-    const optimalWidth = Math.max(450, (containerWidth - totalHorizontalMargins) / columns);
-    const optimalHeight = Math.max(400, (containerHeight - totalVerticalMargins) / rows);
-    
-    // Mettre à jour chaque section
-    setSections(prev => prev.map(section => {
-      if (section.isMinimized) return section;
-      
-      // Calculer la position
-      const visibleIndex = visibleSections.findIndex(s => s.id === section.id);
-      const rowIndex = Math.floor(visibleIndex / columns);
-      const colIndex = visibleIndex % columns;
-      
-      const leftPosition = colIndex * (optimalWidth + sectionMargin);
-      const topPosition = rowIndex * (optimalHeight + sectionMargin);
-      
-      // Appliquer directement les styles au DOM
-      const element = document.querySelector(`[data-section-id="${section.id}"]`);
-      if (element instanceof HTMLElement) {
-        element.style.left = `${leftPosition}px`;
-        element.style.top = `${topPosition}px`;
-        element.style.width = `${optimalWidth}px`;
-        element.style.height = `${optimalHeight}px`;
-      }
-      
-      return {
-        ...section,
-        width: optimalWidth,
-        height: optimalHeight,
-        position: visibleIndex
-      };
-    }));
-  }, [sections]);
-  
-  const resetSizes = useCallback(() => {
-    // Minimiser toutes les sections
-    setSections(prev => prev.map(section => ({
-      ...section,
-      isMinimized: true
-    })));
-    
-    setMaxZIndex(1);
-    setFocusedSection(null);
-  }, []);
-  
-  // Gestion des sections
-  const handleMinimize = useCallback((id: string) => {
-    setSections(prev => prev.map(section =>
-      section.id === id ? { ...section, isMinimized: true } : section
-    ));
-    
-    if (focusedSection === id) {
-      setFocusedSection(null);
-    }
-  }, [focusedSection]);
-  
-  const handleMaximize = useCallback((id: string) => {
-    setSections(prev => prev.map(section =>
-      section.id === id ? { ...section, isMinimized: false } : section
-    ));
-  }, []);
-  
-  const handleToggleFocus = useCallback((id: string) => {
-    setFocusedSection(prev => prev === id ? null : id);
-  }, []);
-  
-  const bringToFront = useCallback((id: string) => {
-    const newZIndex = maxZIndex + 1;
-    setMaxZIndex(newZIndex);
-    
-    setSections(prev => prev.map(section =>
-      section.id === id ? { ...section, zIndex: newZIndex } : section
-    ));
-  }, [maxZIndex]);
-  
-  const handleResize = useCallback((id: string, size: { width: number; height: number }) => {
-    bringToFront(id);
-    
-    setSections(prev => prev.map(section =>
-      section.id === id 
-        ? { ...section, width: size.width, height: size.height }
-        : section
-    ));
-  }, [bringToFront]);
-  
-  // Gestionnaires de mise à jour des sections
+  // Handlers de changement de données
   const handleSanteTravailChange = useCallback((newData: { vecuTravail: VecuTravailData; modeVie: ModeVieData }) => {
-    setEntretienData(prev => ({
-      ...prev,
-      santeTravail: newData
-    }));
+    setEntretienData(prev => ({ ...prev, santeTravail: newData }));
   }, []);
   
   const handleExamenCliniqueChange = useCallback((newData: any) => {
-    setEntretienData(prev => ({
-      ...prev,
-      examenClinique: newData
-    }));
+    setEntretienData(prev => ({ ...prev, examenClinique: newData }));
   }, []);
   
   const handleImaaChange = useCallback((newData: any) => {
-    setEntretienData(prev => ({
-      ...prev,
-      imaa: newData
-    }));
+    setEntretienData(prev => ({ ...prev, imaa: newData }));
   }, []);
   
   const handleConclusionChange = useCallback((newData: any) => {
-    setEntretienData(prev => ({
-      ...prev,
-      conclusion: newData
-    }));
+    setEntretienData(prev => ({ ...prev, conclusion: newData }));
   }, []);
-  
-  // Fonction pour rendre le contenu de chaque section
-  const renderSectionContent = useCallback((sectionId: string) => {
-    switch (sectionId) {
-      case 'sante':
-        return (
-          <SanteTravail 
-            data={entretienData.santeTravail}
-            onChange={handleSanteTravailChange}
-            isReadOnly={isReadOnly}
-          />
-        );
-        
-      case 'examen':
-        return (
-          <ExamenClinique 
-            data={entretienData.examenClinique}
-            onChange={handleExamenCliniqueChange}
-            isReadOnly={isReadOnly}
-          />
-        );
-        
-      case 'imaa':
-        return (
-          <IMAA 
-  data={entretienData.imaa || {}}
-  onChange={handleImaaChange}
-  // Supprimez isReadOnly si le composant ne l'accepte pas
-/>
-        );
-        
-      case 'conclusion':
-        return (
-          <Conclusion 
-            data={entretienData.conclusion}
-            onChange={handleConclusionChange}
-            isReadOnly={isReadOnly}
-          />
-        );
-        
-      default:
-        return null;
-    }
-  }, [entretienData, handleSanteTravailChange, handleExamenCliniqueChange, handleImaaChange, handleConclusionChange, isReadOnly]);
-  
-  // Fonction pour rendre les sections
-  const renderSections = useCallback(() => {
-    const visibleSections = sections.filter(s => !s.isMinimized);
-    
-    return (
-      <div 
-        className="max-w-[98%] mx-auto"
-        style={{
-          height: '80vh',
-          overflow: 'auto',
-          position: 'relative',
-          padding: '20px'
-        }}
-      >
-        {visibleSections.length === 0 ? (
-          <div className="flex items-center justify-center h-full text-gray-500">
-            Cliquez sur un onglet pour commencer
-          </div>
-        ) : (
-          visibleSections
-            .filter(section => !focusedSection || section.id === focusedSection)
-            .sort((a, b) => a.position - b.position)
-            .map((section) => (
-              <div
-                key={section.id}
-                data-section-id={section.id}
-                className="transition-all duration-200"
-                style={{
-                  position: 'absolute',
-                  width: `${section.width}px`,
-                  height: `${section.height}px`,
-                  zIndex: section.zIndex,
-                }}
-              >
-                <ResizableSection
-                  {...section}
-                  isFocused={focusedSection === section.id}
-                  onMinimize={handleMinimize}
-                  onMaximize={handleMaximize}
-                  onToggleFocus={handleToggleFocus}
-                  onResize={handleResize}
-                  onBringToFront={bringToFront}
-                >
-                  {renderSectionContent(section.id)}
-                </ResizableSection>
-              </div>
-            ))
-        )}
-      </div>
-    );
-  }, [sections, focusedSection, handleMinimize, handleMaximize, handleToggleFocus, handleResize, bringToFront, renderSectionContent]);
-  
-  // Effet pour charger les données de l'entretien
+
+  // Raccourcis clavier
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey) {
+        switch (e.key) {
+          case 's':
+            e.preventDefault();
+            if (!isReadOnly) saveEntretien();
+            break;
+          case 'ArrowDown':
+            e.preventDefault();
+            goToNextSection();
+            break;
+          case 'ArrowUp':
+            e.preventDefault();
+            goToPrevSection();
+            break;
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [saveEntretien, goToNextSection, goToPrevSection, isReadOnly]);
+
+  // Chargement des données d'entretien
   useEffect(() => {
     if (entretienId) {
-      // Charger un entretien existant
       const fetchEntretien = async () => {
         try {
           console.log(`Chargement de l'entretien ${entretienId}`);
@@ -681,16 +366,6 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
             throw new Error('Données non trouvées');
           }
           
-          console.log(`Entretien ${entretienId} chargé:`, {
-            status: result.data.status,
-            enPause: result.data.enPause,
-            tempsDebut: result.data.tempsDebut,
-            tempsFin: result.data.tempsFin,
-            tempsPause: result.data.tempsPause,
-            dernierePause: result.data.dernierePause
-          });
-          
-          // Traiter les données d'entretien
           let donnees = {};
           if (typeof result.data.donneesEntretien === 'string') {
             donnees = JSON.parse(result.data.donneesEntretien);
@@ -698,45 +373,36 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
             donnees = result.data.donneesEntretien || {};
           }
           
-          // Mise à jour de l'état
           setEntretienData({
-  numeroEntretien: result.data.numeroEntretien,
-  status: result.data.status,
-  santeTravail: donnees.santeTravail || { vecuTravail: initialVecuTravailData, modeVie: initialModeVieData },
-  examenClinique: donnees.examenClinique || defaultExamenCliniqueData,
-  imaa: donnees.imaa || {},
-  conclusion: donnees.conclusion || defaultConclusionData
-});
+            numeroEntretien: result.data.numeroEntretien,
+            status: result.data.status,
+            santeTravail: donnees.santeTravail || { vecuTravail: initialVecuTravailData, modeVie: initialModeVieData },
+            examenClinique: donnees.examenClinique || defaultExamenCliniqueData,
+            imaa: donnees.imaa || {},
+            conclusion: donnees.conclusion || defaultConclusionData
+          });
           
-          // Charger les données du timer
           if (result.data.tempsDebut) {
-            // Calculer le temps écoulé
             const debut = new Date(result.data.tempsDebut);
             const now = new Date();
             let elapsedSeconds = Math.floor((now.getTime() - debut.getTime()) / 1000);
             
-            // Soustraire le temps de pause si disponible
             if (result.data.tempsPause) {
               elapsedSeconds -= result.data.tempsPause;
             }
             
-            // Si en pause et qu'il y a une dernière pause, soustraire ce temps aussi
             if (result.data.enPause && result.data.dernierePause) {
               const dernierePause = new Date(result.data.dernierePause);
               const pauseDuration = Math.floor((now.getTime() - dernierePause.getTime()) / 1000);
               elapsedSeconds -= pauseDuration;
             }
             
-            // Déterminer l'état de pause initial
             const shouldBePaused = 
-              isReadOnly || // En mode lecture seule, toujours en pause
-              result.data.status === 'finalise' || // Entretiens finalisés toujours en pause
-              result.data.status === 'archive' || // Entretiens archivés toujours en pause
-              result.data.enPause; // Respecter l'état de pause enregistré
+              isReadOnly || 
+              result.data.status === 'finalise' || 
+              result.data.status === 'archive' || 
+              result.data.enPause;
             
-            console.log(`Timer - Configuration initiale: ${Math.max(0, elapsedSeconds)}s, pause: ${shouldBePaused}`);
-            
-            // Mettre à jour l'état initial du timer
             setInitialTimerState({
               initialSeconds: Math.max(0, elapsedSeconds),
               initialPaused: shouldBePaused
@@ -750,37 +416,27 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
       
       fetchEntretien();
     } else {
-      // Pour un nouvel entretien
-      console.log("Initialisation d'un nouvel entretien");
-      
-      // Initialiser le timer
       setInitialTimerState({
         initialSeconds: 0,
-        initialPaused: false // Démarrer automatiquement pour un nouvel entretien
+        initialPaused: false
       });
       
-      // Récupérer le prochain numéro d'entretien
       const fetchNextEntretienNumber = async () => {
         try {
           const response = await fetch(`/api/patients/${patient.id}/entretiens`);
           const result = await response.json();
           
-          // Calculer le prochain numéro
           let nextNumber = 1;
           if (result.success && result.data && result.data.length > 0) {
             const maxNumber = Math.max(...result.data.map((e: any) => e.numeroEntretien || 0));
             nextNumber = maxNumber + 1;
           }
-
           
-          
-          // Mettre à jour l'état
           setEntretienData(prev => ({
             ...prev,
             numeroEntretien: nextNumber
           }));
         } catch (error) {
-          // Silencieux en cas d'erreur
           console.warn('Erreur lors de la récupération du numéro d\'entretien:', error);
         }
       };
@@ -789,212 +445,474 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
     }
   }, [entretienId, patient.id, isReadOnly]);
 
-  
-  return (
-    <div>
-      {/* Boutons de zoom global */}
-      <div className="absolute top-2 right-2 flex items-center gap-2 z-50 bg-white rounded-lg shadow-md p-1">
-        <button
-          onClick={() => setGlobalZoom(prev => Math.max(prev - 5, 80))}
-          className="p-1 hover:bg-gray-100 rounded"
-          title="Réduire la taille"
-        >
-          <ZoomOut size={16} />
-        </button>
-        <span className="text-xs font-medium">{globalZoom}%</span>
-        <button
-          onClick={() => setGlobalZoom(prev => Math.min(prev + 5, 120))}
-          className="p-1 hover:bg-gray-100 rounded"
-          title="Augmenter la taille"
-        >
-          <ZoomIn size={16} />
-        </button>
-      </div>
+  // Effet pour assurer la mise en pause au démontage
+  useEffect(() => {
+    return () => {
+      const currentId = localEntretienId || entretienId;
       
-      {/* Appliquer le zoom à tout le contenu */}
-      <div style={{ zoom: `${globalZoom}%` }}>
-        {/* Reste du contenu existant */}
-        <div className="p-6">
-          {/* En-tête avec navigation et informations */}
-          <div className="max-w-[98%] mx-auto bg-white rounded-xl shadow-lg p-3 mb-3">
-  {/* Barre de navigation supérieure */}
-  <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-    {/* Boutons de navigation - côté gauche */}
-    {/* Boutons de navigation - côté gauche */}
-<div className="flex items-center gap-3">
-  {onClose && (
-    <button
-      onClick={handleCloseEntretien}
-      className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-    >
-      <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-      </svg>
-      Retour au dossier
-    </button>
-  )}
-</div>
+      if (currentId && !isPaused && entretienData.status === 'brouillon') {
+        fetch(`/api/entretiens/${currentId}/timer`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ enPause: true })
+        }).catch(error => {
+          console.error("Erreur lors de la mise en pause au démontage:", error);
+        });
+      }
+    };
+  }, [localEntretienId, entretienId, isPaused, entretienData.status]);
 
-{/* Actions principales - côté droit */}
-<div className="flex items-center gap-3">
-  <button
-    onClick={resetSizes}
-    className="px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-  >
-    Mise en page par défaut
-  </button>
-  
-  {/* Action contextuelle (Modifier ou Sauvegarder) */}
-  {isReadOnly ? (
-    <button 
-      onClick={() => onClose && onClose()}
-      className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
-    >
-      Fermer
-    </button>
-  ) : (
-    <button 
-      onClick={saveEntretien}
-      className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
-    >
-      Sauvegarder
-    </button>
-  )}
-      </div>
+  return (
+    <div className="h-full flex relative">
+  {/* Sidebar de navigation des sections */}
+  <div className="w-80 bg-white/20 backdrop-blur-xl border-r border-white/30 shadow-2xl flex flex-col">
+        {/* En-tête de navigation */}
+        <div className="p-4 border-b border-white/30">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-semibold text-slate-700">Navigation</h3>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setGlobalZoom(prev => Math.max(prev - 5, 80))}
+                className="p-1 hover:bg-white/40 rounded text-slate-600"
+                title="Zoom -"
+              >
+                <ZoomOut size={14} />
+              </button>
+              <span className="text-xs font-medium text-slate-600 min-w-[35px] text-center">{globalZoom}%</span>
+              <button
+                onClick={() => setGlobalZoom(prev => Math.min(prev + 5, 120))}
+                className="p-1 hover:bg-white/40 rounded text-slate-600"
+                title="Zoom +"
+              >
+                <ZoomIn size={14} />
+              </button>
             </div>
+          </div>
           
-            {/* Informations du patient et statut */}
-            <div className="mt-4 pt-4 border-t border-gray-200">
-  <div className="flex flex-wrap justify-between items-start gap-4">
-    <div>
-      <h2 className="text-xl font-bold text-blue-900">
-        {entretienId 
-          ? `${isReadOnly ? 'Consultation' : 'Modification'} de l'entretien n°${entretienData.numeroEntretien}` 
-          : 'Nouvel entretien'} - {patient.civilites} {patient.nom} {patient.prenom}
-      </h2>
-      <div className="mt-1 text-sm text-gray-600">
-        {patient.age} ans • {patient.poste} • {patient.departement}
-      </div>
-      <div className="mt-1 text-sm text-gray-600">
-        Ancienneté : {patient.anciennete} • Horaire : {patient.horaire}
-      </div>
-    </div>
-
-    {/* Timer - Toujours afficher le timer, sans condition sur isStarted */}
-<div className="flex-shrink-0">
-  <Timer 
-    seconds={seconds}
-    isPaused={isPaused}
-    onTogglePause={togglePause}
-    isReadOnly={isReadOnly || entretienData.status !== 'brouillon'}
-    className="border border-gray-200"
+          {/* Progression globale */}
+<div className="bg-slate-300 rounded-full h-3 mb-2 shadow-inner border border-slate-400">
+  <div 
+    className="bg-gradient-to-r from-green-500 to-green-600 h-3 rounded-full transition-all duration-500 shadow-lg"
+    style={{ width: `${(sections.filter(s => s.isCompleted).length / sections.length) * 100}%` }}
   />
 </div>
+          <p className="text-sm text-slate-700 text-center font-medium">
+  {sections.filter(s => s.isCompleted).length} sur {sections.length} sections complétées
+</p>
+        </div>
 
-    {/* Sélecteur de statut */}
-    {!isReadOnly && (
-      <div className="flex items-center gap-2">
-        <label className="text-sm font-medium text-gray-700">Statut :</label>
-        <select
-          value={entretienData.status}
-          onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setEntretienData(prev => ({ ...prev, status: e.target.value }))}
-          className="px-3 py-2 text-sm bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          <option value="brouillon">Brouillon</option>
-          <option value="finalise">Finalisé</option>
-          <option value="archive">Archivé</option>
-        </select>
-      </div>
-    )}
+        {/* Liste des sections */}
+        <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-2">
+          {sections.map((section, index) => (
+            <div key={section.id} className="relative">
+              <button
+                onClick={() => scrollToSection(section.id)}
+                data-section={section.id}
+                className={`nav-item w-full text-left p-3 rounded-lg transition-all duration-200 border-2 ${
+                  section.isActive ? 'active' : ''
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="relative">
+                      {section.icon}
+                      {section.isCompleted && (
+                        <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full flex items-center justify-center">
+                          <Check size={8} className="text-white" />
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <span className="font-medium text-slate-800">{section.title}</span>
+                      <div className="flex items-center gap-1 mt-1">
+                        <span className="text-xs text-slate-500">Partie {index + 1}</span>
+                        {section.isCompleted && (
+                          <span className="text-xs text-green-600 font-medium">✓ Complétée</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleSection(section.id);
+                    }}
+                    className="p-1 hover:bg-white/40 rounded"
+                  >
+                    {expandedSections.has(section.id) ? 
+  <div className="w-4 h-4 bg-red-500 rounded-full flex items-center justify-center">
+    <span className="text-white text-xs font-bold">−</span>
+  </div> : 
+  <div className="w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
+    <span className="text-white text-xs font-bold">+</span>
   </div>
-              
-              
-              {/* Indicateur de mode lecture seule - si applicable */}
-              {isReadOnly && (
-                <div className="mt-2 inline-flex items-center px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-medium">
-                  <svg className="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                  </svg>
-                  Mode consultation
+}
+                  </button>
                 </div>
-              )}
+              </button>
             </div>
+          ))}
+        </div>
+
+        {/* Actions de navigation */}
+        <div className="p-4 border-t border-white/30 space-y-2">
+          <div className="flex gap-2">
+            <button
+              onClick={goToPrevSection}
+              disabled={activeSection === sections[0]?.id}
+              className="flex-1 px-3 py-2 text-sm btn-glass disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            >
+              ← Précédent
+            </button>
+            <button
+              onClick={goToNextSection}
+              disabled={activeSection === sections[sections.length - 1]?.id}
+              className="flex-1 px-3 py-2 text-sm btn-glass disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            >
+              Suivant →
+            </button>
           </div>
           
-          {/* TabBar */}
-          <div className="max-w-[98%] mx-auto mb-4">
-            <TabBar 
-              sections={sections}
-              onMaximize={handleMaximize}
-            />
-            {/* Boutons de disposition améliorés avec des noms plus clairs */}
-            <div className="flex items-center gap-2">
-  <span className="text-sm text-gray-500 mr-2">Disposition:</span>
-  <button
-    onClick={arrangeWindowsVertically}
-    className="p-1.5 rounded hover:bg-gray-100 flex flex-col items-center justify-center"
-    title="Côte à côte"
-  >
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <rect x="3" y="6" width="7" height="12" rx="1" />
-      <rect x="14" y="6" width="7" height="12" rx="1" />
-    </svg>
-    <span className="text-xs mt-1">Côte à côte</span>
-  </button>
-  
-  <button
-    onClick={arrangeWindowsEvenly}
-    className="p-1.5 rounded hover:bg-gray-100 flex flex-col items-center justify-center"
-    title="Grille"
-  >
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <rect x="3" y="3" width="8" height="8" rx="1" />
-      <rect x="13" y="3" width="8" height="8" rx="1" />
-      <rect x="3" y="13" width="8" height="8" rx="1" />
-      <rect x="13" y="13" width="8" height="8" rx="1" />
-    </svg>
-    <span className="text-xs mt-1">Grille</span>
-  </button>
-  
-  <button
-    onClick={resetSizes}
-    className="p-1.5 rounded hover:bg-gray-100 flex flex-col items-center justify-center"
-    title="Réinitialiser"
-  >
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M3 12a9 9 0 1 1 18 0 9 9 0 0 1-18 0z" />
-      <path d="M12 3v9l3.5 3.5" />
-    </svg>
-    <span className="text-xs mt-1">Réinitialiser</span>
-  </button>
-            </div>
+          {/* Raccourcis clavier */}
+          <div className="text-xs text-slate-500 text-center space-y-1">
+            <div>⌘/Ctrl + S : Sauvegarder</div>
+            <div>⌘/Ctrl + ↑/↓ : Navigation</div>
           </div>
-
-          {/* Sections - Utilisation de la fonction renderSections */}
-          {renderSections()}
         </div>
       </div>
 
+      {/* Zone principale avec contenu */}
+      <div className="flex-1 flex flex-col">
+        {/* En-tête fixe */}
+        <div className="bg-white/90 backdrop-blur-md border-b border-white/40 shadow-sm">
+          <div className="p-4">
+            <div className="flex justify-between items-center">
+              <div>
+                <h1 className="text-xl font-bold bg-gradient-to-r from-blue-700 to-violet-700 bg-clip-text text-transparent">
+                  {entretienId 
+                    ? `${isReadOnly ? 'Consultation' : 'Modification'} de l'entretien n°${entretienData.numeroEntretien}` 
+                    : 'Nouvel entretien'} - {patient.civilites} {patient.nom} {patient.prenom}
+                </h1>
+                <div className="text-sm text-slate-600 mt-1">
+                  {patient.age} ans • {patient.poste} • {patient.departement}
+                  {isReadOnly && (
+                    <span className="ml-2 inline-flex items-center px-2 py-1 rounded-full bg-blue-100 text-blue-700 text-xs font-medium">
+                      <Clock size={12} className="mr-1" />
+                      Lecture seule
+                    </span>
+                  )}
+                </div>
+              </div>
 
+              <div className="flex items-center gap-3">
+                <Timer 
+                  seconds={seconds}
+                  isPaused={isPaused}
+                  onTogglePause={togglePause}
+                  isReadOnly={isReadOnly || entretienData.status !== 'brouillon'}
+                  className="glass-card"
+                />
+                
+                {onClose && (
+                  <button
+                    onClick={handleCloseEntretien}
+                    className="px-4 py-2 text-sm font-medium text-slate-700 btn-glass"
+                  >
+                    ← Retour
+                  </button>
+                )}
+                
+                {!isReadOnly && (
+                  <button 
+                    onClick={saveEntretien}
+                    className="px-4 py-2 text-sm font-medium bg-gradient-to-r from-blue-500 to-violet-600 text-white rounded-lg hover:from-blue-600 hover:to-violet-700 transition-all shadow-lg flex items-center gap-2"
+                  >
+                    <Edit3 size={14} />
+                    Sauvegarder
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        {/* Zone de contenu scrollable */}
+        <div 
+          ref={scrollContainerRef}
+          className="flex-1 overflow-y-auto custom-scrollbar"
+          style={{ zoom: `${globalZoom}%` }}
+        >
+          <div className="p-6 space-y-6">
+           
+            {/* Section Santé au Travail */}
+            <div 
+              ref={(el) => sectionRefs.current['sante'] = el}
+              className={`section-container sante-section transition-all duration-300 ${
+                expandedSections.has('sante') ? 'opacity-100' : 'opacity-70'
+              }`}
+            >
+              <div 
+                className={`section-header ${activeSection === 'sante' ? 'active' : ''}`}
+                onClick={() => toggleSection('sante')}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-yellow-500 rounded-full flex items-center justify-center text-white font-bold">
+          1
+        </div>
+                    <h2 className="text-lg font-semibold text-slate-800">Santé au Travail</h2>
+                    {sections.find(s => s.id === 'sante')?.isCompleted && (
+                      <Check size={20} className="text-green-600" />
+                    )}
+                  </div>
+                  {expandedSections.has('sante') ? 
+  <div className="w-5 h-5 bg-red-500 rounded-full flex items-center justify-center">
+    <span className="text-white text-sm font-bold">−</span>
+  </div> : 
+  <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
+    <span className="text-white text-sm font-bold">+</span>
+  </div>
+}
+                </div>
+              </div>
+              
+              {expandedSections.has('sante') && (
+                <div className="section-content">
+                  <SanteTravail 
+                    data={entretienData.santeTravail}
+                    onChange={handleSanteTravailChange}
+                    isReadOnly={isReadOnly}
+                  />
+                </div>
+              )}
+            </div>
 
+            {/* Section Examen Clinique */}
+            <div 
+              ref={(el) => sectionRefs.current['examen'] = el}
+              className={`section-container examen-section transition-all duration-300 ${
+                expandedSections.has('examen') ? 'opacity-100' : 'opacity-70'
+              }`}
+            >
+              <div 
+                className={`section-header ${activeSection === 'examen' ? 'active' : ''}`}
+                onClick={() => toggleSection('examen')}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center text-white font-bold">
+          2
+        </div>
+                    <h2 className="text-lg font-semibold text-slate-800">Examen Clinique</h2>
+                    {sections.find(s => s.id === 'examen')?.isCompleted && (
+                      <Check size={20} className="text-green-600" />
+                    )}
+                  </div>
+                  {expandedSections.has('examen') ? 
+  <div className="w-5 h-5 bg-red-500 rounded-full flex items-center justify-center">
+    <span className="text-white text-sm font-bold">−</span>
+  </div> : 
+  <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
+    <span className="text-white text-sm font-bold">+</span>
+  </div>
+}
+                </div>
+              </div>
+              
+              {expandedSections.has('examen') && (
+                <div className="section-content">
+                  <ExamenClinique 
+                    data={entretienData.examenClinique}
+                    onChange={handleExamenCliniqueChange}
+                    isReadOnly={isReadOnly}
+                  />
+                </div>
+              )}
+            </div>
 
-    
+            {/* Section IMAA */}
+            <div 
+              ref={(el) => sectionRefs.current['imaa'] = el}
+              className={`section-container imaa-section transition-all duration-300 ${
+                expandedSections.has('imaa') ? 'opacity-100' : 'opacity-70'
+              }`}
+            >
+              <div 
+                className={`section-header ${activeSection === 'imaa' ? 'active' : ''}`}
+                onClick={() => toggleSection('imaa')}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center text-white font-bold">
+                      3
+                    </div>
+                    <h2 className="text-lg font-semibold text-slate-800">IMAA</h2>
+                    {sections.find(s => s.id === 'imaa')?.isCompleted && (
+                      <Check size={20} className="text-green-600" />
+                    )}
+                  </div>
+                  {expandedSections.has('imaa') ? 
+  <div className="w-5 h-5 bg-red-500 rounded-full flex items-center justify-center">
+    <span className="text-white text-sm font-bold">−</span>
+  </div> : 
+  <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
+    <span className="text-white text-sm font-bold">+</span>
+  </div>
+}
+                </div>
+              </div>
+              
+              {expandedSections.has('imaa') && (
+                <div className="section-content">
+                  <IMAA 
+                    data={entretienData.imaa || {}}
+                    onChange={handleImaaChange}
+                    isReadOnly={isReadOnly}
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Section Conclusion - ROSE */}
+            <div 
+              ref={(el) => sectionRefs.current['conclusion'] = el}
+              className={`section-container conclusion-section transition-all duration-300 ${
+                expandedSections.has('conclusion') ? 'opacity-100' : 'opacity-70'
+              }`}
+            >
+              <div 
+                className={`section-header ${activeSection === 'conclusion' ? 'active' : ''}`}
+                onClick={() => toggleSection('conclusion')}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-pink-500 rounded-full flex items-center justify-center text-white font-bold">
+                      4
+                    </div>
+                    <h2 className="text-lg font-semibold text-slate-800">Conclusion</h2>
+                    {sections.find(s => s.id === 'conclusion')?.isCompleted && (
+                      <Check size={20} className="text-green-600" />
+                    )}
+                  </div>
+                  {expandedSections.has('conclusion') ? 
+  <div className="w-5 h-5 bg-red-500 rounded-full flex items-center justify-center">
+    <span className="text-white text-sm font-bold">−</span>
+  </div> : 
+  <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
+    <span className="text-white text-sm font-bold">+</span>
+  </div>
+}
+                </div>
+              </div>
+              
+              {expandedSections.has('conclusion') && (
+                <div className="section-content">
+                  <Conclusion 
+                    data={entretienData.conclusion}
+                    onChange={handleConclusionChange}
+                    isReadOnly={isReadOnly}
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Boutons de navigation en bas */}
+            <div className="flex justify-between items-center py-8">
+              <button
+                onClick={goToPrevSection}
+                disabled={activeSection === sections[0]?.id}
+                className="px-6 py-3 btn-glass disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-lg"
+              >
+                <ChevronUp size={16} />
+                Section précédente
+              </button>
+              
+              <div className="flex items-center gap-4">
+                <div className="text-sm text-slate-600">
+                  Section {sections.findIndex(s => s.id === activeSection) + 1} sur {sections.length}
+                </div>
+                
+                {!isReadOnly && (
+                  <button 
+                    onClick={saveEntretien}
+                    className="px-6 py-3 bg-gradient-to-r from-blue-500 to-violet-600 text-white rounded-lg hover:from-blue-600 hover:to-violet-700 transition-all shadow-lg flex items-center gap-2"
+                  >
+                    <Edit3 size={16} />
+                    Sauvegarder les modifications
+                  </button>
+                )}
+              </div>
+              
+              <button
+                onClick={goToNextSection}
+                disabled={activeSection === sections[sections.length - 1]?.id}
+                className="px-6 py-3 btn-glass disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-lg"
+              >
+                Section suivante
+                <ChevronDown size={16} />
+              </button>
+            </div>
+
+            {/* Résumé final si toutes les sections sont complétées */}
+            {sections.every(s => s.isCompleted) && (
+              <div className="glass-card bg-gradient-to-r from-green-100 to-blue-100 rounded-xl p-6 border border-green-200 shadow-lg">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
+                    <Check size={20} className="text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-green-800">Entretien complété !</h3>
+                    <p className="text-sm text-green-600">Toutes les sections ont été remplies.</p>
+                  </div>
+                </div>
+                
+                {!isReadOnly && entretienData.status === 'brouillon' && (
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => {
+                        setEntretienData(prev => ({ ...prev, status: 'finalise' }));
+                        saveEntretien();
+                      }}
+                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all"
+                    >
+                      Finaliser l'entretien
+                    </button>
+                    <button
+                      onClick={saveEntretien}
+                      className="px-4 py-2 btn-glass text-green-700 border border-green-300"
+                    >
+                      Sauvegarder en brouillon
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Dialog de confirmation */}
       <ConfirmDialog
-  isOpen={showSaveConfirmDialog}
-  onClose={() => setShowSaveConfirmDialog(false)}
-  onConfirm={handleConfirmSave}
-  onCancel={() => setShowSaveConfirmDialog(false)} // Bouton pour annuler et revenir à l'entretien
-  onThirdOption={handleCancelSave} // Fonction pour quitter sans sauvegarder
-  title="Sauvegarder l'entretien"
-  message="Voulez-vous sauvegarder cet entretien avant de quitter ?"
-  confirmText="Sauvegarder"
-  cancelText="Annuler" 
-  thirdOptionText="Quitter sans sauvegarder"
-  variant="info"
-/>
-    
-    
+        isOpen={showSaveConfirmDialog}
+        onClose={() => setShowSaveConfirmDialog(false)}
+        onConfirm={async () => {
+          setShowSaveConfirmDialog(false);
+          await saveEntretien();
+          if (onClose) onClose();
+        }}
+        onCancel={() => setShowSaveConfirmDialog(false)}
+        onThirdOption={() => {
+          setShowSaveConfirmDialog(false);
+          if (onClose) onClose();
+        }}
+        title="Sauvegarder l'entretien"
+        message="Voulez-vous sauvegarder cet entretien avant de quitter ?"
+        confirmText="Sauvegarder"
+        cancelText="Annuler" 
+        thirdOptionText="Quitter sans sauvegarder"
+        variant="info"
+      />
     </div>
   );
 };

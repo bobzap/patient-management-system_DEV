@@ -1,6 +1,9 @@
 // scripts/create-admin-secure.js
 // Script sécurisé pour créer un admin (SANS logs de mot de passe)
 
+// Charger les variables d'environnement depuis .env.script (pour scripts locaux)
+require('dotenv').config({ path: '.env.script' })
+
 const { PrismaClient } = require('@prisma/client')
 const bcrypt = require('bcryptjs')
 const readline = require('readline')
@@ -209,15 +212,15 @@ async function createSecureAdmin() {
   }
 }
 
-// Vérification de l'environnement
+// Vérification de l'environnement - CORRECTION ICI
 function checkEnvironment() {
   const requiredVars = ['DATABASE_URL']
-  const missing = requiredVars.filter(varName => !process.env[varName])
+  const missing = requiredVars.filter(varName => !process.env[varName]) // CORRIGÉ: retiré .local
   
   if (missing.length > 0) {
     console.log('❌ Variables d\'environnement manquantes:')
     missing.forEach(varName => console.log(`   - ${varName}`))
-    console.log('\nVérifiez votre fichier .env')
+    console.log('\nVérifiez votre fichier .env.local')
     process.exit(1)
   }
 }

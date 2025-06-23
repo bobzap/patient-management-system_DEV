@@ -2,6 +2,32 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ===== FOND GLOBAL DÉGRADÉ ===== */
+:root {
+  --background-gradient: linear-gradient(135deg, 
+    rgb(237, 233, 254) 0%,   /* violet-100 */
+    rgb(219, 234, 254) 25%,  /* blue-100 */
+    rgb(254, 237, 218) 75%,  /* orange-100 */
+    rgb(252, 231, 243) 100%  /* pink-100 */
+  );
+}
+
+body {
+  background: var(--background-gradient) !important;
+  min-height: 100vh;
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+}
+
+/* Force l'application sur tous les conteneurs principaux */
+#__next,
+.main-container,
+[data-testid="main-content"] {
+  background: transparent !important;
+}
+
+
+/* Import des polices */
 @font-face {
   font-family: 'Avenir Light';
   src: url('/fonts/AvenirLight.woff2') format('woff2'),
@@ -12,48 +38,49 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-    --radius: 0.5rem;
+    /* Variables CSS pour le thème clair */
+    --background: 248 250 252;
+    --foreground: 15 23 42;
+    --card: 255 255 255;
+    --card-foreground: 15 23 42;
+    --popover: 255 255 255;
+    --popover-foreground: 15 23 42;
+    --primary: 99 102 241;
+    --primary-foreground: 255 255 255;
+    --secondary: 241 245 249;
+    --secondary-foreground: 30 41 59;
+    --muted: 248 250 252;
+    --muted-foreground: 100 116 139;
+    --accent: 240 249 255;
+    --accent-foreground: 12 74 110;
+    --destructive: 244 63 94;
+    --destructive-foreground: 255 255 255;
+    --border: 226 232 240;
+    --input: 241 245 249;
+    --ring: 99 102 241;
+    --radius: 0.75rem;
   }
  
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    --background: 2 6 23;
+    --foreground: 248 250 252;
+    --card: 15 23 42;
+    --card-foreground: 248 250 252;
+    --popover: 15 23 42;
+    --popover-foreground: 248 250 252;
+    --primary: 129 140 248;
+    --primary-foreground: 2 6 23;
+    --secondary: 30 41 59;
+    --secondary-foreground: 248 250 252;
+    --muted: 30 41 59;
+    --muted-foreground: 148 163 184;
+    --accent: 30 41 59;
+    --accent-foreground: 248 250 252;
+    --destructive: 251 113 133;
+    --destructive-foreground: 248 250 252;
+    --border: 51 65 85;
+    --input: 30 41 59;
+    --ring: 129 140 248;
   }
 }
 
@@ -61,79 +88,237 @@
   * {
     @apply border-border;
   }
+  
   body {
-    @apply bg-background text-foreground;
-    font-family: 'Avenir Light', Arial, sans-serif;
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Avenir Light', 'Inter', system-ui, sans-serif;
+    min-height: 100vh;
+    background: linear-gradient(135deg, 
+      rgba(99, 102, 241, 0.03) 0%, 
+      rgba(168, 85, 247, 0.02) 25%, 
+      rgba(255, 255, 255, 0.95) 50%, 
+      rgba(168, 85, 247, 0.02) 75%, 
+      rgba(99, 102, 241, 0.03) 100%);
+    background-attachment: fixed;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold tracking-tight;
+  }
+  
+  h1 { @apply text-3xl lg:text-4xl; }
+  h2 { @apply text-2xl lg:text-3xl; }
+  h3 { @apply text-xl lg:text-2xl; }
+  h4 { @apply text-lg lg:text-xl; }
+  
+  p {
+    @apply leading-relaxed text-muted-foreground;
+  }
+}
+
+@layer components {
+  /* Glassmorphisme simplifié */
+  .glass {
+    background: rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+  }
+  
+  .glass-card {
+    @apply glass rounded-2xl p-6 transition-all duration-300;
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+  }
+  
+  .glass-card:hover {
+    transform: translateY(-2px);
+    background: rgba(255, 255, 255, 0.12);
+    box-shadow: 0 12px 40px 0 rgba(99, 102, 241, 0.12), 0 4px 12px 0 rgba(168, 85, 247, 0.08);
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+  
+  /* Sidebar moderne */
+  .sidebar-glass {
+    background: linear-gradient(135deg, 
+      rgba(99, 102, 241, 0.12) 0%, 
+      rgba(168, 85, 247, 0.08) 50%, 
+      rgba(99, 102, 241, 0.06) 100%);
+    backdrop-filter: blur(40px);
+    border-right: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 4px 0 24px 0 rgba(99, 102, 241, 0.1);
+  }
+  
+  /* Navigation */
+  .nav-item {
+    @apply relative overflow-hidden rounded-xl px-4 py-3 transition-all duration-300;
+  }
+  
+  .nav-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+    transform: translateX(4px);
+    box-shadow: 0 4px 20px 0 rgba(99, 102, 241, 0.1);
+  }
+  
+  .nav-item.active {
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    color: white;
+    box-shadow: 0 8px 30px 0 rgba(99, 102, 241, 0.3);
+    transform: translateX(4px);
+  }
+  
+  /* Boutons */
+  .btn-glass {
+    @apply glass rounded-xl px-4 py-2 font-medium transition-all duration-300;
+  }
+  
+  .btn-glass:hover {
+    background: rgba(255, 255, 255, 0.15);
+    transform: translateY(-1px);
+    box-shadow: 0 8px 25px 0 rgba(99, 102, 241, 0.15);
+  }
+  
+  /* Inputs */
+  .input-glass {
+    @apply glass rounded-lg px-4 py-3 bg-white/5 border-white/20 placeholder:text-slate-400;
+    transition: all 0.3s ease;
+  }
+  
+  .input-glass:focus {
+    @apply ring-2 ring-medical-500/30 border-medical-500/40;
+    background: rgba(255, 255, 255, 0.12);
+    box-shadow: 0 8px 30px 0 rgba(99, 102, 241, 0.15);
+  }
+  
+  /* Animations */
+  .fade-in {
+    animation: fade-in 0.6s ease-out forwards;
+  }
+  
+  /* Scroll bar */
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(99, 102, 241, 0.3) transparent;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(99, 102, 241, 0.3);
+    border-radius: 10px;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(99, 102, 241, 0.5);
+  }
+  
+  /* Status colors */
+  .status-success {
+    @apply bg-emerald-50/60 text-emerald-800 border-emerald-200/40;
+    backdrop-filter: blur(12px);
+  }
+  
+  .status-warning {
+    @apply bg-amber-50/60 text-amber-800 border-amber-200/40;
+    backdrop-filter: blur(12px);
+  }
+  
+  .status-error {
+    @apply bg-rose-50/60 text-rose-800 border-rose-200/40;
+    backdrop-filter: blur(12px);
+  }
+  
+  .status-info {
+    @apply bg-medical-50/60 text-medical-800 border-medical-200/40;
+    backdrop-filter: blur(12px);
+  }
+  
+  /* Content cards avec transparence */
+  .content-card {
+    background: rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 1.5rem;
+    padding: 1.5rem;
+    transition: all 0.3s ease;
+  }
+  
+  .content-card:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.18);
+    transform: translateY(-2px);
   }
 }
 
 /* Styles pour react-resizable */
 .react-resizable {
-  position: relative;
+  @apply relative transition-all duration-300;
 }
 
 .react-resizable-handle {
-  position: absolute;
-  width: 20px;
-  height: 20px;
-  background-repeat: no-repeat;
-  background-origin: content-box;
-  box-sizing: border-box;
+  @apply absolute w-5 h-5 transition-all duration-200;
   background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2IDYiIHN0eWxlPSJiYWNrZ3JvdW5kLWNvbG9yOiNmZmZmZmYwMCIgeD0iMHB4IiB5PSIwcHgiIHdpZHRoPSI2cHgiIGhlaWdodD0iNnB4Ij48ZyBvcGFjaXR5PSIwLjMwMiI+PHBhdGggZD0iTSA2IDYgTCAwIDYgTCAwIDQuMiBMIDQgNC4yIEwgNC4yIDQuMiBMIDQuMiAwIEwgNiAwIEwgNiA2IEwgNiA2IFoiIGZpbGw9IiMwMDAwMDAiLz48L2c+PC9zdmc+');
   background-position: bottom right;
-  padding: 0 3px 3px 0;
-  transition: all 0.2s ease;
-  background-color: transparent;
-  right: 0;
-  bottom: 0;
-  cursor: se-resize !important;
-  z-index: 50;
-  
-}
-
-
-.react-resizable-handle::after {
-  content: '';
-  position: absolute;
-  right: 3px;
-  bottom: 3px;
-  width: 8px;
-  height: 8px;
-  border-right: 2px solid rgba(0, 0, 0, 0.2);
-  border-bottom: 2px solid rgba(0, 0, 0, 0.2);
-}
-
-/* Empêcher le drag & drop sur la poignée de redimensionnement */
-.react-resizable-handle {
-  pointer-events: auto !important;
-}
-
-.react-resizable-handle-se {
+  background-repeat: no-repeat;
   right: 0;
   bottom: 0;
   cursor: se-resize;
+  z-index: 50;
 }
 
-/* Hover effect pour la poignée de redimensionnement */
+.react-resizable-handle::after {
+  @apply absolute w-2 h-2;
+  content: '';
+  right: 3px;
+  bottom: 3px;
+  border-right: 2px solid rgba(148, 163, 184, 0.4);
+  border-bottom: 2px solid rgba(148, 163, 184, 0.4);
+  border-radius: 0 0 2px 0;
+}
+
 .react-resizable-handle:hover {
-  transform: scale(1.2);
+  @apply scale-110;
 }
 
-
-
-
-/* Ajoutez ceci à la fin de votre fichier globals.css */
-.react-resizable {
-  position: relative !important;
-  transition: all 0.3s ease-in-out;
+.react-resizable-handle:hover::after {
+  border-color: rgba(99, 102, 241, 0.6);
 }
 
-.react-resizable-handle {
-  position: absolute !important;
-  z-index: 100 !important;
-  pointer-events: all !important;
-}
-
+/* Drag handle */
 [class^="drag-handle-"] {
-  cursor: move;
+  @apply cursor-move transition-all duration-200;
 }
+
+/* Responsive */
+@media (max-width: 768px) {
+  .glass-card {
+    @apply p-4 rounded-xl;
+  }
+  
+  .sidebar-glass {
+    backdrop-filter: blur(30px);
+  }
+}
+
+/* Accessibilité */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Focus visible */
+.focus-visible:focus {
+  @apply outline-none ring-2 ring-medical-500/50 ring-offset-2 ring-offset-background;
+}
+
+

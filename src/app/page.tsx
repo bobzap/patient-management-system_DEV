@@ -1,4 +1,4 @@
-// src/app/page.tsx - Version corrigée pour éviter les boucles infinies
+// src/app/page.tsx - Version corrigée pour garder la Sidebar
 'use client';
 
 import { useState, useCallback, useEffect, useRef } from 'react';
@@ -13,7 +13,6 @@ import { UserManagement } from '@/components/admin/UserManagement';
 import { CalendarPage } from '@/components/calendar/CalendarPage';
 import AdminPage from '@/app/admin/page';
 import { toast } from 'sonner';
-//import { Toaster } from 'sonner';
 
 type NavigationTab = 'dashboard' | 'patients' | 'newDossier' | 'admin' | 'userManagement' | 'calendar';
 
@@ -90,16 +89,10 @@ export default function HomePage() {
       return;
     }
 
-    if (selectedPatient) {
-      if (window.confirm('Voulez-vous vraiment quitter la vue détaillée ?')) {
-        setSelectedPatient(null);
-        setActiveTab(newTab);
-      }
-    } else {
-      setActiveTab(newTab);
-    }
-  }, [selectedPatient, canAccessAdmin, canViewPatients]);
-  
+    // ✅ NE PAS réinitialiser selectedPatient automatiquement
+    // Laisser l'utilisateur naviguer avec le patient sélectionné
+    setActiveTab(newTab);
+  }, [canAccessAdmin, canViewPatients]);
   
   const handlePatientSubmit = useCallback(async (patientData: Omit<Patient, 'id'>) => {
     if (!canViewPatients()) {
@@ -140,6 +133,14 @@ export default function HomePage() {
   const handlePatientSelect = useCallback((patient: Patient) => {
     console.log('👤 Sélection du patient:', patient.id);
     setSelectedPatient(patient);
+    // ✅ Optionnel : basculer vers l'onglet patients pour plus de cohérence
+    setActiveTab('patients');
+  }, []);
+
+  // ✅ Fonction pour fermer la vue patient et retourner à la liste
+  const handleClosePatientView = useCallback(() => {
+    setSelectedPatient(null);
+    setActiveTab('patients');
   }, []);
 
   // Fonction pour forcer le rechargement des patients
@@ -169,26 +170,28 @@ export default function HomePage() {
   }
 
   return (
-    <div className="flex h-screen bg-gray-100">
+    <div className="flex h-screen">
+      {/* ✅ Sidebar TOUJOURS visible */}
       <Sidebar 
         activeTab={activeTab}
         onTabChange={handleTabChange}
       />
 
-      <main className="flex-1 overflow-auto">
-        {selectedPatient ? (
-          <div className="relative">
-            <PatientDetails 
-              patient={selectedPatient} 
-              onEdit={() => console.log('Edit patient:', selectedPatient)} 
-              onDelete={() => {
-                console.log('Delete patient:', selectedPatient);
-                setSelectedPatient(null);
-                // Optionnel: rafraîchir la liste après suppression
-                refreshPatients();
-              }}
-            />
-          </div>
+      {/* ✅ Zone principale - Sidebar reste visible même avec selectedPatient */}
+      <main className="flex-1 overflow-hidden">
+        {/* ✅ Condition modifiée : afficher PatientDetails seulement si on est sur patients ET qu'un patient est sélectionné */}
+        {selectedPatient && activeTab === 'patients' ? (
+          <PatientDetails 
+            patient={selectedPatient} 
+            onEdit={() => console.log('Edit patient:', selectedPatient)} 
+            onDelete={() => {
+              console.log('Delete patient:', selectedPatient);
+              setSelectedPatient(null); // Retour à la liste après suppression
+              refreshPatients();
+            }}
+            // ✅ Passer une fonction de fermeture
+            onClose={handleClosePatientView}
+          />
         ) : (
           <>
             {activeTab === 'dashboard' && (
@@ -250,9 +253,6 @@ export default function HomePage() {
           </>
         )}
       </main>
-      
-     
-    
     </div>
   );
 }

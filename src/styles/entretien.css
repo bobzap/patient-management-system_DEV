@@ -1,0 +1,1038 @@
+/* src/styles/entretien.css - Version nettoyée et corrigée */
+
+/* ===== VARIABLES CSS COULEURS COHÉRENTES ===== */
+:root {
+  /* Couleurs Santé au Travail - VERT */
+  --sante-50: #f0fdf4;
+  --sante-100: #dcfce7;
+  --sante-200: #bbf7d0;
+  --sante-300: #86efac;
+  --sante-400: #4ade80;
+  --sante-500: #22c55e;
+  --sante-600: #16a34a;
+  --sante-700: #15803d;
+  --sante-800: #166534;
+  --sante-900: #14532d;
+
+  /* Couleurs Examen Clinique - BLEU */
+  --examen-50: #eff6ff;
+  --examen-100: #dbeafe;
+  --examen-200: #bfdbfe;
+  --examen-300: #93c5fd;
+  --examen-400: #60a5fa;
+  --examen-500: #3b82f6;
+  --examen-600: #2563eb;
+  --examen-700: #1d4ed8;
+  --examen-800: #1e40af;
+  --examen-900: #1e3a8a;
+
+  /* Couleurs IMAA - ORANGE */
+  --imaa-50: #fff7ed;
+  --imaa-100: #ffedd5;
+  --imaa-200: #fed7aa;
+  --imaa-300: #fdba74;
+  --imaa-400: #fb923c;
+  --imaa-500: #f97316;
+  --imaa-600: #ea580c;
+  --imaa-700: #c2410c;
+  --imaa-800: #9a3412;
+  --imaa-900: #7c2d12;
+
+  /* Couleurs Conclusion - ROSE */
+  --conclusion-50: #fdf2f8;
+  --conclusion-100: #fce7f3;
+  --conclusion-200: #fbcfe8;
+  --conclusion-300: #f9a8d4;
+  --conclusion-400: #f472b6;
+  --conclusion-500: #ec4899;
+  --conclusion-600: #db2777;
+  --conclusion-700: #be185d;
+  --conclusion-800: #9d174d;
+  --conclusion-900: #831843;
+
+  /* Couleurs générales */
+  --medical-50: #f0f9ff;
+  --medical-500: #0ea5e9;
+  --medical-600: #0284c7;
+}
+
+/* ===== CLASSES GLASSMORPHIQUES DE BASE ===== */
+.glass-card {
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 
+    0 8px 32px 0 rgba(31, 38, 135, 0.15),
+    0 4px 16px 0 rgba(31, 38, 135, 0.1),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.4);
+}
+
+.btn-glass {
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 12px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 
+    0 4px 16px 0 rgba(31, 38, 135, 0.1),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.3);
+}
+
+.btn-glass:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 
+    0 8px 25px 0 rgba(31, 38, 135, 0.2),
+    0 4px 16px 0 rgba(31, 38, 135, 0.1),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.4);
+}
+
+.input-glass {
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  transition: all 0.3s ease;
+}
+
+.input-glass:focus {
+  background: rgba(255, 255, 255, 0.3);
+  border-color: rgba(14, 165, 233, 0.5);
+  box-shadow: 
+    0 0 0 3px rgba(14, 165, 233, 0.1),
+    0 4px 16px 0 rgba(31, 38, 135, 0.1);
+}
+
+/* ===== SIDEBAR GLASSMORPHIQUE ===== */
+.sidebar-glass {
+  background: linear-gradient(135deg, 
+    rgba(255, 255, 255, 0.3) 0%, 
+    rgba(255, 255, 255, 0.2) 100%
+  );
+  backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: blur(25px);
+  border-right: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 
+    4px 0 32px 0 rgba(31, 38, 135, 0.15),
+    2px 0 16px 0 rgba(31, 38, 135, 0.1),
+    inset 1px 0 0 0 rgba(255, 255, 255, 0.4);
+}
+
+/* ===== NAVIGATION ITEMS DE BASE ===== */
+.nav-item {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  padding: 12px 16px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 8px 0 rgba(31, 38, 135, 0.1);
+}
+
+.nav-item:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateX(4px);
+  box-shadow: 
+    0 4px 16px 0 rgba(31, 38, 135, 0.15),
+    2px 0 8px 0 rgba(31, 38, 135, 0.1);
+}
+
+.nav-item.active {
+  background: linear-gradient(135deg, 
+    var(--medical-600) 0%, 
+    var(--conclusion-600) 100%
+  );
+  color: white;
+  border-color: rgba(255, 255, 255, 0.4);
+  box-shadow: 
+    0 8px 25px 0 rgba(31, 38, 135, 0.25),
+    0 4px 16px 0 rgba(31, 38, 135, 0.15),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.3);
+}
+
+/* ===== CLASSES DE BASE POUR LES SECTIONS ===== */
+.section-container {
+  background: rgba(255, 255, 255, 0.9) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border: 2px solid rgba(148, 163, 184, 0.4) !important;
+  border-radius: 16px !important;
+  box-shadow: 
+    0 8px 32px 0 rgba(31, 38, 135, 0.15),
+    0 4px 16px 0 rgba(31, 38, 135, 0.1),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.5) !important;
+  overflow: hidden !important;
+  margin-bottom: 24px !important;
+}
+
+.section-header {
+  background: rgba(255, 255, 255, 0.8) !important;
+  backdrop-filter: blur(15px) !important;
+  -webkit-backdrop-filter: blur(15px) !important;
+  border-bottom: 2px solid rgba(148, 163, 184, 0.3) !important;
+  padding: 16px 24px !important;
+  cursor: pointer !important;
+  transition: all 0.3s ease !important;
+}
+
+.section-header:hover {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border-bottom-color: rgba(148, 163, 184, 0.5) !important;
+}
+
+.section-content {
+  background: rgba(255, 255, 255, 0.6) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+  padding: 24px !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.4) !important;
+}
+
+/* ===== SECTION SANTÉ AU TRAVAIL - VERT ===== */
+.sante-section {
+  border-color: var(--sante-500) !important;
+  background: linear-gradient(135deg, 
+    rgba(34, 197, 94, 0.15) 0%, 
+    rgba(22, 163, 74, 0.1) 100%
+  ) !important;
+}
+
+.sante-section .section-header {
+  background: linear-gradient(135deg, 
+    rgba(34, 197, 94, 0.25) 0%, 
+    rgba(22, 163, 74, 0.2) 100%
+  ) !important;
+  border-bottom-color: var(--sante-500) !important;
+}
+
+.sante-section .section-header.active {
+  background: linear-gradient(135deg, 
+    rgba(34, 197, 94, 0.35) 0%, 
+    rgba(22, 163, 74, 0.3) 100%
+  ) !important;
+  border-bottom-color: var(--sante-600) !important;
+}
+
+/* ===== SECTION EXAMEN CLINIQUE - BLEU ===== */
+.examen-section {
+  border-color: var(--examen-500) !important;
+  background: linear-gradient(135deg, 
+    rgba(59, 130, 246, 0.15) 0%, 
+    rgba(37, 99, 235, 0.1) 100%
+  ) !important;
+}
+
+.examen-section .section-header {
+  background: linear-gradient(135deg, 
+    rgba(59, 130, 246, 0.25) 0%, 
+    rgba(37, 99, 235, 0.2) 100%
+  ) !important;
+  border-bottom-color: var(--examen-500) !important;
+}
+
+.examen-section .section-header.active {
+  background: linear-gradient(135deg, 
+    rgba(59, 130, 246, 0.35) 0%, 
+    rgba(37, 99, 235, 0.3) 100%
+  ) !important;
+  border-bottom-color: var(--examen-600) !important;
+}
+
+/* ===== SECTION IMAA - ORANGE ===== */
+.imaa-section {
+  border-color: var(--imaa-500) !important;
+  background: linear-gradient(135deg, 
+    rgba(249, 115, 22, 0.15) 0%, 
+    rgba(234, 88, 12, 0.1) 100%
+  ) !important;
+}
+
+.imaa-section .section-header {
+  background: linear-gradient(135deg, 
+    rgba(249, 115, 22, 0.25) 0%, 
+    rgba(234, 88, 12, 0.2) 100%
+  ) !important;
+  border-bottom-color: var(--imaa-500) !important;
+}
+
+.imaa-section .section-header.active {
+  background: linear-gradient(135deg, 
+    rgba(249, 115, 22, 0.35) 0%, 
+    rgba(234, 88, 12, 0.3) 100%
+  ) !important;
+  border-bottom-color: var(--imaa-600) !important;
+}
+
+/* ===== SECTION CONCLUSION - ROSE ===== */
+.conclusion-section {
+  border-color: var(--conclusion-500) !important;
+  background: linear-gradient(135deg, 
+    rgba(236, 72, 153, 0.15) 0%, 
+    rgba(219, 39, 119, 0.1) 100%
+  ) !important;
+}
+
+.conclusion-section .section-header {
+  background: linear-gradient(135deg, 
+    rgba(236, 72, 153, 0.25) 0%, 
+    rgba(219, 39, 119, 0.2) 100%
+  ) !important;
+  border-bottom-color: var(--conclusion-500) !important;
+}
+
+.conclusion-section .section-header.active {
+  background: linear-gradient(135deg, 
+    rgba(236, 72, 153, 0.35) 0%, 
+    rgba(219, 39, 119, 0.3) 100%
+  ) !important;
+  border-bottom-color: var(--conclusion-600) !important;
+}
+
+/* ===== ONGLETS DES SECTIONS ===== */
+.section-tabs {
+  background: rgba(255, 255, 255, 0.9) !important;
+  backdrop-filter: blur(15px) !important;
+  -webkit-backdrop-filter: blur(15px) !important;
+  border-bottom: 2px solid rgba(148, 163, 184, 0.3) !important;
+  padding: 0 24px !important;
+}
+
+.section-tab {
+  background: rgba(255, 255, 255, 0.6) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+  border: 2px solid rgba(148, 163, 184, 0.3) !important;
+  border-bottom: none !important;
+  border-radius: 12px 12px 0 0 !important;
+  padding: 12px 20px !important;
+  margin-right: 8px !important;
+  transition: all 0.3s ease !important;
+  font-weight: 600 !important;
+  color: #475569 !important;
+  position: relative !important;
+  top: 2px !important;
+}
+
+.section-tab:hover {
+  background: rgba(255, 255, 255, 0.8) !important;
+  transform: translateY(-2px) !important;
+  border-color: rgba(148, 163, 184, 0.5) !important;
+}
+
+.section-tab.active {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border-color: rgba(148, 163, 184, 0.6) !important;
+  z-index: 10 !important;
+}
+
+/* ===== CHAMPS DE FORMULAIRE DANS LES SECTIONS ===== */
+.field-group {
+  background: rgba(255, 255, 255, 0.8) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+  border: 1px solid rgba(148, 163, 184, 0.3) !important;
+  border-radius: 12px !important;
+  padding: 20px !important;
+  margin-bottom: 16px !important;
+  box-shadow: 0 4px 16px 0 rgba(31, 38, 135, 0.08) !important;
+}
+
+.field-group h3,
+.field-group h4 {
+  color: #1e293b !important;
+  font-weight: 700 !important;
+  margin-bottom: 16px !important;
+  padding-bottom: 8px !important;
+  border-bottom: 2px solid rgba(148, 163, 184, 0.2) !important;
+}
+
+/* ===== AMÉLIORATION DES CONTRASTES - TOUS LES CHAMPS ===== */
+
+/* Champs de saisie généraux */
+input[type="text"],
+input[type="email"],
+input[type="number"],
+input[type="date"],
+input[type="time"],
+input[type="password"],
+textarea,
+select {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border: 2px solid rgba(148, 163, 184, 0.6) !important;
+  border-radius: 8px !important;
+  padding: 12px 16px !important;
+  transition: all 0.3s ease !important;
+  backdrop-filter: blur(5px) !important;
+  -webkit-backdrop-filter: blur(5px) !important;
+  color: #1e293b !important;
+  font-weight: 500 !important;
+  font-size: 14px !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* États focus pour tous les champs */
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="number"]:focus,
+input[type="date"]:focus,
+input[type="time"]:focus,
+input[type="password"]:focus,
+textarea:focus,
+select:focus {
+  background: rgba(255, 255, 255, 1) !important;
+  border-color: #3b82f6 !important;
+  box-shadow: 
+    0 0 0 3px rgba(59, 130, 246, 0.2) !important,
+    0 4px 16px rgba(59, 130, 246, 0.3) !important;
+  outline: none !important;
+}
+
+/* Cases à cocher améliorées */
+input[type="checkbox"] {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  width: 20px !important;
+  height: 20px !important;
+  background: rgba(255, 255, 255, 0.95) !important;
+  border: 2px solid rgba(148, 163, 184, 0.6) !important;
+  border-radius: 4px !important;
+  position: relative !important;
+  cursor: pointer !important;
+  transition: all 0.3s ease !important;
+  display: inline-block !important;
+  vertical-align: middle !important;
+  margin-right: 8px !important;
+}
+
+input[type="checkbox"]:checked {
+  background: #3b82f6 !important;
+  border-color: #3b82f6 !important;
+}
+
+input[type="checkbox"]:checked::after {
+  content: '✓' !important;
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  color: white !important;
+  font-size: 14px !important;
+  font-weight: bold !important;
+  line-height: 1 !important;
+}
+
+/* Boutons radio améliorés */
+input[type="radio"] {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  width: 20px !important;
+  height: 20px !important;
+  background: rgba(255, 255, 255, 0.95) !important;
+  border: 2px solid rgba(148, 163, 184, 0.6) !important;
+  border-radius: 50% !important;
+  position: relative !important;
+  cursor: pointer !important;
+  transition: all 0.3s ease !important;
+  display: inline-block !important;
+  vertical-align: middle !important;
+  margin-right: 8px !important;
+}
+
+input[type="radio"]:checked {
+  background: #3b82f6 !important;
+  border-color: #3b82f6 !important;
+}
+
+input[type="radio"]:checked::after {
+  content: '' !important;
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  width: 10px !important;
+  height: 10px !important;
+  background: white !important;
+  border-radius: 50% !important;
+}
+
+/* Labels - Meilleur contraste */
+label {
+  color: #1e293b !important;
+  font-weight: 600 !important;
+  font-size: 14px !important;
+  margin-bottom: 8px !important;
+  display: inline-block !important;
+}
+
+/* Boutons - Style amélioré */
+button:not([class*="nav"]):not([class*="tab"]):not([class*="glass"]):not([class*="bg-"]) {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border: 2px solid rgba(148, 163, 184, 0.6) !important;
+  color: #1e293b !important;
+  font-weight: 600 !important;
+  padding: 10px 16px !important;
+  border-radius: 8px !important;
+  cursor: pointer !important;
+  transition: all 0.3s ease !important;
+}
+
+button:not([class*="nav"]):not([class*="tab"]):not([class*="glass"]):not([class*="bg-"]):hover {
+  background: rgba(255, 255, 255, 1) !important;
+  border-color: #3b82f6 !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3) !important;
+}
+
+/* Zones de texte */
+textarea {
+  min-height: 100px !important;
+  resize: vertical !important;
+  font-family: inherit !important;
+  line-height: 1.5 !important;
+}
+
+/* Select - Style amélioré */
+select {
+  cursor: pointer !important;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m6 8 4 4 4-4'/%3e%3c/svg%3e") !important;
+  background-position: right 12px center !important;
+  background-repeat: no-repeat !important;
+  background-size: 16px 12px !important;
+  padding-right: 48px !important;
+}
+
+/* Placeholders */
+input::placeholder,
+textarea::placeholder {
+  color: #64748b !important;
+  opacity: 0.8 !important;
+  font-style: italic !important;
+}
+
+/* ===== CHAMPS SPÉCIFIQUES PAR SECTION ===== */
+
+/* Amélioration des champs dans les sections colorées */
+.sante-section input:focus,
+.sante-section textarea:focus,
+.sante-section select:focus {
+  border-color: var(--sante-500) !important;
+  box-shadow: 
+    0 0 0 3px rgba(34, 197, 94, 0.2) !important,
+    0 4px 16px rgba(34, 197, 94, 0.3) !important;
+}
+
+.examen-section input:focus,
+.examen-section textarea:focus,
+.examen-section select:focus {
+  border-color: var(--examen-500) !important;
+  box-shadow: 
+    0 0 0 3px rgba(59, 130, 246, 0.2) !important,
+    0 4px 16px rgba(59, 130, 246, 0.3) !important;
+}
+
+.imaa-section input:focus,
+.imaa-section textarea:focus,
+.imaa-section select:focus {
+  border-color: var(--imaa-500) !important;
+  box-shadow: 
+    0 0 0 3px rgba(249, 115, 22, 0.2) !important,
+    0 4px 16px rgba(249, 115, 22, 0.3) !important;
+}
+
+.conclusion-section input:focus,
+.conclusion-section textarea:focus,
+.conclusion-section select:focus {
+  border-color: var(--conclusion-500) !important;
+  box-shadow: 
+    0 0 0 3px rgba(236, 72, 153, 0.2) !important,
+    0 4px 16px rgba(236, 72, 153, 0.3) !important;
+}
+
+/* ===== CHAMPS SPÉCIFIQUES SECTION CONCLUSION - ROSE ===== */
+
+/* Champs de formulaire dans la section conclusion */
+.conclusion-section input[type="text"],
+.conclusion-section input[type="email"],
+.conclusion-section input[type="number"],
+.conclusion-section input[type="date"],
+.conclusion-section input[type="time"],
+.conclusion-section input[type="password"],
+.conclusion-section textarea,
+.conclusion-section select {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border: 2px solid rgba(236, 72, 153, 0.6) !important;
+  border-radius: 8px !important;
+  padding: 12px 16px !important;
+  transition: all 0.3s ease !important;
+  backdrop-filter: blur(5px) !important;
+  -webkit-backdrop-filter: blur(5px) !important;
+  color: #1e293b !important;
+  font-weight: 500 !important;
+  font-size: 14px !important;
+  box-shadow: 0 2px 8px rgba(236, 72, 153, 0.1) !important;
+}
+
+/* Focus spécifique pour les champs de conclusion */
+.conclusion-section input[type="text"]:focus,
+.conclusion-section input[type="email"]:focus,
+.conclusion-section input[type="number"]:focus,
+.conclusion-section input[type="date"]:focus,
+.conclusion-section input[type="time"]:focus,
+.conclusion-section input[type="password"]:focus,
+.conclusion-section textarea:focus,
+.conclusion-section select:focus {
+  background: rgba(255, 255, 255, 1) !important;
+  border-color: var(--conclusion-500) !important;
+  box-shadow: 
+    0 0 0 3px rgba(236, 72, 153, 0.2) !important,
+    0 4px 16px rgba(236, 72, 153, 0.3) !important;
+  outline: none !important;
+}
+
+/* Surcharge pour les composants shadcn/ui dans la section conclusion */
+.conclusion-section [class*="border-input"],
+.conclusion-section [class*="bg-background"],
+.conclusion-section [class*="ring-offset-background"] {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border: 2px solid rgba(236, 72, 153, 0.6) !important;
+  border-radius: 8px !important;
+}
+
+.conclusion-section [class*="border-input"]:focus,
+.conclusion-section [class*="bg-background"]:focus,
+.conclusion-section [class*="ring-offset-background"]:focus {
+  background: rgba(255, 255, 255, 1) !important;
+  border-color: var(--conclusion-500) !important;
+  box-shadow: 
+    0 0 0 3px rgba(236, 72, 153, 0.2) !important,
+    0 4px 16px rgba(236, 72, 153, 0.3) !important;
+  outline: none !important;
+}
+
+/* Supprime les styles ring de shadcn/ui qui interfèrent */
+.conclusion-section [class*="focus-visible:ring"] {
+  --tw-ring-color: rgba(236, 72, 153, 0.2) !important;
+  --tw-ring-offset-width: 0px !important;
+}
+
+/* Cases à cocher dans la section conclusion */
+.conclusion-section input[type="checkbox"] {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  width: 20px !important;
+  height: 20px !important;
+  background: rgba(255, 255, 255, 0.95) !important;
+  border: 2px solid rgba(236, 72, 153, 0.6) !important;
+  border-radius: 4px !important;
+  position: relative !important;
+  cursor: pointer !important;
+  transition: all 0.3s ease !important;
+  display: inline-block !important;
+  vertical-align: middle !important;
+  margin-right: 8px !important;
+}
+
+.conclusion-section input[type="checkbox"]:checked {
+  background: var(--conclusion-500) !important;
+  border-color: var(--conclusion-500) !important;
+}
+
+.conclusion-section input[type="checkbox"]:checked::after {
+  content: '✓' !important;
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  color: white !important;
+  font-size: 14px !important;
+  font-weight: bold !important;
+  line-height: 1 !important;
+}
+
+/* Boutons radio dans la section conclusion */
+.conclusion-section input[type="radio"] {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  width: 20px !important;
+  height: 20px !important;
+  background: rgba(255, 255, 255, 0.95) !important;
+  border: 2px solid rgba(236, 72, 153, 0.6) !important;
+  border-radius: 50% !important;
+  position: relative !important;
+  cursor: pointer !important;
+  transition: all 0.3s ease !important;
+  display: inline-block !important;
+  vertical-align: middle !important;
+  margin-right: 8px !important;
+}
+
+.conclusion-section input[type="radio"]:checked {
+  background: var(--conclusion-500) !important;
+  border-color: var(--conclusion-500) !important;
+}
+
+.conclusion-section input[type="radio"]:checked::after {
+  content: '' !important;
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  width: 10px !important;
+  height: 10px !important;
+  background: white !important;
+  border-radius: 50% !important;
+}
+
+/* Labels dans la section conclusion */
+.conclusion-section label {
+  color: var(--conclusion-800) !important;
+  font-weight: 600 !important;
+  font-size: 14px !important;
+  margin-bottom: 8px !important;
+  display: inline-block !important;
+}
+
+/* Groupes de champs dans la section conclusion */
+.conclusion-section .field-group {
+  background: rgba(255, 255, 255, 0.8) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+  border: 1px solid rgba(236, 72, 153, 0.3) !important;
+  border-radius: 12px !important;
+  padding: 20px !important;
+  margin-bottom: 16px !important;
+  box-shadow: 0 4px 16px 0 rgba(236, 72, 153, 0.08) !important;
+}
+
+.conclusion-section .field-group h3,
+.conclusion-section .field-group h4 {
+  color: var(--conclusion-800) !important;
+  font-weight: 700 !important;
+  margin-bottom: 16px !important;
+  padding-bottom: 8px !important;
+  border-bottom: 2px solid rgba(236, 72, 153, 0.2) !important;
+}
+
+/* ===== SCROLLBAR PERSONNALISÉE ===== */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.3) transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.3);
+  border-radius: 4px;
+  backdrop-filter: blur(10px);
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.5);
+}
+
+/* ===== ANIMATIONS ===== */
+@keyframes slideInFromLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-slide-in {
+  animation: slideInFromLeft 0.4s ease-out;
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.3s ease-out;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.2s ease-out;
+}
+
+/* ===== OMBRES SPÉCIALISÉES ===== */
+.shadow-soft {
+  box-shadow: 
+    0 4px 6px -1px rgba(0, 0, 0, 0.05),
+    0 2px 4px -1px rgba(0, 0, 0, 0.03);
+}
+
+.shadow-glass {
+  box-shadow: 
+    0 8px 32px 0 rgba(31, 38, 135, 0.15),
+    0 4px 16px 0 rgba(31, 38, 135, 0.1),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.4);
+}
+
+.shadow-elevated {
+  box-shadow: 
+    0 20px 25px -5px rgba(0, 0, 0, 0.08),
+    0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+/* ===== COULEURS DE STATUT ===== */
+.status-success {
+  background: rgba(34, 197, 94, 0.1) !important;
+  color: var(--sante-800) !important;
+  border: 1px solid var(--sante-400) !important;
+  backdrop-filter: blur(12px) !important;
+}
+
+.status-warning {
+  background: rgba(249, 115, 22, 0.1) !important;
+  color: var(--imaa-800) !important;
+  border: 1px solid var(--imaa-400) !important;
+  backdrop-filter: blur(12px) !important;
+}
+
+.status-error {
+  background: rgba(239, 68, 68, 0.1) !important;
+  color: #dc2626 !important;
+  border: 1px solid #f87171 !important;
+  backdrop-filter: blur(12px) !important;
+}
+
+.status-info {
+  background: rgba(59, 130, 246, 0.1) !important;
+  color: var(--examen-800) !important;
+  border: 1px solid var(--examen-400) !important;
+  backdrop-filter: blur(12px) !important;
+}
+
+/* ===== AMÉLIORATIONS SPÉCIFIQUES POUR LES FORMULAIRES ===== */
+
+/* Container pour les groupes de formulaires */
+.form-group {
+  margin-bottom: 20px !important;
+}
+
+.form-group label {
+  display: block !important;
+  margin-bottom: 8px !important;
+  font-weight: 600 !important;
+  color: #374151 !important;
+}
+
+/* ===== UTILITAIRES ===== */
+.text-gradient-sante {
+  background: linear-gradient(135deg, var(--sante-600), var(--sante-500));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.text-gradient-examen {
+  background: linear-gradient(135deg, var(--examen-600), var(--examen-500));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.text-gradient-imaa {
+  background: linear-gradient(135deg, var(--imaa-600), var(--imaa-500));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.text-gradient-conclusion {
+  background: linear-gradient(135deg, var(--conclusion-600), var(--conclusion-500));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 1024px) {
+  .sidebar-glass {
+    width: 240px;
+  }
+  
+  .nav-item {
+    padding: 10px 14px;
+  }
+  
+  .glass-card {
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+  }
+  
+  .section-header {
+    padding: 12px 16px !important;
+  }
+  
+  .section-content {
+    padding: 16px !important;
+  }
+  
+  .field-group {
+    padding: 16px !important;
+    margin-bottom: 12px !important;
+  }
+  
+  input[type="text"],
+  input[type="email"],
+  input[type="number"],
+  input[type="date"],
+  input[type="time"],
+  input[type="password"],
+  textarea,
+  select {
+    padding: 12px 16px !important;
+    font-size: 16px !important; /* Évite le zoom sur iOS */
+  }
+}
+
+@media (max-width: 768px) {
+  .section-container {
+    margin-bottom: 16px !important;
+  }
+  
+  .section-tabs {
+    padding: 0 16px !important;
+  }
+  
+  .section-tab {
+    padding: 10px 16px !important;
+    margin-right: 4px !important;
+    font-size: 14px !important;
+  }
+  
+  input[type="checkbox"],
+  input[type="radio"] {
+    width: 22px !important;
+    height: 22px !important;
+  }
+  
+  input[type="checkbox"]:checked::after {
+    font-size: 16px !important;
+  }
+  
+  textarea,
+  select {
+    font-size: 16px !important; /* Évite le zoom sur iOS */
+  }
+}
+
+/* ===== ACCESSIBILITÉ ===== */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Focus visible pour l'accessibilité */
+.focus-visible:focus {
+  outline: 2px solid var(--medical-500) !important;
+  outline-offset: 2px !important;
+  box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.25) !important;
+}
+
+/* ===== BOUTONS NAVIGATION CHAPITRES - COULEURS SPÉCIFIQUES ===== */
+
+/* Force absolue pour navigation Santé - Jaune */
+.nav-item[data-section="sante"][data-section="sante"] {
+  border-color: #fbbf24 !important;
+}
+
+.nav-item[data-section="sante"][data-section="sante"]:hover {
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.2) 0%, rgba(245, 158, 11, 0.15) 100%) !important;
+  border-color: #f59e0b !important;
+  transform: translateX(4px) !important;
+}
+
+.nav-item[data-section="sante"][data-section="sante"].active {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%) !important;
+  color: white !important;
+  border-color: #f59e0b !important;
+}
+
+/* Force absolue pour navigation Examen - Violet */
+.nav-item[data-section="examen"][data-section="examen"] {
+  border-color: #a855f7 !important;
+}
+
+.nav-item[data-section="examen"][data-section="examen"]:hover {
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.2) 0%, rgba(147, 51, 234, 0.15) 100%) !important;
+  border-color: #9333ea !important;
+  transform: translateX(4px) !important;
+}
+
+.nav-item[data-section="examen"][data-section="examen"].active {
+  background: linear-gradient(135deg, #a855f7 0%, #9333ea 100%) !important;
+  color: white !important;
+  border-color: #9333ea !important;
+}
+
+/* Force absolue pour navigation IMAA - Orange */
+.nav-item[data-section="imaa"][data-section="imaa"] {
+  border-color: #f97316 !important;
+}
+
+.nav-item[data-section="imaa"][data-section="imaa"]:hover {
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.2) 0%, rgba(234, 88, 12, 0.15) 100%) !important;
+  border-color: #ea580c !important;
+  transform: translateX(4px) !important;
+}
+
+.nav-item[data-section="imaa"][data-section="imaa"].active {
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%) !important;
+  color: white !important;
+  border-color: #ea580c !important;
+}
+
+/* Force absolue pour navigation Conclusion - Rose */
+.nav-item[data-section="conclusion"][data-section="conclusion"] {
+  border-color: #ec4899 !important;
+}
+
+.nav-item[data-section="conclusion"][data-section="conclusion"]:hover {
+  background: linear-gradient(135deg, rgba(236, 72, 153, 0.2) 0%, rgba(219, 39, 119, 0.15) 100%) !important;
+  border-color: #db2777 !important;
+  transform: translateX(4px) !important;
+}
+
+.nav-item[data-section="conclusion"][data-section="conclusion"].active {
+  background: linear-gradient(135deg, #ec4899 0%, #db2777 100%) !important;
+  color: white !important;
+  border-color: #db2777 !important;
+}

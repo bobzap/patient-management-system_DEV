@@ -6,6 +6,7 @@ import { signIn, getSession } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Eye, EyeOff, AlertCircle, Lock, Mail, CheckCircle } from 'lucide-react'
 import { toast } from 'sonner'
+import { Logo } from '@/components/ui/Logo';
 
 // 🔧 JUSTE WRAPPER VOTRE COMPOSANT EXISTANT
 function LoginContent() {
@@ -129,13 +130,17 @@ function LoginContent() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
       <div className="max-w-md w-full">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <div className="mx-auto h-12 w-12 bg-blue-600 rounded-lg flex items-center justify-center mb-4">
-            <Lock className="h-6 w-6 text-white" />
+        {/* Header avec logo parfaitement centré */}
+        <div className="text-center mb-8 flex flex-col items-center">
+          <div className="mb-4 flex justify-center">
+            <Logo 
+              width={250} 
+              height={54} 
+              className="transition-all duration-200 hover:scale-105"
+            />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Vital Sync</h1>
-          <p className="text-gray-600">Connexion sécurisée</p>
+          <h1 className="text-0xl font-bold text-gray-900 mb-2">Connexion sécurisée</h1>
+          <p className="text-gray-600">Accédez à votre espace professionnel</p>
         </div>
 
         {/* Formulaire */}

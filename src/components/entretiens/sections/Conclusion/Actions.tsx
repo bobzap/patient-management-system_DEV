@@ -18,7 +18,7 @@ import {
 interface ActionsProps {
   data?: ActionData;
   onChange: (data: ActionData) => void;
-  isReadOnly?: boolean; // Ajout du prop isReadOnly
+  isReadOnly?: boolean;
 }
 
 const defaultData: ActionData = {
@@ -36,8 +36,8 @@ interface ActionSectionProps {
 }
 
 const ActionSection = ({ title, children }: ActionSectionProps) => (
-  <div className="space-y-4 p-4 bg-gray-50 rounded-lg border border-gray-100">
-    <h4 className="font-medium text-gray-900">{title}</h4>
+  <div className="space-y-4 p-4 bg-pink-50/30 rounded-lg border border-pink-200/60 backdrop-blur-sm">
+    <h4 className="font-medium text-pink-900">{title}</h4>
     {children}
   </div>
 );
@@ -74,7 +74,7 @@ export const Actions = ({ data = defaultData, onChange, isReadOnly = false }: Ac
 
   // Helper pour simplifier la mise à jour des données
   const handleChange = (updates: Partial<ActionData>) => {
-    if (isReadOnly) return; // Ne pas mettre à jour si en mode lecture seule
+    if (isReadOnly) return;
     onChange({ ...data, ...updates });
   };
 
@@ -89,9 +89,26 @@ export const Actions = ({ data = defaultData, onChange, isReadOnly = false }: Ac
     });
   };
 
+  // Classes CSS pour les champs - ROSE
+  const inputClasses = isReadOnly 
+    ? 'bg-gray-100 text-gray-700 cursor-not-allowed border-gray-200' 
+    : 'bg-white/95 border-2 border-pink-400/60 focus:border-pink-500 focus:ring-2 focus:ring-pink-200 transition-all duration-200';
+
+  const textareaClasses = isReadOnly
+    ? 'bg-gray-100 text-gray-700 cursor-not-allowed border-gray-200'
+    : 'bg-white/95 border-2 border-pink-400/60 focus:border-pink-500 focus:ring-2 focus:ring-pink-200 transition-all duration-200 min-h-[80px]';
+
+  const selectTriggerClasses = isReadOnly
+    ? 'bg-gray-100 text-gray-700 cursor-not-allowed border-gray-200'
+    : 'bg-white/95 border-2 border-pink-400/60 focus:border-pink-500 focus:ring-2 focus:ring-pink-200 transition-all duration-200';
+
+  const labelClasses = isReadOnly 
+    ? 'cursor-not-allowed text-gray-600' 
+    : 'text-pink-800 font-medium';
+
   return (
     <div className="space-y-6">
-      <h3 className="text-lg font-semibold">Actions à suivre</h3>
+      <h3 className="text-lg font-semibold text-pink-900">Actions à suivre</h3>
 
       <div className="space-y-4">
         {/* Action 1: Orientations */}
@@ -101,7 +118,7 @@ export const Actions = ({ data = defaultData, onChange, isReadOnly = false }: Ac
             onValueChange={(value) => updateOrientation({ selected: [value] })}
             disabled={isReadOnly}
           >
-            <SelectTrigger className={isReadOnly ? 'bg-gray-100 text-gray-700 cursor-not-allowed border-gray-200' : ''}>
+            <SelectTrigger className={selectTriggerClasses}>
               <SelectValue placeholder="Choisir une orientation..." />
             </SelectTrigger>
             <SelectContent>
@@ -114,7 +131,7 @@ export const Actions = ({ data = defaultData, onChange, isReadOnly = false }: Ac
             value={data.orientation.commentaire}
             onChange={(e) => updateOrientation({ commentaire: e.target.value })}
             placeholder="Commentaire sur l'orientation..."
-            className={`mt-2 ${isReadOnly ? 'bg-gray-100 text-gray-700 cursor-not-allowed border-gray-200' : ''}`}
+            className={`mt-2 ${textareaClasses}`}
             readOnly={isReadOnly}
           />
         </ActionSection>
@@ -132,9 +149,9 @@ export const Actions = ({ data = defaultData, onChange, isReadOnly = false }: Ac
                 }
               })}
               disabled={isReadOnly}
-              className={isReadOnly ? 'cursor-not-allowed' : ''}
+              className={`${isReadOnly ? 'cursor-not-allowed' : 'border-2 border-pink-400 data-[state=checked]:bg-pink-500 data-[state=checked]:border-pink-500'}`}
             />
-            <Label htmlFor="etude-poste" className={isReadOnly ? 'cursor-not-allowed' : ''}>Étude à faire</Label>
+            <Label htmlFor="etude-poste" className={labelClasses}>Étude à faire</Label>
           </div>
           {data.etudePoste.aFaire && (
             <Textarea
@@ -146,7 +163,7 @@ export const Actions = ({ data = defaultData, onChange, isReadOnly = false }: Ac
                 }
               })}
               placeholder="Commentaire sur l'étude..."
-              className={`mt-2 ${isReadOnly ? 'bg-gray-100 text-gray-700 cursor-not-allowed border-gray-200' : ''}`}
+              className={`mt-2 ${textareaClasses}`}
               readOnly={isReadOnly}
             />
           )}
@@ -165,9 +182,9 @@ export const Actions = ({ data = defaultData, onChange, isReadOnly = false }: Ac
                 }
               })}
               disabled={isReadOnly}
-              className={isReadOnly ? 'cursor-not-allowed' : ''}
+              className={`${isReadOnly ? 'cursor-not-allowed' : 'border-2 border-pink-400 data-[state=checked]:bg-pink-500 data-[state=checked]:border-pink-500'}`}
             />
-            <Label htmlFor="entretien-manager" className={isReadOnly ? 'cursor-not-allowed' : ''}>Entretien nécessaire</Label>
+            <Label htmlFor="entretien-manager" className={labelClasses}>Entretien nécessaire</Label>
           </div>
           {data.manager.entretienNecessaire && (
             <div className="space-y-3 mt-2">
@@ -181,7 +198,7 @@ export const Actions = ({ data = defaultData, onChange, isReadOnly = false }: Ac
                 })}
                 disabled={isReadOnly}
               >
-                <SelectTrigger className={isReadOnly ? 'bg-gray-100 text-gray-700 cursor-not-allowed border-gray-200' : ''}>
+                <SelectTrigger className={selectTriggerClasses}>
                   <SelectValue placeholder="Sélectionner un manager..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -199,11 +216,11 @@ export const Actions = ({ data = defaultData, onChange, isReadOnly = false }: Ac
                   }
                 })}
                 placeholder="Commentaire pour l'entretien..."
-                className={isReadOnly ? 'bg-gray-100 text-gray-700 cursor-not-allowed border-gray-200' : ''}
+                className={textareaClasses}
                 readOnly={isReadOnly}
               />
               <div>
-                <Label className={isReadOnly ? 'cursor-not-allowed' : ''}>Date de rappel</Label>
+                <Label className={labelClasses}>Date de rappel</Label>
                 <Input
                   type="date"
                   value={data.manager.dateRappel}
@@ -213,7 +230,7 @@ export const Actions = ({ data = defaultData, onChange, isReadOnly = false }: Ac
                       dateRappel: e.target.value
                     }
                   })}
-                  className={`mt-1 ${isReadOnly ? 'bg-gray-100 text-gray-700 cursor-not-allowed border-gray-200' : ''}`}
+                  className={`mt-1 ${inputClasses}`}
                   readOnly={isReadOnly}
                 />
               </div>
@@ -234,13 +251,13 @@ export const Actions = ({ data = defaultData, onChange, isReadOnly = false }: Ac
                 }
               })}
               disabled={isReadOnly}
-              className={isReadOnly ? 'cursor-not-allowed' : ''}
+              className={`${isReadOnly ? 'cursor-not-allowed' : 'border-2 border-pink-400 data-[state=checked]:bg-pink-500 data-[state=checked]:border-pink-500'}`}
             />
-            <Label htmlFor="entretien-prevoir" className={isReadOnly ? 'cursor-not-allowed' : ''}>Entretien à prévoir</Label>
+            <Label htmlFor="entretien-prevoir" className={labelClasses}>Entretien à prévoir</Label>
           </div>
           {data.entretien.aPrevoir && (
             <div className="mt-2">
-              <Label className={isReadOnly ? 'cursor-not-allowed' : ''}>Date de rappel</Label>
+              <Label className={labelClasses}>Date de rappel</Label>
               <Input
                 type="date"
                 value={data.entretien.dateRappel}
@@ -250,7 +267,7 @@ export const Actions = ({ data = defaultData, onChange, isReadOnly = false }: Ac
                     dateRappel: e.target.value
                   }
                 })}
-                className={`mt-1 ${isReadOnly ? 'bg-gray-100 text-gray-700 cursor-not-allowed border-gray-200' : ''}`}
+                className={`mt-1 ${inputClasses}`}
                 readOnly={isReadOnly}
               />
             </div>
@@ -270,9 +287,9 @@ export const Actions = ({ data = defaultData, onChange, isReadOnly = false }: Ac
                 }
               })}
               disabled={isReadOnly}
-              className={isReadOnly ? 'cursor-not-allowed' : ''}
+              className={`${isReadOnly ? 'cursor-not-allowed' : 'border-2 border-pink-400 data-[state=checked]:bg-pink-500 data-[state=checked]:border-pink-500'}`}
             />
-            <Label htmlFor="echange-medecin" className={isReadOnly ? 'cursor-not-allowed' : ''}>Échange nécessaire</Label>
+            <Label htmlFor="echange-medecin" className={labelClasses}>Échange nécessaire</Label>
           </div>
           {data.medecin.echangeNecessaire && (
             <Textarea
@@ -284,7 +301,7 @@ export const Actions = ({ data = defaultData, onChange, isReadOnly = false }: Ac
                 }
               })}
               placeholder="Commentaire pour le médecin..."
-              className={`mt-2 ${isReadOnly ? 'bg-gray-100 text-gray-700 cursor-not-allowed border-gray-200' : ''}`}
+              className={`mt-2 ${textareaClasses}`}
               readOnly={isReadOnly}
             />
           )}
@@ -303,14 +320,14 @@ export const Actions = ({ data = defaultData, onChange, isReadOnly = false }: Ac
                 }
               })}
               disabled={isReadOnly}
-              className={isReadOnly ? 'cursor-not-allowed' : ''}
+              className={`${isReadOnly ? 'cursor-not-allowed' : 'border-2 border-pink-400 data-[state=checked]:bg-pink-500 data-[state=checked]:border-pink-500'}`}
             />
-            <Label htmlFor="visite-medicale" className={isReadOnly ? 'cursor-not-allowed' : ''}>Visite à planifier</Label>
+            <Label htmlFor="visite-medicale" className={labelClasses}>Visite à planifier</Label>
           </div>
           {data.visiteMedicale.aPlanifier && (
             <div className="space-y-3 mt-2">
               <div>
-                <Label className={isReadOnly ? 'cursor-not-allowed' : ''}>Date de rappel</Label>
+                <Label className={labelClasses}>Date de rappel</Label>
                 <Input
                   type="date"
                   value={data.visiteMedicale.dateRappel}
@@ -320,7 +337,7 @@ export const Actions = ({ data = defaultData, onChange, isReadOnly = false }: Ac
                       dateRappel: e.target.value
                     }
                   })}
-                  className={`mt-1 ${isReadOnly ? 'bg-gray-100 text-gray-700 cursor-not-allowed border-gray-200' : ''}`}
+                  className={`mt-1 ${inputClasses}`}
                   readOnly={isReadOnly}
                 />
               </div>
@@ -333,7 +350,7 @@ export const Actions = ({ data = defaultData, onChange, isReadOnly = false }: Ac
                   }
                 })}
                 placeholder="Commentaire pour la visite..."
-                className={isReadOnly ? 'bg-gray-100 text-gray-700 cursor-not-allowed border-gray-200' : ''}
+                className={textareaClasses}
                 readOnly={isReadOnly}
               />
             </div>
