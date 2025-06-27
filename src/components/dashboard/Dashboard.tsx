@@ -1,4 +1,4 @@
-// src/components/dashboard/Dashboard.tsx - Version modernisée corrigée
+// src/components/dashboard/Dashboard.tsx - Version modernisée avec bulles d'info
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -7,7 +7,7 @@ import {
   AlertCircle, Filter, Download, RefreshCw, X, 
   AlertTriangle, Activity, TrendingUp, Calendar,
   Stethoscope, Shield, Target, ArrowRight, Plus,
-  Settings, ExternalLink  // <- Ajouter ExternalLink ici
+  Settings, ExternalLink, Info, PlayCircle
 } from 'lucide-react';
 
 // Import des composants
@@ -16,9 +16,9 @@ import { PieChart } from './PieChart';
 import { BarChart } from './BarChart';
 import { analyzeEntretiensData } from '@/services/dashboard-analysis';
 
+// Types - Ajout du type NavigationTab
+type NavigationTab = 'dashboard' | 'patients' | 'newDossier' | 'admin' | 'userManagement' | 'calendar';
 
-
-// Types
 interface Patient {
   id: number;
   nom: string;
@@ -31,9 +31,16 @@ interface DashboardProps {
   patients: {
     data: Patient[];
   };
+  onNavigate?: (tab: NavigationTab) => void; // Fonction de navigation typée
 }
 
-export const Dashboard = ({ patients }: DashboardProps) => {
+interface TooltipInfo {
+  type: string;
+  data: any[];
+  position: { top: number; left: number };
+}
+
+export const Dashboard = ({ patients, onNavigate }: DashboardProps) => {
   // États pour les données
   const [entretiens, setEntretiens] = useState<any[]>([]);
   const [dashboardData, setDashboardData] = useState<any>(null);
@@ -45,6 +52,11 @@ export const Dashboard = ({ patients }: DashboardProps) => {
   const [showFilters, setShowFilters] = useState(false);
   const [departmentFilter, setDepartmentFilter] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string>('');
+  
+  // États pour les tooltips
+  const [activeTooltip, setActiveTooltip] = useState<TooltipInfo | null>(null);
+  const [isTooltipHovered, setIsTooltipHovered] = useState(false);
+  const [isButtonHovered, setIsButtonHovered] = useState(false);
   
   // Chargement des données
   useEffect(() => {
@@ -118,6 +130,17 @@ export const Dashboard = ({ patients }: DashboardProps) => {
     
     fetchAllEntretiens();
   }, [patients.data, refreshTrigger]);
+
+  // Calcul des entretiens en cours
+  const entretiensEnCours = useMemo(() => {
+    if (!entretiens) return [];
+    
+    return entretiens.filter(entretien => 
+      entretien.status === 'brouillon' && 
+      entretien.tempsDebut && 
+      !entretien.tempsFin
+    );
+  }, [entretiens]);
   
   // Données filtrées
   const filteredData = useMemo(() => {
@@ -219,30 +242,73 @@ export const Dashboard = ({ patients }: DashboardProps) => {
     setRefreshTrigger(prev => prev + 1);
   };
 
-  // Navigation functions
+  // Navigation functions - Compatible avec la sidebar existante
   const navigateToPatients = () => {
-    window.dispatchEvent(new CustomEvent('navigateTo', { 
-      detail: { tab: 'patients' } 
-    }));
+    if (onNavigate) {
+      onNavigate('patients');
+    } else {
+      console.warn('Navigation function not provided to Dashboard component');
+    }
   };
 
   const navigateToNewDossier = () => {
-    window.dispatchEvent(new CustomEvent('navigateTo', { 
-      detail: { tab: 'newDossier' } 
-    }));
+    if (onNavigate) {
+      onNavigate('newDossier');
+    } else {
+      console.warn('Navigation function not provided to Dashboard component');
+    }
   };
 
   const navigateToCalendar = () => {
-    window.dispatchEvent(new CustomEvent('navigateTo', { 
-      detail: { tab: 'calendar' } 
-    }));
+    if (onNavigate) {
+      onNavigate('calendar');
+    } else {
+      console.warn('Navigation function not provided to Dashboard component');
+    }
   };
 
   const navigateToAdmin = () => {
-    window.dispatchEvent(new CustomEvent('navigateTo', { 
-      detail: { tab: 'admin' } 
-    }));
+    if (onNavigate) {
+      onNavigate('admin');
+    } else {
+      console.warn('Navigation function not provided to Dashboard component');
+    }
   };
+
+  // Gestion des tooltips
+  const handleTooltipShow = (event: React.MouseEvent, type: string, data: any[]) => {
+    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+    setActiveTooltip({
+      type,
+      data,
+      position: {
+        top: rect.top + window.scrollY - 10,
+        left: rect.right + 15
+      }
+    });
+    setIsButtonHovered(true);
+  };
+
+  const handleTooltipHide = () => {
+    setIsButtonHovered(false);
+  };
+
+  // Fermeture automatique du tooltip
+  useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+    
+    if (!isTooltipHovered && !isButtonHovered && activeTooltip) {
+      timeoutId = setTimeout(() => {
+        setActiveTooltip(null);
+      }, 300);
+    }
+    
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
+  }, [isTooltipHovered, isButtonHovered, activeTooltip]);
 
   return (
     <div className="min-h-screen p-8">
@@ -414,6 +480,7 @@ export const Dashboard = ({ patients }: DashboardProps) => {
 
         {/* Métriques principales */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {/* Total entretiens */}
           <div className="group relative">
             <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-indigo-600/20 rounded-2xl blur-xl opacity-70 group-hover:opacity-100 transition-opacity"></div>
             <div className="relative bg-white/30 backdrop-blur-2xl border border-white/40 rounded-2xl p-6 shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-1">
@@ -434,6 +501,7 @@ export const Dashboard = ({ patients }: DashboardProps) => {
             </div>
           </div>
 
+          {/* Heures d'entretien */}
           <div className="group relative">
             <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/20 to-teal-600/20 rounded-2xl blur-xl opacity-70 group-hover:opacity-100 transition-opacity"></div>
             <div className="relative bg-white/30 backdrop-blur-2xl border border-white/40 rounded-2xl p-6 shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-1">
@@ -454,26 +522,39 @@ export const Dashboard = ({ patients }: DashboardProps) => {
             </div>
           </div>
 
+          {/* Entretiens en cours - MODIFIÉ */}
           <div className="group relative">
             <div className="absolute inset-0 bg-gradient-to-br from-amber-500/20 to-orange-600/20 rounded-2xl blur-xl opacity-70 group-hover:opacity-100 transition-opacity"></div>
             <div className="relative bg-white/30 backdrop-blur-2xl border border-white/40 rounded-2xl p-6 shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-1">
               <div className="flex justify-between items-start">
                 <div className="space-y-1">
-                  <p className="text-sm font-medium text-slate-900">Taux finalisation</p>
+                  <div className="flex items-center space-x-2">
+                    <p className="text-sm font-medium text-slate-900">Entretiens en cours</p>
+                    {entretiensEnCours.length > 0 && (
+                      <button
+                        onMouseEnter={(e) => handleTooltipShow(e, 'entretiensEnCours', entretiensEnCours)}
+                        onMouseLeave={handleTooltipHide}
+                        className="p-1 rounded-full bg-amber-500/20 hover:bg-amber-500/30 transition-colors"
+                      >
+                        <Info className="h-3 w-3 text-amber-600" />
+                      </button>
+                    )}
+                  </div>
                   {isLoading ? (
                     <div className="h-8 w-16 bg-slate-200/50 rounded animate-pulse"></div>
                   ) : (
-                    <p className="text-3xl font-light text-slate-900">{filteredData?.tendances?.tauxFinalisation || 0}%</p>
+                    <p className="text-3xl font-light text-slate-900">{entretiensEnCours.length}</p>
                   )}
-                  <p className="text-xs text-slate-500">{filteredData?.entretiensByStatus?.finalise || 0} finalisés</p>
+                  <p className="text-xs text-slate-500">En cours de réalisation</p>
                 </div>
                 <div className="p-3 bg-amber-500/20 backdrop-blur-sm rounded-xl">
-                  <CheckCircle className="h-6 w-6 text-amber-600" />
+                  <PlayCircle className="h-6 w-6 text-amber-600" />
                 </div>
               </div>
             </div>
           </div>
 
+          {/* Alertes actives */}
           <div className="group relative">
             <div className="absolute inset-0 bg-gradient-to-br from-rose-500/20 to-pink-600/20 rounded-2xl blur-xl opacity-70 group-hover:opacity-100 transition-opacity"></div>
             <div className="relative bg-white/30 backdrop-blur-2xl border border-white/40 rounded-2xl p-6 shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-1">
@@ -685,7 +766,7 @@ export const Dashboard = ({ patients }: DashboardProps) => {
           </div>
         </div>
 
-        {/* Santé au travail */}
+        {/* Santé au travail avec bulles d'info */}
         <div className="relative">
           <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-cyan-500/10 rounded-3xl blur-2xl"></div>
           <div className="relative bg-white/25 backdrop-blur-2xl border border-white/40 rounded-3xl p-8 shadow-2xl">
@@ -702,8 +783,19 @@ export const Dashboard = ({ patients }: DashboardProps) => {
                 <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-indigo-600/20 rounded-2xl blur opacity-60 group-hover:opacity-80 transition-opacity"></div>
                 <div className="relative bg-white/50 backdrop-blur-xl border border-white/60 rounded-2xl p-6 hover:bg-white/60 transition-all duration-300">
                   <div className="flex items-center justify-between mb-4">
-                    <div className="p-3 bg-blue-500/20 backdrop-blur-sm rounded-xl">
-                      <Calendar className="h-6 w-6 text-blue-600" />
+                    <div className="flex items-center space-x-2">
+                      <div className="p-3 bg-blue-500/20 backdrop-blur-sm rounded-xl">
+                        <Calendar className="h-6 w-6 text-blue-600" />
+                      </div>
+                      {filteredData?.visiteMedicalePlanifiee > 0 && (
+                        <button
+                          onMouseEnter={(e) => handleTooltipShow(e, 'visitesPlanifiees', filteredData?.visitesPlanifiees || [])}
+                          onMouseLeave={handleTooltipHide}
+                          className="p-1 rounded-full bg-blue-500/20 hover:bg-blue-500/30 transition-colors"
+                        >
+                          <Info className="h-3 w-3 text-blue-600" />
+                        </button>
+                      )}
                     </div>
                     <div className="text-right">
                       <p className="text-2xl font-light text-slate-900">{filteredData?.visiteMedicalePlanifiee || 0}</p>
@@ -720,8 +812,19 @@ export const Dashboard = ({ patients }: DashboardProps) => {
                 <div className="absolute inset-0 bg-gradient-to-br from-amber-500/20 to-orange-600/20 rounded-2xl blur opacity-60 group-hover:opacity-80 transition-opacity"></div>
                 <div className="relative bg-white/50 backdrop-blur-xl border border-white/60 rounded-2xl p-6 hover:bg-white/60 transition-all duration-300">
                   <div className="flex items-center justify-between mb-4">
-                    <div className="p-3 bg-amber-500/20 backdrop-blur-sm rounded-xl">
-                      <AlertTriangle className="h-6 w-6 text-amber-600" />
+                    <div className="flex items-center space-x-2">
+                      <div className="p-3 bg-amber-500/20 backdrop-blur-sm rounded-xl">
+                        <AlertTriangle className="h-6 w-6 text-amber-600" />
+                      </div>
+                      {filteredData?.limitationsActives > 0 && (
+                        <button
+                          onMouseEnter={(e) => handleTooltipShow(e, 'limitations', filteredData?.limitationsDetails || [])}
+                          onMouseLeave={handleTooltipHide}
+                          className="p-1 rounded-full bg-amber-500/20 hover:bg-amber-500/30 transition-colors"
+                        >
+                          <Info className="h-3 w-3 text-amber-600" />
+                        </button>
+                      )}
                     </div>
                     <div className="text-right">
                       <p className="text-2xl font-light text-slate-900">{filteredData?.limitationsActives || 0}</p>
@@ -738,8 +841,19 @@ export const Dashboard = ({ patients }: DashboardProps) => {
                 <div className="absolute inset-0 bg-gradient-to-br from-rose-500/20 to-pink-600/20 rounded-2xl blur opacity-60 group-hover:opacity-80 transition-opacity"></div>
                 <div className="relative bg-white/50 backdrop-blur-xl border border-white/60 rounded-2xl p-6 hover:bg-white/60 transition-all duration-300">
                   <div className="flex items-center justify-between mb-4">
-                    <div className="p-3 bg-rose-500/20 backdrop-blur-sm rounded-xl">
-                      <Shield className="h-6 w-6 text-rose-600" />
+                    <div className="flex items-center space-x-2">
+                      <div className="p-3 bg-rose-500/20 backdrop-blur-sm rounded-xl">
+                        <Shield className="h-6 w-6 text-rose-600" />
+                      </div>
+                      {filteredData?.detectionPrecoce?.risqueEleve > 0 && (
+                        <button
+                          onMouseEnter={(e) => handleTooltipShow(e, 'detectionsPrecoces', filteredData?.detectionPrecoce?.details || [])}
+                          onMouseLeave={handleTooltipHide}
+                          className="p-1 rounded-full bg-rose-500/20 hover:bg-rose-500/30 transition-colors"
+                        >
+                          <Info className="h-3 w-3 text-rose-600" />
+                        </button>
+                      )}
                     </div>
                     <div className="text-right">
                       <p className="text-2xl font-light text-slate-900">{filteredData?.detectionPrecoce?.risqueEleve || 0}</p>
@@ -793,94 +907,260 @@ export const Dashboard = ({ patients }: DashboardProps) => {
         </div>
         
         {/* Footer ultra-moderne */}
-<div className="flex justify-center">
-  <div className="relative group">
-    {/* Effet de glow */}
-    <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 via-indigo-500/10 to-purple-500/20 rounded-3xl blur-xl opacity-60 group-hover:opacity-80 transition-opacity duration-500"></div>
-    
-    {/* Container principal */}
-    <div className="relative bg-white/20 backdrop-blur-2xl border border-white/30 rounded-3xl p-6 shadow-2xl hover:shadow-3xl transition-all duration-500 hover:-translate-y-1">
-      <div className="flex flex-col lg:flex-row items-center justify-between space-y-4 lg:space-y-0 lg:space-x-8">
-        
-        {/* Section synchronisation */}
-        <div className="flex items-center space-x-3">
+        <div className="flex justify-center">
+          <div className="relative group">
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 via-indigo-500/10 to-purple-500/20 rounded-3xl blur-xl opacity-60 group-hover:opacity-80 transition-opacity duration-500"></div>
+            
+            <div className="relative bg-white/20 backdrop-blur-2xl border border-white/30 rounded-3xl p-6 shadow-2xl hover:shadow-3xl transition-all duration-500 hover:-translate-y-1">
+              <div className="flex flex-col lg:flex-row items-center justify-between space-y-4 lg:space-y-0 lg:space-x-8">
+                
+                {/* Section synchronisation */}
+                <div className="flex items-center space-x-3">
+                  <div className="relative">
+                    <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse shadow-lg shadow-green-400/50"></div>
+                    <div className="absolute inset-0 w-3 h-3 bg-green-400 rounded-full animate-ping"></div>
+                  </div>
+                  <div className="text-center lg:text-left">
+                    <p className="text-sm font-medium text-slate-700">Dernière synchronisation</p>
+                    <p className="text-xs text-slate-600">
+                      {new Date().toLocaleDateString('fr-FR', { 
+                        day: '2-digit', 
+                        month: 'short', 
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Séparateur */}
+                <div className="hidden lg:block h-8 w-px bg-gradient-to-b from-transparent via-white/30 to-transparent"></div>
+
+                {/* Section sécurité */}
+                <div className="flex items-center space-x-4">
+                  <a 
+                    href="https://www.ssllabs.com/ssltest/analyze.html?d=app.vital-sync.ch" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="group flex items-center space-x-2 px-4 py-2 bg-white/20 backdrop-blur-sm border border-white/30 rounded-2xl hover:bg-white/30 hover:border-green-500/40 transition-all duration-300 hover:scale-105"
+                  >
+                    <div className="relative">
+                      <Shield className="h-4 w-4 text-green-600 group-hover:text-green-500 transition-colors" />
+                      <div className="absolute inset-0 bg-green-400/20 rounded-full blur-sm group-hover:bg-green-400/40 transition-all duration-300"></div>
+                    </div>
+                    <span className="text-xs font-medium text-slate-700 group-hover:text-slate-800 transition-colors">
+                      Audit SSL/TLS
+                    </span>
+                    <ExternalLink className="h-3 w-3 text-slate-500 group-hover:text-slate-600 transition-colors" />
+                  </a>
+                </div>
+
+                {/* Séparateur */}
+                <div className="hidden lg:block h-8 w-px bg-gradient-to-b from-transparent via-white/30 to-transparent"></div>
+
+                {/* Section développeur */}
+                <div className="text-center lg:text-right space-y-1">
+                  <div className="flex items-center justify-center lg:justify-end space-x-2">
+                    <p className="text-sm font-semibold text-slate-800">
+                      Développé par{' '}
+                      <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent font-bold">
+                        Amarres®
+                      </span>
+                    </p>
+                    <div className="flex items-center">
+                      <img 
+                        src="/logo-amarre.png" 
+                        alt="Logo Amarre" 
+                        className="w-9 h-9 object-contain transition-transform duration-300 hover:scale-150"
+                      />
+                    </div>
+                  </div>
+                  <p className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent font-lite">
+                    Software Development
+                  </p>
+                </div>
+              </div>
+
+              {/* Ligne décorative */}
+              <div className="mt-4 pt-4 border-t border-white/20">
+                <div className="h-px bg-gradient-to-r from-transparent via-blue-500/30 to-transparent"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Tooltip universel pour toutes les bulles d'info */}
+      {activeTooltip && (
+        <div
+          className="fixed pointer-events-auto animate-in fade-in slide-in-from-left-2 duration-300"
+          style={{
+            zIndex: 2147483647,
+            top: `${activeTooltip.position.top}px`,
+            left: `${activeTooltip.position.left}px`,
+          }}
+          onMouseEnter={() => setIsTooltipHovered(true)}
+          onMouseLeave={() => setIsTooltipHovered(false)}
+        >
           <div className="relative">
-            <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse shadow-lg shadow-green-400/50"></div>
-            <div className="absolute inset-0 w-3 h-3 bg-green-400 rounded-full animate-ping"></div>
-          </div>
-          <div className="text-center lg:text-left">
-            <p className="text-sm font-medium text-slate-700">
-              Dernière synchronisation
-            </p>
-            <p className="text-xs text-slate-600">
-              {new Date().toLocaleDateString('fr-FR', { 
-                day: '2-digit', 
-                month: 'short', 
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-              })}
-            </p>
-          </div>
-        </div>
-
-        {/* Séparateur */}
-        <div className="hidden lg:block h-8 w-px bg-gradient-to-b from-transparent via-white/30 to-transparent"></div>
-
-        {/* Section sécurité */}
-        <div className="flex items-center space-x-4">
-          <a 
-            href="https://www.ssllabs.com/ssltest/analyze.html?d=app.vital-sync.ch" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="group flex items-center space-x-2 px-4 py-2 bg-white/20 backdrop-blur-sm border border-white/30 rounded-2xl hover:bg-white/30 hover:border-green-500/40 transition-all duration-300 hover:scale-105"
-          >
-            <div className="relative">
-              <Shield className="h-4 w-4 text-green-600 group-hover:text-green-500 transition-colors" />
-              <div className="absolute inset-0 bg-green-400/20 rounded-full blur-sm group-hover:bg-green-400/40 transition-all duration-300"></div>
+            {/* Ombre */}
+            <div className="absolute inset-0 bg-slate-800/30 rounded-xl blur-lg"></div>
+            
+            {/* Contenu principal */}
+            <div className="relative bg-white backdrop-blur-xl border border-slate-200 rounded-xl shadow-2xl overflow-hidden w-[400px] max-h-[60vh]">
+              
+              {/* En-tête */}
+              <div className="bg-slate-50 p-3 border-b border-slate-200">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <div className="p-1.5 bg-slate-100 rounded-lg">
+                      <Info className="h-4 w-4 text-slate-600" />
+                    </div>
+                    <div>
+                      <h4 className="text-slate-800 font-medium text-sm">
+                        {activeTooltip.type === 'entretiensEnCours' && 'Entretiens en cours'}
+                        {activeTooltip.type === 'visitesPlanifiees' && 'Visites médicales à planifier'}
+                        {activeTooltip.type === 'limitations' && 'Limitations actives'}
+                        {activeTooltip.type === 'detectionsPrecoces' && 'Détections précoces'}
+                      </h4>
+                      <p className="text-slate-500 text-xs">
+                        {activeTooltip.data.length} élément{activeTooltip.data.length > 1 ? 's' : ''}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  {/* Bouton fermer */}
+                  <button
+                    onClick={() => {
+                      setActiveTooltip(null);
+                      setIsTooltipHovered(false);
+                      setIsButtonHovered(false);
+                    }}
+                    className="p-1 rounded-full bg-slate-200 hover:bg-slate-300 transition-colors"
+                  >
+                    <X className="h-3 w-3 text-slate-600" />
+                  </button>
+                </div>
+              </div>
+              
+              {/* Corps */}
+              <div className="p-3 bg-white max-h-[50vh] overflow-y-auto">
+                {activeTooltip.data.length > 0 ? (
+                  <div className="space-y-3">
+                    {activeTooltip.data.map((item, index) => (
+                      <div 
+                        key={index} 
+                        className="p-3 bg-slate-50 border border-slate-100 rounded-lg hover:bg-slate-100 transition-colors"
+                      >
+                        {activeTooltip.type === 'entretiensEnCours' && (
+                          <>
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="font-medium text-slate-800 text-sm">
+                                {item.patient?.civilites} {item.patient?.nom} {item.patient?.prenom}
+                              </span>
+                              <span className="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full">
+                                Entretien #{item.id}
+                              </span>
+                            </div>
+                            <div className="text-xs text-slate-600 space-y-1">
+                              <p><strong>Département:</strong> {item.patient?.departement}</p>
+                              <p><strong>Démarré:</strong> {new Date(item.tempsDebut).toLocaleString('fr-FR')}</p>
+                              {item.enPause && <p className="text-amber-600"><strong>⏸️ En pause</strong></p>}
+                            </div>
+                          </>
+                        )}
+                        
+                        {activeTooltip.type === 'visitesPlanifiees' && (
+                          <>
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="font-medium text-slate-800 text-sm">
+                                {item.nom} {item.prenom}
+                              </span>
+                              <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+                                {item.typeVisite}
+                              </span>
+                            </div>
+                            <div className="text-xs text-slate-600 space-y-1">
+                              <p><strong>Département:</strong> {item.departement}</p>
+                              <p><strong>Échéance:</strong> {new Date(item.dateEcheance).toLocaleDateString('fr-FR')}</p>
+                            </div>
+                          </>
+                        )}
+                        
+                        {activeTooltip.type === 'limitations' && (
+                          <>
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="font-medium text-slate-800 text-sm">
+                                {item.patient?.nom} {item.patient?.prenom}
+                              </span>
+                              <span className="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full">
+                                {item.type}
+                              </span>
+                            </div>
+                            <div className="text-xs text-slate-600 space-y-1">
+                              <p><strong>Limitation:</strong> {item.description}</p>
+                              <p><strong>Depuis:</strong> {new Date(item.dateDebut).toLocaleDateString('fr-FR')}</p>
+                              {item.dateFin && (
+                                <p><strong>Jusqu'au:</strong> {new Date(item.dateFin).toLocaleDateString('fr-FR')}</p>
+                              )}
+                            </div>
+                          </>
+                        )}
+                        
+                        {activeTooltip.type === 'detectionsPrecoces' && (
+                          <>
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="font-medium text-slate-800 text-sm">
+                                {item.patient?.nom} {item.patient?.prenom}
+                              </span>
+                              <span className="text-xs bg-rose-100 text-rose-700 px-2 py-1 rounded-full">
+                                Risque {item.niveau}
+                              </span>
+                            </div>
+                            <div className="text-xs text-slate-600 space-y-1">
+                              <p><strong>Motif:</strong> {item.motif}</p>
+                              <p><strong>Détecté le:</strong> {new Date(item.dateDetection).toLocaleDateString('fr-FR')}</p>
+                              <p><strong>Recommandation:</strong> {item.recommandation}</p>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    ))}
+                    
+                    {/* Footer */}
+                    <div className="pt-2 mt-2 border-t border-slate-200">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-slate-500">
+                          Dernière mise à jour: {new Date().toLocaleDateString('fr-FR')}
+                        </span>
+                        <div className="flex items-center space-x-1">
+                          <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div>
+                          <span className="text-emerald-600 font-medium">Synchronisé</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  /* État vide */
+                  <div className="text-center py-6">
+                    <div className="w-12 h-12 bg-slate-100 border border-slate-200 rounded-xl flex items-center justify-center mx-auto mb-3">
+                      <Info className="h-6 w-6 text-slate-400" />
+                    </div>
+                    <h4 className="text-slate-700 font-medium text-sm mb-1">Aucune donnée</h4>
+                    <p className="text-slate-500 text-xs">
+                      Aucun élément à afficher pour cette catégorie.
+                    </p>
+                  </div>
+                )}
+              </div>
+              
+              {/* Flèche pointant vers le bouton */}
+              <div className="absolute top-4 -left-2 w-4 h-4 bg-white border-l border-t border-slate-200 transform rotate-45"></div>
             </div>
-            <span className="text-xs font-medium text-slate-700 group-hover:text-slate-800 transition-colors">
-              Audit SSL/TLS
-            </span>
-            <ExternalLink className="h-3 w-3 text-slate-500 group-hover:text-slate-600 transition-colors" />
-          </a>
-        </div>
-
-        {/* Séparateur */}
-        <div className="hidden lg:block h-8 w-px bg-gradient-to-b from-transparent via-white/30 to-transparent"></div>
-
-        {/* Section développeur */}
-        <div className="text-center lg:text-right space-y-1">
-          <div className="flex items-center justify-center lg:justify-end space-x-2">
-            <p className="text-sm font-semibold text-slate-800">
-              Développé par{' '}
-              <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent font-bold">
-                Amarres®
-              </span>
-            </p>
-            {/* Emplacement pour votre logo PNG */}
-            <div className="flex items-center">
-              <img 
-                src="/logo-amarre.png" 
-                alt="Logo Amarre" 
-                className="w-9 h-9 object-contain transition-transform duration-300 hover:scale-150"
-              />
-            </div>
           </div>
-          <p className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent font-lite">
-            Software Development
-          </p>
         </div>
-      </div>
-
-      {/* Ligne décorative */}
-      <div className="mt-4 pt-4 border-t border-white/20">
-        <div className="h-px bg-gradient-to-r from-transparent via-blue-500/30 to-transparent"></div>
-      </div>
-    </div>
-  </div>
-</div>
-      </div>
+      )}
     </div>
   );
 };

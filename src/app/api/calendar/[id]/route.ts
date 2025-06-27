@@ -50,7 +50,7 @@ export async function GET(
       data: event,
     });
   } catch (error) {
-    console.error('Erreur lors de la récupération de l\'événement:', error);
+    
     return NextResponse.json(
       {
         success: false,
@@ -135,7 +135,7 @@ export async function PUT(
       data: updatedEvent,
     });
   } catch (error) {
-    console.error('Erreur lors de la mise à jour de l\'événement:', error);
+    
     return NextResponse.json(
       {
         success: false,
@@ -189,7 +189,7 @@ export async function DELETE(
       message: 'Événement supprimé avec succès',
     });
   } catch (error) {
-    console.error('Erreur lors de la suppression de l\'événement:', error);
+    
     return NextResponse.json(
       {
         success: false,

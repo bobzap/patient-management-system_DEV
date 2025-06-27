@@ -9,7 +9,7 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    console.log(`🔍 API GET: Chargement entretien ID ${id}`);
+    
     
     const entretien = await prisma.entretien.findUnique({
       where: { id: parseInt(id) },
@@ -17,22 +17,15 @@ export async function GET(
     });
     
     if (!entretien) {
-      console.log(`❌ API GET: Entretien ${id} non trouvé`);
+      
       return NextResponse.json({ success: false, error: 'Entretien non trouvé' }, { status: 404 });
     }
 
-    console.log(`✅ API GET: Entretien trouvé:`, {
-      id: entretien.id,
-      numeroEntretien: entretien.numeroEntretien,
-      status: entretien.status,
-      donneesEntretienType: typeof entretien.donneesEntretien,
-      donneesEntretienLength: entretien.donneesEntretien?.length || 0,
-      donneesEntretienPreview: entretien.donneesEntretien?.substring(0, 100) + '...'
-    });
+    
 
     return NextResponse.json({ success: true, data: entretien });
   } catch (error) {
-    console.error(`💥 API GET: Erreur:`, error);
+    
     return NextResponse.json({ success: false, error: 'Erreur serveur' }, { status: 500 });
   }
 }
@@ -46,8 +39,7 @@ export async function PUT(
     const { id } = await params;
 
     const data = await request.json();
-    console.log(`🔍 API entretiens - Mise à jour de l'entretien ${id}`);
-    console.log(`📝 Données reçues:`, JSON.stringify(data, null, 2));
+   
     
     // Récupérer l'entretien actuel
     const currentEntretien = await prisma.entretien.findUnique({
@@ -55,7 +47,7 @@ export async function PUT(
     });
     
     if (!currentEntretien) {
-      console.log(`❌ Entretien ${id} non trouvé`);
+      
       return NextResponse.json({ error: "Entretien non trouvé" }, { status: 404 });
     }
     
@@ -69,7 +61,7 @@ export async function PUT(
       donneesEntretienString = currentEntretien.donneesEntretien || '{}';
     }
     
-    console.log(`📦 Données à sauvegarder (taille: ${donneesEntretienString.length} caractères)`);
+    
     
     // Préparer les données pour la mise à jour
     const updateData: any = {
@@ -84,7 +76,7 @@ export async function PUT(
       updateData.enPause = true;
     }
     
-    console.log(`🔄 Données de mise à jour:`, updateData);
+    
     
     // Mettre à jour l'entretien
     const entretien = await prisma.entretien.update({
@@ -95,10 +87,10 @@ export async function PUT(
       }
     });
 
-    console.log(`✅ Entretien ${id} mis à jour avec succès`);
+    
     return NextResponse.json({ success: true, data: entretien });
   } catch (error) {
-    console.error("❌ API entretiens - Erreur de mise à jour:", error);
+    
     return NextResponse.json(
       { success: false, error: 'Erreur lors de la mise à jour de l\'entretien' },
       { status: 500 }
@@ -131,7 +123,7 @@ export async function PATCH(
   try {
     const { id } = await params; // ✅ Await params
 
-    console.log("API - Demande de PATCH pour pause forcée sur entretien:", id);
+    
     
     // Récupérer l'entretien actuel
     const currentEntretien = await prisma.entretien.findUnique({
@@ -167,7 +159,7 @@ export async function PATCH(
       dateModification: now
     };
     
-    console.log("PATCH - Mise à jour avec données:", updateData);
+    
     
     // Mettre à jour l'entretien
     const entretien = await prisma.entretien.update({
@@ -175,12 +167,7 @@ export async function PATCH(
       data: updateData
     });
 
-    console.log("PATCH - Entretien mis à jour avec succès:", {
-      id: entretien.id,
-      enPause: entretien.enPause,
-      dernierePause: entretien.dernierePause,
-      tempsPause: entretien.tempsPause
-    });
+    
     
     return NextResponse.json({ 
       success: true,
@@ -188,7 +175,7 @@ export async function PATCH(
       message: "Entretien mis en pause avec succès"
     });
   } catch (error) {
-    console.error("API - erreur:", error);
+    
     return NextResponse.json(
       { error: 'Erreur lors de la mise en pause de l\'entretien' },
       { status: 500 }

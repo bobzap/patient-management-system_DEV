@@ -30,7 +30,7 @@ export async function PUT(request: NextRequest) {
   
   try {
     const data = await request.json();
-    console.log("6. API - données reçues:", { id, data });
+    
     
     // 👈 Calculer le temps total automatiquement
     let tempsTrajetTotal = data.tempsTrajetTotal || '';
@@ -83,10 +83,10 @@ export async function PUT(request: NextRequest) {
       },
     });
     
-    console.log("7. API - patient mis à jour:", patient);
+    
     return NextResponse.json({ data: patient });
   } catch (error) {
-    console.error("8. API - erreur:", error);
+    
     return NextResponse.json(
       { error: 'Erreur lors de la mise à jour du patient' },
       { status: 500 }

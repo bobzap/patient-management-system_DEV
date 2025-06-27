@@ -25,17 +25,26 @@ export const PatientList = ({
 }: PatientListProps) => {
   const [patientsWithEntretiens, setPatientsWithEntretiens] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [hoveredMotif, setHoveredMotif] = useState<{ patientId: number; motifs: string[] } | null>(null);
-  
+ 
   // États pour les filtres
   const [showFilters, setShowFilters] = useState(false);
+
+  const [activeTooltip, setActiveTooltip] = useState<{
+    patientId: number;
+    motifs: string[];
+    position: { top: number; left: number };
+  } | null>(null);
+
+  const [isTooltipHovered, setIsTooltipHovered] = useState(false);
+  const [isButtonHovered, setIsButtonHovered] = useState(false);
+
   const [departmentFilter, setDepartmentFilter] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [dateFilter, setDateFilter] = useState<string>('');
   
   // Liste des départements uniques
   const [departments, setDepartments] = useState<string[]>([]);
-  
+ 
   // Ref pour éviter les rechargements multiples
   const loadedPatientsRef = useRef<number[]>([]);
   const isLoadingRef = useRef(false);
@@ -49,7 +58,7 @@ export const PatientList = ({
   // Fonction mémorisée pour charger les entretiens
   const loadPatientsWithEntretiens = useCallback(async () => {
     if (isLoadingRef.current) {
-      console.log('⏭️ Chargement déjà en cours, ignorer');
+      
       return;
     }
     
@@ -57,11 +66,11 @@ export const PatientList = ({
     const loadedIds = loadedPatientsRef.current.sort();
     
     if (JSON.stringify(currentPatientIds) === JSON.stringify(loadedIds)) {
-      console.log('✅ Patients déjà chargés, ignorer');
+      
       return;
     }
     
-    console.log('🔄 Chargement des entretiens pour', patients.length, 'patients');
+    
     setIsLoading(true);
     isLoadingRef.current = true;
     
@@ -92,10 +101,9 @@ export const PatientList = ({
               }
               
               // Extraire les motifs de visite
-              // ✅ SOLUTION
-if (donneesEntretien?.santeTravail?.vecuTravail?.motifVisite?.motifs) {
-  motifs = donneesEntretien.santeTravail.vecuTravail.motifVisite.motifs || [];
-}
+              if (donneesEntretien?.santeTravail?.vecuTravail?.motifVisite?.motifs) {
+                motifs = donneesEntretien.santeTravail.vecuTravail.motifVisite.motifs || [];
+              }
             }
           } catch (detailError) {
             console.error(`Erreur détails entretien ${lastEntretien.id}:`, detailError);
@@ -121,9 +129,10 @@ if (donneesEntretien?.santeTravail?.vecuTravail?.motifVisite?.motifs) {
     loadedPatientsRef.current = patients.map(p => p.id);
     setIsLoading(false);
     isLoadingRef.current = false;
-    console.log('✅ Entretiens chargés pour', enrichedPatients.length, 'patients');
+    
   }, [patients]);
 
+  // Chargement des entretiens quand les patients changent
   useEffect(() => {
     if (patients.length > 0) {
       loadPatientsWithEntretiens();
@@ -131,7 +140,24 @@ if (donneesEntretien?.santeTravail?.vecuTravail?.motifVisite?.motifs) {
       setPatientsWithEntretiens([]);
       loadedPatientsRef.current = [];
     }
-  }, [patients.length, loadPatientsWithEntretiens]);
+  }, [patients, loadPatientsWithEntretiens]);
+
+  // Gestion du tooltip avec délai
+  useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+    
+    if (!isTooltipHovered && !isButtonHovered && activeTooltip) {
+      timeoutId = setTimeout(() => {
+        setActiveTooltip(null);
+      }, 300); // Délai de grâce de 300ms
+    }
+    
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
+  }, [isTooltipHovered, isButtonHovered, activeTooltip]);
 
   // Fonction pour réinitialiser tous les filtres
   const resetFilters = () => {
@@ -165,6 +191,22 @@ if (donneesEntretien?.santeTravail?.vecuTravail?.motifVisite?.motifs) {
       default:
         return 'Brouillon';
     }
+  };
+
+  // Gestionnaire pour afficher le tooltip
+  const handleInfoClick = (event: React.MouseEvent, patient: any) => {
+    event.stopPropagation();
+    const rect = (event.target as HTMLElement).getBoundingClientRect();
+    
+    setActiveTooltip({
+      patientId: patient.id,
+      motifs: patient.motifs || [],
+      position: {
+        top: rect.top + window.scrollY,
+        left: rect.right + 10
+      }
+    });
+    setIsButtonHovered(true);
   };
 
   // Filtrage avancé combinant recherche texte et filtres
@@ -488,126 +530,28 @@ if (donneesEntretien?.santeTravail?.vecuTravail?.motifVisite?.motifs) {
                                 {getStatusText(patient.lastEntretien.status)}
                               </span>
                               
-                              {/* Icône info avec tooltip pour les motifs */}
-                              <div className="relative">
-  <button
-    onMouseEnter={() => setHoveredMotif({ 
-      patientId: patient.id, 
-      motifs: patient.motifs || [] 
-    })}
-    onMouseLeave={() => setHoveredMotif(null)}
-    className="group relative p-2 rounded-xl bg-white/30 backdrop-blur-sm border border-white/40 hover:bg-blue-500/20 hover:border-blue-400/50 transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-110"
-  >
-    <Info className="h-4 w-4 text-slate-500 group-hover:text-blue-600 transition-colors duration-300" />
-    
-    {/* Indicateur de pulse si des motifs existent */}
-    {patient.motifs && patient.motifs.length > 0 && (
-      <div className="absolute -top-1 -right-1">
-        <div className="w-3 h-3 bg-blue-500 rounded-full animate-pulse shadow-lg shadow-blue-500/50">
-          <div className="absolute inset-0 w-3 h-3 bg-blue-400 rounded-full animate-ping opacity-75"></div>
-        </div>
-      </div>
-    )}
-  </button>
-  
-  {/* Tooltip moderne avec glassmorphisme */}
-  {hoveredMotif?.patientId === patient.id && (
-    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-3 z-50 animate-in fade-in slide-in-from-bottom-2 duration-300">
-      {/* Container principal avec glassmorphisme */}
-      <div className="relative">
-        {/* Effet de blur d'arrière-plan */}
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-600/80 via-indigo-600/70 to-purple-600/60 rounded-2xl blur-xl"></div>
-        
-        {/* Contenu principal */}
-        <div className="relative bg-white/20 backdrop-blur-2xl border border-white/30 rounded-2xl shadow-2xl overflow-hidden min-w-[280px] max-w-[400px]">
-          
-          {/* En-tête avec dégradé */}
-          <div className="bg-gradient-to-r from-blue-600/90 via-indigo-600/90 to-purple-600/80 backdrop-blur-sm p-4 border-b border-white/20">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-white/20 backdrop-blur-sm rounded-xl">
-                <Info className="h-5 w-5 text-white" />
-              </div>
-              <div>
-                <h4 className="text-white font-semibold text-sm">Motifs de l'entretien</h4>
-                <p className="text-blue-100 text-xs opacity-90">
-                  {hoveredMotif.motifs.length} motif{hoveredMotif.motifs.length > 1 ? 's' : ''} renseigné{hoveredMotif.motifs.length > 1 ? 's' : ''}
-                </p>
-              </div>
-            </div>
-          </div>
-          
-          {/* Corps du contenu */}
-          <div className="p-4">
-            {hoveredMotif.motifs.length > 0 ? (
-              <div className="space-y-3">
-                {hoveredMotif.motifs.map((motif, index) => (
-                  <div 
-                    key={index} 
-                    className="group flex items-start space-x-3 p-3 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl hover:bg-white/20 hover:border-white/30 transition-all duration-300"
-                  >
-                    {/* Numéro avec design moderne */}
-                    <div className="flex-shrink-0 w-6 h-6 bg-blue-500/30 backdrop-blur-sm border border-blue-400/40 rounded-lg flex items-center justify-center">
-                      <span className="text-white text-xs font-bold">{index + 1}</span>
-                    </div>
-                    
-                    {/* Texte du motif */}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-white text-sm font-medium leading-relaxed break-words">
-                        {motif}
-                      </p>
-                    </div>
-                    
-                    {/* Indicateur visuel */}
-                    <div className="flex-shrink-0 w-2 h-2 bg-blue-400 rounded-full group-hover:bg-blue-300 transition-colors"></div>
-                  </div>
-                ))}
-                
-                {/* Footer avec métadonnées */}
-                <div className="pt-3 mt-3 border-t border-white/20">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-blue-100 opacity-75">
-                      Entretien du {new Date(patient.lastEntretien.dateCreation).toLocaleDateString('fr-FR')}
-                    </span>
-                    <div className="flex items-center space-x-1">
-                      <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                      <span className="text-green-200 font-medium">À jour</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              /* État vide avec design élégant */
-              <div className="text-center py-6">
-                <div className="w-16 h-16 bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                  <Info className="h-8 w-8 text-white/60" />
-                </div>
-                <h4 className="text-white font-medium text-sm mb-2">Aucun motif renseigné</h4>
-                <p className="text-blue-100 text-xs opacity-75 leading-relaxed">
-                  Les motifs d'entretien n'ont pas encore été saisis pour ce collaborateur.
-                </p>
-              </div>
-            )}
-          </div>
-          
-          {/* Flèche du tooltip avec glassmorphisme */}
-          <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-px">
-            <div className="relative">
-              {/* Ombre de la flèche */}
-              <div className="absolute inset-0 translate-y-1">
-                <div className="w-4 h-4 bg-blue-600/40 transform rotate-45 blur-sm"></div>
-              </div>
-              
-              {/* Flèche principale */}
-              <div className="relative w-4 h-4 bg-white/20 backdrop-blur-2xl border-r border-b border-white/30 transform rotate-45 shadow-xl">
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-600/60 to-purple-600/40 rounded-sm"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  )}
-</div>
+                              {/* Bouton info pour afficher les motifs - toujours visible s'il y a un entretien */}
+                              <button
+                                onClick={(e) => handleInfoClick(e, patient)}
+                                onMouseEnter={() => setIsButtonHovered(true)}
+                                onMouseLeave={() => setIsButtonHovered(false)}
+                                className={`p-1 rounded-full transition-colors ${
+                                  patient.motifs && patient.motifs.length > 0
+                                    ? 'bg-blue-500/20 hover:bg-blue-500/30' 
+                                    : 'bg-slate-400/20 hover:bg-slate-400/30'
+                                }`}
+                                title={
+                                  patient.motifs && patient.motifs.length > 0 
+                                    ? "Voir les motifs" 
+                                    : "Pas de motifs mentionnés"
+                                }
+                              >
+                                <Info className={`h-3 w-3 ${
+                                  patient.motifs && patient.motifs.length > 0
+                                    ? 'text-blue-600' 
+                                    : 'text-slate-500'
+                                }`} />
+                              </button>
                             </div>
                           </div>
                         ) : (
@@ -738,6 +682,125 @@ if (donneesEntretien?.santeTravail?.vecuTravail?.motifVisite?.motifs) {
           </div>
         </div>
       </div>
+
+      {/* Tooltip pour les motifs */}
+      {activeTooltip && (
+        <div
+          className="fixed pointer-events-auto animate-in fade-in slide-in-from-left-2 duration-300"
+          style={{
+            zIndex: 2147483647,
+            top: `${activeTooltip.position.top}px`,
+            left: `${activeTooltip.position.left}px`,
+          }}
+          onMouseEnter={() => {
+            
+            setIsTooltipHovered(true);
+          }}
+          onMouseLeave={() => {
+            
+            setIsTooltipHovered(false);
+          }}
+        >
+          {/* Conteneur principal du tooltip */}
+          <div className="relative">
+            {/* Ombre */}
+            <div className="absolute inset-0 bg-slate-800/30 rounded-xl blur-lg"></div>
+            
+            {/* Contenu principal */}
+            <div className="relative bg-white backdrop-blur-xl border border-slate-200 rounded-xl shadow-2xl overflow-hidden w-[360px]">
+              
+              {/* En-tête */}
+              <div className="bg-slate-50 p-3 border-b border-slate-200">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <div className="p-1.5 bg-slate-100 rounded-lg">
+                      <Info className="h-4 w-4 text-slate-600" />
+                    </div>
+                    <div>
+                      <h4 className="text-slate-800 font-medium text-sm">Motifs de l'entretien</h4>
+                      <p className="text-slate-500 text-xs">
+                        {activeTooltip.motifs.length} motif{activeTooltip.motifs.length > 1 ? 's' : ''}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  {/* Bouton fermer */}
+                  <button
+                    onClick={() => {
+                      
+                      setActiveTooltip(null);
+                      setIsTooltipHovered(false);
+                      setIsButtonHovered(false);
+                    }}
+                    className="p-1 rounded-full bg-slate-200 hover:bg-slate-300 transition-colors"
+                  >
+                    <X className="h-3 w-3 text-slate-600" />
+                  </button>
+                </div>
+              </div>
+              
+              {/* Corps */}
+              <div className="p-3 bg-white max-h-[50vh] overflow-y-auto">
+                {activeTooltip.motifs.length > 0 ? (
+                  <div className="space-y-2">
+                    {activeTooltip.motifs.map((motif, motifIndex) => (
+                      <div 
+                        key={motifIndex} 
+                        className="flex items-start space-x-2.5 p-2.5 bg-slate-50 border border-slate-100 rounded-lg hover:bg-slate-100 transition-colors"
+                      >
+                        {/* Numéro */}
+                        <div className="flex-shrink-0 w-5 h-5 bg-slate-200 border border-slate-300 rounded-md flex items-center justify-center mt-0.5">
+                          <span className="text-slate-600 text-xs font-medium">{motifIndex + 1}</span>
+                        </div>
+                        
+                        {/* Texte */}
+                        <div className="flex-1">
+                          <p className="text-slate-700 text-sm leading-relaxed break-words">
+                            {motif}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                    
+                    {/* Footer */}
+                    <div className="pt-2 mt-2 border-t border-slate-200">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-slate-500">
+                          {/* Trouver la date du dernier entretien */}
+                          {(() => {
+                            const patientData = patientsWithEntretiens.find(p => p.id === activeTooltip.patientId);
+                            return patientData?.lastEntretien 
+                              ? new Date(patientData.lastEntretien.dateCreation).toLocaleDateString('fr-FR')
+                              : 'Date inconnue';
+                          })()}
+                        </span>
+                        <div className="flex items-center space-x-1">
+                          <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div>
+                          <span className="text-emerald-600 font-medium">Synchronisé</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  /* État vide */
+                  <div className="text-center py-6">
+                    <div className="w-12 h-12 bg-slate-100 border border-slate-200 rounded-xl flex items-center justify-center mx-auto mb-3">
+                      <Info className="h-6 w-6 text-slate-400" />
+                    </div>
+                    <h4 className="text-slate-700 font-medium text-sm mb-1">Pas de motifs mentionnés</h4>
+                    <p className="text-slate-500 text-xs">
+                      Aucun motif n'a été renseigné pour cet entretien.
+                    </p>
+                  </div>
+                )}
+              </div>
+              
+              {/* Flèche pointant vers le bouton */}
+              <div className="absolute top-4 -left-2 w-4 h-4 bg-white border-l border-t border-slate-200 transform rotate-45"></div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -7,7 +7,7 @@ import { formatDate } from '@/lib/utils';
 export async function POST(req: Request) {
   try {
     const data = await req.json();
-    console.log('Données reçues:', data);
+    
     
     // 👈 Calculer le temps total automatiquement
     let tempsTrajetTotal = '';
@@ -52,10 +52,10 @@ export async function POST(req: Request) {
       }
     });
     
-    console.log('Patient créé:', patient);
+    
     return NextResponse.json({ data: patient }, { status: 201 });
   } catch (error) {
-    console.error('Erreur serveur:', error);
+    
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Erreur lors de la création du patient' },
       { status: 500 }

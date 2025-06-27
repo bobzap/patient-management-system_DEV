@@ -1,4 +1,4 @@
-// src/app/page.tsx - Version corrigée pour éviter les boucles infinies
+// src/app/page.tsx - Version corrigée avec navigation Dashboard
 'use client';
 
 import { useState, useCallback, useEffect, useRef } from 'react';
@@ -175,7 +175,7 @@ export default function HomePage() {
   }
 
   return (
-    <div className="flex h-screen bg-transparent">  {/* ✨ Suppression de toute classe de background */}
+    <div className="flex h-screen bg-transparent">
       <Sidebar 
         activeTab={activeTab}
         onTabChange={handleTabChange}
@@ -193,13 +193,16 @@ export default function HomePage() {
                 // Optionnel: rafraîchir la liste après suppression
                 refreshPatients();
               }}
-              onBack={handleBackToPatients} // ✨ Passer la fonction de retour
+              onBack={handleBackToPatients}
             />
           </div>
         ) : (
           <>
             {activeTab === 'dashboard' && (
-              <Dashboard patients={{ data: patients }} />
+              <Dashboard 
+                patients={{ data: patients }} 
+                onNavigate={handleTabChange} // ⭐ AJOUT DE LA NAVIGATION
+              />
             )}
             
             {activeTab === 'patients' && canViewPatients() && (

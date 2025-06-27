@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
       }
     });
     
-    console.log(`Traitement de ${entretiens.length} entretiens pour extraction des dates`);
+    
     
     // Tableau pour stocker les événements du calendrier
     const calendarEvents = [];
@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
             source: 'entretien'
           });
           
-          console.log(`✅ Date d'entretien manager extraite pour patient ${entretien.patientId}`);
+         
         }
         
         // 2. Prochain Entretien
@@ -83,7 +83,7 @@ export async function GET(request: NextRequest) {
             source: 'entretien'
           });
           
-          console.log(`✅ Date de prochain entretien extraite pour patient ${entretien.patientId}`);
+          
         }
         
         // 3. Visite Médicale
@@ -107,25 +107,25 @@ export async function GET(request: NextRequest) {
             source: 'entretien'
           });
           
-          console.log(`✅ Date de visite médicale extraite pour patient ${entretien.patientId}`);
+          
         }
         
         // Vous pouvez ajouter d'autres extractions selon les besoins
         
       } catch (error) {
-        console.error(`Erreur lors du traitement de l'entretien ${entretien.id}:`, error);
+        
         // Continuer avec le prochain entretien
       }
     }
     
-    console.log(`Total d'événements extraits des entretiens: ${calendarEvents.length}`);
+    
     
     return NextResponse.json({
       success: true,
       data: calendarEvents
     });
   } catch (error) {
-    console.error('Erreur lors de l\'extraction des dates:', error);
+    
     return NextResponse.json(
       { success: false, error: 'Erreur serveur' },
       { status: 500 }

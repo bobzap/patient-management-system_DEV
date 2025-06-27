@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
     
-    console.log('Création événement avec données:', data);
+    
     
     // Créer un nouvel événement
     const newEvent = {
@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
   const err = error as Error;
-  console.error('Erreur lors de la création de l\'événement:', err);
+  
   return NextResponse.json({
     success: false,
     error: 'Erreur lors de la création de l\'événement',

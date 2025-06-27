@@ -69,7 +69,7 @@ export async function PUT(
     });
      
   } catch (error) {
-    console.error('API timer - Erreur:', error);
+    
     return NextResponse.json({
       success: false,
       error: 'Erreur lors de la mise à jour du timer'

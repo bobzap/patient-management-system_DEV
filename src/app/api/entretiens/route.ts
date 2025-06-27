@@ -5,7 +5,7 @@ import { prisma } from '../../../lib/prisma';
 export async function POST(req: Request) {
   try {
     const reqData = await req.json();
-    console.log('API entretiens - Données de création reçues:', reqData);
+    
     
     // Validation
     if (!reqData.patientId) {
@@ -61,14 +61,14 @@ export async function POST(req: Request) {
       }
     });
     
-    console.log(`API entretiens - Entretien créé avec ID: ${nouvelEntretien.id}`);
+    
    
     return NextResponse.json({
       success: true,
       data: nouvelEntretien
     }, { status: 201 });
   } catch (error: any) {
-    console.error('API entretiens - Erreur de création:', error);
+    
     return NextResponse.json({
       success: false,
       error: error.message || 'Erreur serveur'
