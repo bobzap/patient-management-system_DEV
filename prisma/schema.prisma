@@ -298,6 +298,7 @@ model Patient {
   anciennete        String
   tempsTrajetAller  String
   tempsTrajetRetour String
+  tempsTrajetTotal  String?
   typeTransport     String
   numeroEntretien   Int?
   nomEntretien      String?

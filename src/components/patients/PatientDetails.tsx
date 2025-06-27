@@ -1,4 +1,4 @@
-// src/components/patients/PatientDetails.tsx
+// src/components/patients/PatientDetails.tsx - Version glassmorphisme moderne
 'use client';
 
 import { useState } from 'react';
@@ -10,6 +10,12 @@ import { toast } from 'sonner';
 import { PatientForm } from './PatientForm';
 import { EntretienList } from '../entretiens/EntretienList';
 import { useEffect } from 'react';
+import { 
+  ArrowLeft, Plus, Edit, Trash2, User, Calendar, Clock, 
+  Activity, Heart, Scale, FileText, MapPin, Car, 
+  Briefcase, Shield, Users, ArrowRight, ExternalLink,
+  TrendingUp, AlertCircle
+} from 'lucide-react';
 
 interface PatientDetailsProps {
   patient: Patient;
@@ -26,7 +32,6 @@ interface BiometricData {
   poidsEntretienNumero?: number;
 }
 
-
 interface Entretien {
   id: number;
   numeroEntretien: number;
@@ -41,8 +46,6 @@ interface SectionTitleProps {
   children?: React.ReactNode;
 }
 
-
-
 export const PatientDetails = ({ patient, onEdit, onDelete }: PatientDetailsProps) => {
   const router = useRouter();
   const { deletePatient, updatePatient } = usePatients();
@@ -53,15 +56,15 @@ export const PatientDetails = ({ patient, onEdit, onDelete }: PatientDetailsProp
   const [refreshEntretiens, setRefreshEntretiens] = useState(0);
   const [isReadOnly, setIsReadOnly] = useState(true);
   const [entretiens, setEntretiens] = useState<Entretien[]>([]);
-  const [isLoading, setIsLoading] = useState(false); // Nouvel état pour le chargement
+  const [isLoading, setIsLoading] = useState(false);
   const [entretiensLoaded, setEntretiensLoaded] = useState(false);
   const [lastBiometricData, setLastBiometricData] = useState<BiometricData>({
-  tension: '',
-  poids: '',
-  entretienNumero: 0,
-  tensionEntretienNumero: 0,
-  poidsEntretienNumero: 0
-});
+    tension: '',
+    poids: '',
+    entretienNumero: 0,
+    tensionEntretienNumero: 0,
+    poidsEntretienNumero: 0
+  });
 
   // Fonction pour traiter les suppressions d'entretiens
   const handleEntretienDelete = () => {
@@ -70,26 +73,22 @@ export const PatientDetails = ({ patient, onEdit, onDelete }: PatientDetailsProp
   };
 
   // Fonction pour chercher des données biométriques dans tous les entretiens
-  // Correction de la fonction findLastBiometricData
-const findLastBiometricData = (entretiensList: Entretien[]): BiometricData => {
-  // Si pas d'entretiens, retourner des valeurs vides
-  if (!entretiensList || entretiensList.length === 0) {
-    return {
-      tension: '',
-      poids: '',
-      entretienNumero: 0,
-      tensionEntretienNumero: 0,
-      poidsEntretienNumero: 0
-    };
-  }
+  const findLastBiometricData = (entretiensList: Entretien[]): BiometricData => {
+    if (!entretiensList || entretiensList.length === 0) {
+      return {
+        tension: '',
+        poids: '',
+        entretienNumero: 0,
+        tensionEntretienNumero: 0,
+        poidsEntretienNumero: 0
+      };
+    }
 
-    // Variables pour stocker les dernières données trouvées
     let latestTension = '';
     let latestPoids = '';
     let tensionEntretienNumero = 0;
     let poidsEntretienNumero = 0;
 
-    // Parcourir tous les entretiens du plus récent au plus ancien
     for (const entretien of entretiensList) {
       try {
         const donneesEntretien = JSON.parse(entretien.donneesEntretien);
@@ -97,19 +96,16 @@ const findLastBiometricData = (entretiensList: Entretien[]): BiometricData => {
         if (donneesEntretien?.examenClinique?.biometrie) {
           const biometrie = donneesEntretien.examenClinique.biometrie;
           
-          // Si tension n'est pas encore trouvée et que cet entretien en a une
           if (!latestTension && biometrie.tension) {
             latestTension = biometrie.tension;
             tensionEntretienNumero = entretien.numeroEntretien;
           }
           
-          // Si poids n'est pas encore trouvé et que cet entretien en a un
           if (!latestPoids && biometrie.poids) {
             latestPoids = biometrie.poids;
             poidsEntretienNumero = entretien.numeroEntretien;
           }
           
-          // Si on a trouvé les deux, on peut arrêter la recherche
           if (latestTension && latestPoids) break;
         }
       } catch (e) {
@@ -117,15 +113,14 @@ const findLastBiometricData = (entretiensList: Entretien[]): BiometricData => {
       }
     }
 
-    // Retourner les données trouvées avec les numéros d'entretiens
     return {
-    tension: latestTension,
-    poids: latestPoids,
-    entretienNumero: 0,
-    tensionEntretienNumero: tensionEntretienNumero || 0,
-    poidsEntretienNumero: poidsEntretienNumero || 0
+      tension: latestTension,
+      poids: latestPoids,
+      entretienNumero: 0,
+      tensionEntretienNumero: tensionEntretienNumero || 0,
+      poidsEntretienNumero: poidsEntretienNumero || 0
+    };
   };
-};
 
   // Effet pour charger les entretiens et extraire les données biométriques
   useEffect(() => {
@@ -141,7 +136,6 @@ const findLastBiometricData = (entretiensList: Entretien[]): BiometricData => {
           console.log('Entretiens chargés:', result.data);
           setEntretiens(result.data);
           
-          // Chercher le dernier entretien avec des données biométriques
           const entretienDetailsPromises = result.data.map(async (entretien: Entretien) => {
             const entretienResponse = await fetch(`/api/entretiens/${entretien.id}`);
             return entretienResponse.json();
@@ -152,7 +146,6 @@ const findLastBiometricData = (entretiensList: Entretien[]): BiometricData => {
             .filter(details => details.success && details.data)
             .map(details => details.data);
           
-          // Chercher les dernières données biométriques parmi tous les entretiens
           const latestBiometricData = findLastBiometricData(validEntretienDetails);
           setLastBiometricData(latestBiometricData);
         }
@@ -164,7 +157,6 @@ const findLastBiometricData = (entretiensList: Entretien[]): BiometricData => {
       }
     };
 
-    // Déclencher la requête à chaque changement de refreshEntretiens
     setEntretiensLoaded(false);
     fetchEntretiens();
   }, [patient?.id, refreshEntretiens]);
@@ -245,440 +237,595 @@ const findLastBiometricData = (entretiensList: Entretien[]): BiometricData => {
     />;
   }
 
-
   const SectionTitle = ({ title, badge = null, children = null }: SectionTitleProps) => (
-  <div className="border-l-4 border-blue-500 pl-3 py-1 mb-4 flex justify-between items-center">
-    <div className="flex items-center gap-2">
-      <h3 className="text-lg font-semibold text-blue-900">{title}</h3>
-      {badge && badge}
+    <div className="flex items-center space-x-3 mb-6">
+      <div className="p-2 bg-blue-500/20 backdrop-blur-sm rounded-xl">
+        <User className="h-5 w-5 text-blue-600" />
+      </div>
+      <div className="flex items-center space-x-2">
+        <h3 className="text-xl font-light text-slate-900">{title}</h3>
+        {badge && badge}
+      </div>
+      {children}
     </div>
-    {children}
-  </div>
-);
+  );
 
-  // src/components/patients/PatientDetails.tsx - Return complet
-return (
-
-
-  <div className="p-6 max-w-7xl mx-auto">
-    {/* En-tête du dossier avec navigation */}
-
-    
-    <div className="bg-white rounded-xl shadow-lg mb-6">
-      <div className="p-6">
-        {/* Barre supérieure avec navigation et actions principales */}
-        <div className="flex justify-between items-center mb-6">
-          <div className="flex items-center gap-2">
-            <div className="h-16 w-16 rounded-full bg-blue-100 flex items-center justify-center">
-              <span className="text-xl font-bold text-blue-900">
-                {`${patient.prenom[0]}${patient.nom[0]}`}
-              </span>
-            </div>
-            <div>
-              <h2 className="text-2xl font-bold text-blue-900">
-                {`${patient.civilites} ${patient.nom} ${patient.prenom}`}
-              </h2>
-              <div className="flex items-center gap-3 mt-1">
-                <span className="text-gray-600">{patient.age} ans</span>
-                <span className="text-gray-300">•</span>
-                <span className="px-2.5 py-1 rounded-full bg-blue-100 text-blue-800 text-sm font-medium">
-                  {patient.departement}
-                </span>
-              </div>
-            </div>
-          </div> 
-
-
-
-
-
-      
-
-
-
-
-
-          
-          {/* Actions regroupées */}
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => {
-                const patientsButton = document.querySelector('.patients-link');
-                if (patientsButton) {
-                  (patientsButton as HTMLElement).click();
-                } else {
-                  window.location.href = '/';
-                }
-              }}
-              className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-            >
-              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16m-7 6h7" />
-              </svg>
-              Retour à la liste
-            </button>
+  return (
+    <div className="min-h-screen p-8">
+      <div className="max-w-7xl mx-auto space-y-8">
+        
+        {/* En-tête ultra-moderne */}
+        <div className="relative">
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 via-indigo-500/10 to-purple-500/10 rounded-3xl blur-2xl"></div>
+          <div className="relative bg-white/25 backdrop-blur-2xl border border-white/40 rounded-3xl p-8 shadow-2xl">
             
-            <button
-              onClick={() => {
-                setSelectedEntretienId(null);
-                setIsReadOnly(false);
-                setShowEntretien(true);
-              }}
-              className="flex items-center gap-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
-              </svg>
-              Nouvel Entretien
-            </button>
-          </div>
-        </div>
-        
-        {/* Infos synthétiques */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-          <div className="bg-gray-50 rounded-lg p-3">
-            <p className="text-xs text-gray-500">Entré le</p>
-            <p className="text-sm font-semibold text-gray-900">{patient.dateEntree}</p>
-          </div>
-          <div className="bg-gray-50 rounded-lg p-3">
-            <p className="text-xs text-gray-500">Ancienneté</p>
-            <p className="text-sm font-semibold text-gray-900">{patient.anciennete}</p>
-          </div>
-          <div className="bg-gray-50 rounded-lg p-3">
-            <p className="text-xs text-gray-500">Dernier entretien</p>
-            <p className="text-sm font-semibold text-gray-900">
-              {entretiens.length > 0 && entretiens[0].dateCreation
-                ? new Date(entretiens[0].dateCreation).toLocaleDateString('fr-FR')
-                : 'Aucun'}
-            </p>
-          </div>
-        </div>
-        
-        {/* Actions secondaires */}
-        <div className="flex gap-3">
-          <button
-            onClick={() => setShowEditForm(true)}
-            className="px-3 py-1.5 text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors flex items-center gap-1 text-sm"
-          >
-            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-            </svg>
-            Modifier
-          </button>
-          
-          <button
-            onClick={handleDelete}
-            className="px-3 py-1.5 text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors flex items-center gap-1 text-sm"
-          >
-            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-            </svg>
-            Supprimer
-          </button>
-        </div>
-      </div>
-    </div>
-
-    {/* Navigation des onglets */}
-    <div className="bg-white rounded-xl shadow-lg p-4 mb-6">
-      <nav className="flex gap-4">
-        <button 
-          onClick={() => setActiveTab('general')}
-          className={`px-4 py-2 font-medium transition-colors duration-200 ${
-            activeTab === 'general' 
-              ? 'text-blue-900 border-b-2 border-blue-900' 
-              : 'text-gray-500 hover:text-blue-900'
-          }`}
-        >
-          Informations générales
-        </button>
-        <button 
-          onClick={() => setActiveTab('historique')}
-          className={`px-4 py-2 font-medium transition-colors duration-200 flex items-center gap-2 ${
-            activeTab === 'historique' 
-              ? 'text-blue-900 border-b-2 border-blue-900' 
-              : 'text-gray-500 hover:text-blue-900'
-          }`}
-        >
-          Historique des entretiens
-          {entretiens.length > 0 && (
-            <span className="px-2 py-0.5 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
-              {entretiens.length}
-            </span>
-          )}
-        </button>
-        <button 
-          onClick={() => setActiveTab('documents')}
-          className={`px-4 py-2 font-medium transition-colors duration-200 ${
-            activeTab === 'documents' 
-              ? 'text-blue-900 border-b-2 border-blue-900' 
-              : 'text-gray-500 hover:text-blue-900'
-          }`}
-        >
-          Documents
-        </button>
-      </nav>
-    </div>
-
-    {/* Contenu selon l'onglet actif */}
-    {activeTab === 'historique' && (
-      <div className="mb-6">
-        <EntretienList
-          patientId={patient.id!}
-          refreshTrigger={refreshEntretiens}
-          onEntretienSelect={handleEntretienSelect}
-          onNewEntretien={() => {
-            setSelectedEntretienId(null);
-            setIsReadOnly(false);
-            setShowEntretien(true);
-          }}
-          onDelete={handleEntretienDelete}
-        />
-      </div>
-    )}
-
-    {/* Contenu principal - uniquement pour l'onglet général */}
-    {activeTab === 'general' && (
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Colonne principale - 2/3 */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Informations personnelles */}
-          <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 border-b border-blue-100">
-              <h3 className="text-lg font-semibold text-blue-900">Informations personnelles</h3>
+            {/* Barre de navigation supérieure */}
+            <div className="flex justify-between items-center mb-8">
+              <button
+                onClick={() => {
+                  const patientsButton = document.querySelector('.patients-link');
+                  if (patientsButton) {
+                    (patientsButton as HTMLElement).click();
+                  } else {
+                    window.location.href = '/';
+                  }
+                }}
+                className="group flex items-center space-x-3 px-6 py-3 bg-white/30 backdrop-blur-xl border border-white/40 rounded-2xl hover:bg-white/40 transition-all duration-300 hover:-translate-y-1 shadow-lg"
+              >
+                <ArrowLeft className="h-5 w-5 text-slate-600 group-hover:text-slate-900 transition-colors" />
+                <span className="text-slate-700 group-hover:text-slate-900 font-medium transition-colors">Retour à la liste</span>
+              </button>
+              
+              <button
+                onClick={() => {
+                  setSelectedEntretienId(null);
+                  setIsReadOnly(false);
+                  setShowEntretien(true);
+                }}
+                className="group flex items-center space-x-3 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-2xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 hover:scale-105"
+              >
+                <Plus className="h-5 w-5" />
+                <span className="font-medium">Nouvel Entretien</span>
+              </button>
             </div>
-            <div className="p-6">
-              <div className="grid grid-cols-2 gap-6">
-                <div>
-                  <p className="text-sm font-medium text-gray-500">État civil</p>
-                  <p className="text-base font-semibold text-gray-900 mt-1">{patient.etatCivil}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Date de naissance</p>
-                  <p className="text-base font-semibold text-gray-900 mt-1">{patient.dateNaissance}</p>
+
+            {/* Informations patient principales */}
+            <div className="flex items-start space-x-6">
+              {/* Avatar moderne */}
+              <div className="relative group">
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/30 to-indigo-600/30 rounded-3xl blur-xl opacity-70 group-hover:opacity-100 transition-opacity"></div>
+                <div className="relative w-20 h-20 bg-white/40 backdrop-blur-xl border border-white/50 rounded-3xl flex items-center justify-center shadow-xl">
+                  <span className="text-2xl font-light text-slate-800">
+                    {`${patient.prenom[0]}${patient.nom[0]}`}
+                  </span>
                 </div>
               </div>
-            </div>
-          </div>
 
-          {/* Informations professionnelles */}
-          <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 border-b border-blue-100">
-              <h3 className="text-lg font-semibold text-blue-900">Informations professionnelles</h3>
-            </div>
-            <div className="p-6">
-              <div className="grid grid-cols-2 gap-6">
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Poste</p>
-                  <p className="text-base font-semibold text-gray-900 mt-1">{patient.poste}</p>
-                </div>
+              {/* Informations principales */}
+              <div className="flex-1">
+                <h1 className="text-3xl font-light text-slate-900 tracking-tight mb-2">
+                  {`${patient.civilites} ${patient.nom} ${patient.prenom}`}
+                </h1>
                 
-                {/* Afficher le numéro de ligne seulement si le poste est Opérateur SB et que le numéro existe */}
-                {patient.poste === 'Opérateur SB' && (
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">N° de ligne</p>
-                    <p className="text-base font-semibold text-gray-900 mt-1">
-                      {patient.numeroLigne ? patient.numeroLigne : "Non spécifié"}
+                <div className="flex items-center space-x-6 mb-6">
+                  <div className="flex items-center space-x-2">
+                    <Calendar className="h-4 w-4 text-slate-500" />
+                    <span className="text-slate-600">{patient.age} ans</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Briefcase className="h-4 w-4 text-slate-500" />
+                    <span className="px-3 py-1 bg-blue-500/20 backdrop-blur-sm text-blue-700 rounded-xl text-sm font-medium border border-blue-200/50">
+                      {patient.departement}
+                    </span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <MapPin className="h-4 w-4 text-slate-500" />
+                    <span className="text-slate-600">{patient.poste}</span>
+                  </div>
+                </div>
+
+                {/* Métriques rapides */}
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="bg-white/40 backdrop-blur-sm border border-white/30 rounded-2xl p-4">
+                    <p className="text-xs text-slate-500 mb-1">Entré le</p>
+                    <p className="text-sm font-medium text-slate-900">{patient.dateEntree}</p>
+                  </div>
+                  <div className="bg-white/40 backdrop-blur-sm border border-white/30 rounded-2xl p-4">
+                    <p className="text-xs text-slate-500 mb-1">Ancienneté</p>
+                    <p className="text-sm font-medium text-slate-900">{patient.anciennete}</p>
+                  </div>
+                  <div className="bg-white/40 backdrop-blur-sm border border-white/30 rounded-2xl p-4">
+                    <p className="text-xs text-slate-500 mb-1">Dernier entretien</p>
+                    <p className="text-sm font-medium text-slate-900">
+                      {entretiens.length > 0 && entretiens[0].dateCreation
+                        ? new Date(entretiens[0].dateCreation).toLocaleDateString('fr-FR')
+                        : 'Aucun'}
                     </p>
                   </div>
-                )}
+                </div>
+              </div>
+
+              {/* Actions rapides */}
+              <div className="flex flex-col space-y-3">
+                <button
+                  onClick={() => setShowEditForm(true)}
+                  className="group p-3 bg-white/30 backdrop-blur-xl border border-white/40 rounded-xl hover:bg-white/40 transition-all duration-300 hover:-translate-y-1 shadow-lg"
+                  title="Modifier le dossier"
+                >
+                  <Edit className="h-5 w-5 text-slate-600 group-hover:text-blue-600 transition-colors" />
+                </button>
                 
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Manager</p>
-                  <p className="text-base font-semibold text-gray-900 mt-1">{patient.manager}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Zone</p>
-                  <p className="text-base font-semibold text-gray-900 mt-1">{patient.zone}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Contrat</p>
-                  <p className="text-base font-semibold text-gray-900 mt-1">{patient.contrat}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Horaire</p>
-                  <p className="text-base font-semibold text-gray-900 mt-1">{patient.horaire}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Taux d'activité</p>
-                  <p className="text-base font-semibold text-gray-900 mt-1">{patient.tauxActivite}%</p>
-                </div>
+                <button
+                  onClick={handleDelete}
+                  className="group p-3 bg-white/30 backdrop-blur-xl border border-white/40 rounded-xl hover:bg-white/40 transition-all duration-300 hover:-translate-y-1 shadow-lg"
+                  title="Supprimer le dossier"
+                >
+                  <Trash2 className="h-5 w-5 text-slate-600 group-hover:text-red-600 transition-colors" />
+                </button>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Colonne latérale - 1/3 */}
-        <div className="lg:col-span-1 space-y-6">
-          {/* Dernier entretien */}
-          <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 border-b border-blue-100">
-              <div className="flex justify-between items-center">
-                <div className="flex items-center gap-2">
-                  <h3 className="text-lg font-semibold text-blue-900">Dernier entretien</h3>
-                  {entretiens?.length > 0 && entretiens[0]?.numeroEntretien && (
-                    <span className="px-2 py-0.5 bg-blue-100 text-blue-800 rounded-md text-sm font-medium">
-                      N°{entretiens[0].numeroEntretien}
+        {/* Navigation par onglets moderne */}
+        <div className="relative">
+          <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 rounded-2xl blur-xl"></div>
+          <div className="relative bg-white/30 backdrop-blur-2xl border border-white/40 rounded-2xl p-2 shadow-xl">
+            <nav className="flex space-x-2">
+              {[
+                { key: 'general', label: 'Informations générales', icon: User },
+                { key: 'historique', label: 'Historique des entretiens', icon: Activity, badge: entretiens.length },
+                { key: 'documents', label: 'Documents', icon: FileText }
+              ].map(({ key, label, icon: Icon, badge }) => (
+                <button
+                  key={key}
+                  onClick={() => setActiveTab(key as any)}
+                  className={`relative flex items-center space-x-3 px-6 py-3 rounded-xl font-medium transition-all duration-300 ${
+                    activeTab === key
+                      ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/25 scale-105'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-white/40'
+                  }`}
+                >
+                  <Icon className="h-5 w-5" />
+                  <span>{label}</span>
+                  {badge && badge > 0 && (
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                      activeTab === key
+                        ? 'bg-white/30 text-white'
+                        : 'bg-blue-100 text-blue-800'
+                    }`}>
+                      {badge}
                     </span>
                   )}
+                </button>
+              ))}
+            </nav>
+          </div>
+        </div>
+
+        {/* Contenu selon l'onglet actif */}
+        {activeTab === 'historique' && (
+          <div className="relative">
+            <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-teal-600/10 rounded-3xl blur-xl"></div>
+            <div className="relative bg-white/30 backdrop-blur-2xl border border-white/40 rounded-3xl p-8 shadow-xl">
+              <EntretienList
+                patientId={patient.id!}
+                refreshTrigger={refreshEntretiens}
+                onEntretienSelect={handleEntretienSelect}
+                onNewEntretien={() => {
+                  setSelectedEntretienId(null);
+                  setIsReadOnly(false);
+                  setShowEntretien(true);
+                }}
+                onDelete={handleEntretienDelete}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Contenu principal - onglet général */}
+        {activeTab === 'general' && (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Colonne principale */}
+            <div className="lg:col-span-2 space-y-8">
+              
+              {/* Informations personnelles */}
+              <div className="relative group">
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-indigo-600/10 rounded-3xl blur-xl opacity-70 group-hover:opacity-100 transition-opacity"></div>
+                <div className="relative bg-white/30 backdrop-blur-2xl border border-white/40 rounded-3xl overflow-hidden shadow-xl">
+                  <div className="bg-gradient-to-r from-blue-500/20 to-indigo-600/20 backdrop-blur-sm p-6 border-b border-white/20">
+                    <div className="flex items-center space-x-3">
+                      <div className="p-2 bg-blue-500/20 backdrop-blur-sm rounded-xl">
+                        <User className="h-5 w-5 text-blue-600" />
+                      </div>
+                      <h3 className="text-xl font-light text-slate-900">Informations personnelles</h3>
+                    </div>
+                  </div>
+                  <div className="p-8">
+                    <div className="grid grid-cols-2 gap-8">
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium text-slate-500">État civil</p>
+                        <p className="text-lg font-light text-slate-900">{patient.etatCivil}</p>
+                      </div>
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium text-slate-500">Date de naissance</p>
+                        <p className="text-lg font-light text-slate-900">{patient.dateNaissance}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Informations professionnelles */}
+              <div className="relative group">
+                <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-teal-600/10 rounded-3xl blur-xl opacity-70 group-hover:opacity-100 transition-opacity"></div>
+                <div className="relative bg-white/30 backdrop-blur-2xl border border-white/40 rounded-3xl overflow-hidden shadow-xl">
+                  <div className="bg-gradient-to-r from-emerald-500/20 to-teal-600/20 backdrop-blur-sm p-6 border-b border-white/20">
+                    <div className="flex items-center space-x-3">
+                      <div className="p-2 bg-emerald-500/20 backdrop-blur-sm rounded-xl">
+                        <Briefcase className="h-5 w-5 text-emerald-600" />
+                      </div>
+                      <h3 className="text-xl font-light text-slate-900">Informations professionnelles</h3>
+                    </div>
+                  </div>
+                  <div className="p-8">
+                    <div className="grid grid-cols-2 gap-8">
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium text-slate-500">Poste</p>
+                        <p className="text-lg font-light text-slate-900">{patient.poste}</p>
+                      </div>
+                      
+                      {patient.poste === 'Opérateur SB' && (
+                        <div className="space-y-2">
+                          <p className="text-sm font-medium text-slate-500">N° de ligne</p>
+                          <p className="text-lg font-light text-slate-900">
+                            {patient.numeroLigne ? patient.numeroLigne : "Non spécifié"}
+                          </p>
+                        </div>
+                      )}
+                      
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium text-slate-500">Manager</p>
+                        <p className="text-lg font-light text-slate-900">{patient.manager}</p>
+                      </div>
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium text-slate-500">Zone</p>
+                        <p className="text-lg font-light text-slate-900">{patient.zone}</p>
+                      </div>
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium text-slate-500">Contrat</p>
+                        <p className="text-lg font-light text-slate-900">{patient.contrat}</p>
+                      </div>
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium text-slate-500">Horaire</p>
+                        <p className="text-lg font-light text-slate-900">{patient.horaire}</p>
+                      </div>
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium text-slate-500">Taux d'activité</p>
+                        <p className="text-lg font-light text-slate-900">{patient.tauxActivite}%</p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-            
-            <div className="p-4">
-              {isLoading ? (
-                <div className="py-6 flex justify-center">
-                  <div className="animate-spin rounded-full h-8 w-8 border-2 border-blue-500 border-t-transparent"></div>
-                </div>
-              ) : (
-                <div className="divide-y divide-gray-100">
-                  {/* Date et statut sur la même ligne */}
-                  <div className="py-3 grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-sm font-medium text-gray-500">Date</p>
-                      <p className="text-base font-semibold text-gray-900">
-                        {entretiens?.length > 0 && entretiens[0]?.dateCreation
-                          ? new Date(entretiens[0].dateCreation).toLocaleDateString('fr-FR')
-                          : 'Aucun entretien'}
-                      </p>
-                    </div>
-                    
-                    {entretiens?.length > 0 && entretiens[0]?.status && (
-                      <div>
-                        <p className="text-sm font-medium text-gray-500">Statut</p>
-                        <div>
-                          <span className={`inline-flex px-2.5 py-1 rounded-full text-sm font-medium ${
-                            entretiens[0].status === 'finalise' ? 'bg-green-100 text-green-800' : 
-                            entretiens[0].status === 'archive' ? 'bg-gray-100 text-gray-800' : 
-                            'bg-yellow-100 text-yellow-800'
-                          }`}>
-                            {entretiens[0].status === 'finalise' ? 'Finalisé' : 
-                             entretiens[0].status === 'archive' ? 'Archivé' : 'Brouillon'}
-                          </span>
+
+            {/* Colonne latérale */}
+            <div className="lg:col-span-1 space-y-8">
+              
+              {/* Dernier entretien */}
+              <div className="relative group">
+                <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-indigo-600/10 rounded-3xl blur-xl opacity-70 group-hover:opacity-100 transition-opacity"></div>
+                <div className="relative bg-white/30 backdrop-blur-2xl border border-white/40 rounded-3xl overflow-hidden shadow-xl">
+                  <div className="bg-gradient-to-r from-purple-500/20 to-indigo-600/20 backdrop-blur-sm p-6 border-b border-white/20">
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center space-x-3">
+                        <div className="p-2 bg-purple-500/20 backdrop-blur-sm rounded-xl">
+                          <Activity className="h-5 w-5 text-purple-600" />
                         </div>
+                        <h3 className="text-xl font-light text-slate-900">Dernier entretien</h3>
+                        {entretiens?.length > 0 && entretiens[0]?.numeroEntretien && (
+                          <span className="px-3 py-1 bg-purple-500/20 backdrop-blur-sm text-purple-700 rounded-xl text-sm font-medium border border-purple-200/50">
+                            N°{entretiens[0].numeroEntretien}
+                          </span>
+                        )}
                       </div>
-                    )}
+                    </div>
                   </div>
                   
-                  {/* Constantes médicales avec icônes */}
-                  {(lastBiometricData.tension || lastBiometricData.poids) && (
-  <div className="py-3">
-    <p title="Constantes médicales" className="text-sm font-medium text-gray-500 mb-2">Constantes médicales</p>
-    
-    <div className="grid grid-cols-2 gap-4">
-                        {lastBiometricData.tension && (
-                          <div className="flex items-start gap-2">
-                            <div className="mt-0.5 flex-shrink-0 w-6 h-6 bg-red-100 rounded-full flex items-center justify-center">
-                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                              </svg>
+                  <div className="p-6">
+                    {isLoading ? (
+                      <div className="py-8 flex justify-center">
+                        <div className="animate-spin rounded-full h-8 w-8 border-2 border-purple-500 border-t-transparent"></div>
+                      </div>
+                    ) : (
+                      <div className="space-y-6">
+                        {/* Date et statut */}
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <p className="text-sm font-medium text-slate-500">Date</p>
+                            <p className="text-base font-medium text-slate-900">
+                              {entretiens?.length > 0 && entretiens[0]?.dateCreation
+                                ? new Date(entretiens[0].dateCreation).toLocaleDateString('fr-FR')
+                                : 'Aucun entretien'}
+                            </p>
+                          </div>
+                          
+                          {entretiens?.length > 0 && entretiens[0]?.status && (
+                            <div className="space-y-2">
+                              <p className="text-sm font-medium text-slate-500">Statut</p>
+                              <span className={`inline-flex px-3 py-1 rounded-xl text-sm font-medium backdrop-blur-sm border ${
+                                entretiens[0].status === 'finalise' 
+                                  ? 'bg-emerald-500/20 text-emerald-700 border-emerald-200/50' : 
+                                entretiens[0].status === 'archive' 
+                                  ? 'bg-slate-500/20 text-slate-700 border-slate-200/50' : 
+                                  'bg-amber-500/20 text-amber-700 border-amber-200/50'
+                              }`}>
+                                {entretiens[0].status === 'finalise' ? 'Finalisé' : 
+                                 entretiens[0].status === 'archive' ? 'Archivé' : 'Brouillon'}
+                              </span>
                             </div>
-                            <div className="flex-1">
-                              <p className="text-sm font-medium text-gray-700">Tension</p>
-                              <div className="flex items-baseline">
-                                <p className="text-base font-semibold text-gray-900">
-                                  {lastBiometricData.tension} <span className="text-sm font-normal">mmHg</span>
-                                </p>
-                                {lastBiometricData.tensionEntretienNumero && lastBiometricData.tensionEntretienNumero > 0 && (
-  <span className="ml-2 text-xs text-gray-500">
-    (n°{lastBiometricData.tensionEntretienNumero})
-  </span>
-)}
-                              </div>
+                          )}
+                        </div>
+                        
+                        {/* Constantes médicales */}
+                        {(lastBiometricData.tension || lastBiometricData.poids) && (
+                          <div className="space-y-4">
+                            <p className="text-sm font-medium text-slate-500">Constantes médicales</p>
+                            
+                            <div className="grid grid-cols-2 gap-4">
+                              {lastBiometricData.tension && (
+                                <div className="bg-white/40 backdrop-blur-sm border border-white/30 rounded-2xl p-4">
+                                  <div className="flex items-start space-x-3">
+                                    <div className="p-2 bg-red-500/20 backdrop-blur-sm rounded-xl">
+                                      <Heart className="h-4 w-4 text-red-600" />
+                                    </div>
+                                    <div className="flex-1">
+                                      <p className="text-sm font-medium text-slate-700">Tension</p>
+                                      <div className="flex items-baseline space-x-2">
+                                        <p className="text-base font-medium text-slate-900">
+                                          {lastBiometricData.tension}
+                                        </p>
+                                        <span className="text-xs text-slate-500">mmHg</span>
+                                      </div>
+                                      {lastBiometricData.tensionEntretienNumero && lastBiometricData.tensionEntretienNumero > 0 && (
+                                        <span className="text-xs text-slate-400">
+                                          (n°{lastBiometricData.tensionEntretienNumero})
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+                              
+                              {lastBiometricData.poids && (
+                                <div className="bg-white/40 backdrop-blur-sm border border-white/30 rounded-2xl p-4">
+                                  <div className="flex items-start space-x-3">
+                                    <div className="p-2 bg-blue-500/20 backdrop-blur-sm rounded-xl">
+                                      <Scale className="h-4 w-4 text-blue-600" />
+                                    </div>
+                                    <div className="flex-1">
+                                      <p className="text-sm font-medium text-slate-700">Poids</p>
+                                      <div className="flex items-baseline space-x-2">
+                                        <p className="text-base font-medium text-slate-900">
+                                          {lastBiometricData.poids}
+                                        </p>
+                                        <span className="text-xs text-slate-500">kg</span>
+                                      </div>
+                                      {lastBiometricData.poidsEntretienNumero && lastBiometricData.poidsEntretienNumero > 0 && (
+                                        <span className="text-xs text-slate-400">
+                                          (n°{lastBiometricData.poidsEntretienNumero})
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           </div>
                         )}
                         
-                        {lastBiometricData.poids && (
-                          <div className="flex items-start gap-2">
-                            <div className="mt-0.5 flex-shrink-0 w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
-                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
-                              </svg>
-                            </div>
-                            <div className="flex-1">
-                              <p className="text-sm font-medium text-gray-700">Poids</p>
-                              <div className="flex items-baseline">
-                                <p className="text-base font-semibold text-gray-900">
-                                  {lastBiometricData.poids} <span className="text-sm font-normal">kg</span>
-                                </p>
-                                {lastBiometricData.poidsEntretienNumero && lastBiometricData.poidsEntretienNumero > 0 && (
-  <span className="ml-2 text-xs text-gray-500">
-    (n°{lastBiometricData.poidsEntretienNumero})
-  </span>
-)}
-                              </div>
-                            </div>
+                        {/* Type d'entretien */}
+                        {patient.typeEntretien && (
+                          <div className="space-y-2">
+                            <p className="text-sm font-medium text-slate-500">Type</p>
+                            <p className="text-base font-medium text-slate-900">{patient.typeEntretien}</p>
                           </div>
                         )}
                       </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
                   
-                  {/* Type d'entretien */}
-                  {patient.typeEntretien && (
-                    <div className="py-3">
-                      <p className="text-sm font-medium text-gray-500">Type</p>
-                      <p className="text-base font-semibold text-gray-900 mt-1">
-                        {patient.typeEntretien}
-                      </p>
+                  {/* Bouton pour voir tous les entretiens */}
+                  {entretiens.length > 0 && (
+                    <div className="border-t border-white/20 p-4">
+                      <button 
+                        onClick={() => setActiveTab('historique')}
+                        className="group w-full flex items-center justify-center space-x-2 py-3 text-sm font-medium text-purple-600 hover:text-purple-800 bg-white/20 backdrop-blur-sm border border-white/30 rounded-xl hover:bg-white/30 transition-all duration-300"
+                      >
+                        <span>Voir tous les entretiens</span>
+                        <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                      </button>
                     </div>
                   )}
                 </div>
-              )}
-            </div>
-            
-            {/* Bouton pour voir tous les entretiens */}
-            {entretiens.length > 0 && (
-              <div className="border-t border-gray-100 py-3 px-4">
-                <button 
-                  onClick={() => setActiveTab('historique')}
-                  className="w-full text-center text-sm font-medium text-blue-600 hover:text-blue-800 flex items-center justify-center gap-1"
-                >
-                  Voir tous les entretiens
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-                  </svg>
-                </button>
               </div>
-            )}
-          </div>
 
-          {/* Transport */}
-          <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 border-b border-blue-100">
-              <h3 className="text-lg font-semibold text-blue-900">Transport</h3>
-            </div>
-            <div className="p-6">
-              <div className="space-y-4">
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Type de transport</p>
-                  <p className="text-base font-semibold text-gray-900 mt-1">{patient.typeTransport}</p>
+              {/* Transport */}
+              <div className="relative group">
+                <div className="absolute inset-0 bg-gradient-to-br from-amber-500/10 to-orange-600/10 rounded-3xl blur-xl opacity-70 group-hover:opacity-100 transition-opacity"></div>
+                <div className="relative bg-white/30 backdrop-blur-2xl border border-white/40 rounded-3xl overflow-hidden shadow-xl">
+                  <div className="bg-gradient-to-r from-amber-500/20 to-orange-600/20 backdrop-blur-sm p-6 border-b border-white/20">
+                    <div className="flex items-center space-x-3">
+                      <div className="p-2 bg-amber-500/20 backdrop-blur-sm rounded-xl">
+                        <Car className="h-5 w-5 text-amber-600" />
+                      </div>
+                      <h3 className="text-xl font-light text-slate-900">Transport</h3>
+                    </div>
+                  </div>
+                  <div className="p-6">
+                    <div className="space-y-6">
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium text-slate-500">Type de transport</p>
+                        <p className="text-lg font-light text-slate-900">{patient.typeTransport}</p>
+                      </div>
+                      <div className="space-y-3">
+                        <p className="text-sm font-medium text-slate-500">Temps de trajet</p>
+                        <div className="grid grid-cols-3 gap-4">
+                          <div className="bg-white/40 backdrop-blur-sm border border-white/30 rounded-xl p-3">
+                            <div className="flex items-center space-x-2">
+                              <Clock className="h-4 w-4 text-slate-500" />
+                              <div>
+                                <p className="text-xs text-slate-500">Aller</p>
+                                <p className="text-sm font-medium text-slate-900">{patient.tempsTrajetAller} min</p>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="bg-white/40 backdrop-blur-sm border border-white/30 rounded-xl p-3">
+                            <div className="flex items-center space-x-2">
+                              <Clock className="h-4 w-4 text-slate-500" />
+                              <div>
+                                <p className="text-xs text-slate-500">Retour</p>
+                                <p className="text-sm font-medium text-slate-900">{patient.tempsTrajetRetour} min</p>
+                              </div>
+                            </div>
+                          </div>
+                          {patient.tempsTrajetTotal && (
+                            <div className="bg-blue-500/20 backdrop-blur-sm border border-blue-200/50 rounded-xl p-3">
+                              <div className="flex items-center space-x-2">
+                                <Clock className="h-4 w-4 text-blue-600" />
+                                <div>
+                                  <p className="text-xs text-blue-600">Total</p>
+                                  <p className="text-sm font-semibold text-blue-900">
+                                    {patient.tempsTrajetTotal} min
+                                  </p>
+                                  <p className="text-xs text-blue-700">
+                                    ({Math.floor(parseInt(patient.tempsTrajetTotal) / 60)}h{parseInt(patient.tempsTrajetTotal) % 60 > 0 ? ` ${parseInt(patient.tempsTrajetTotal) % 60}min` : ''})
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Temps de trajet</p>
-                  <p className="text-base font-semibold text-gray-900 mt-1">
-                    Aller : {patient.tempsTrajetAller} min / Retour : {patient.tempsTrajetRetour} min
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {/* Onglet documents */}
+        {activeTab === 'documents' && (
+          <div className="relative">
+            <div className="absolute inset-0 bg-gradient-to-br from-slate-500/10 to-gray-600/10 rounded-3xl blur-xl"></div>
+            <div className="relative bg-white/30 backdrop-blur-2xl border border-white/40 rounded-3xl overflow-hidden shadow-xl">
+              <div className="bg-gradient-to-r from-slate-500/20 to-gray-600/20 backdrop-blur-sm p-6 border-b border-white/20">
+                <div className="flex items-center space-x-3">
+                  <div className="p-2 bg-slate-500/20 backdrop-blur-sm rounded-xl">
+                    <FileText className="h-5 w-5 text-slate-600" />
+                  </div>
+                  <h3 className="text-xl font-light text-slate-900">Documents</h3>
+                </div>
+              </div>
+              <div className="p-8">
+                <div className="flex flex-col items-center justify-center py-16 text-center">
+                  <div className="p-4 bg-slate-100/50 backdrop-blur-sm rounded-2xl mb-4">
+                    <FileText className="h-12 w-12 text-slate-400 mx-auto" />
+                  </div>
+                  <p className="text-slate-500 font-medium">Aucun document disponible</p>
+                  <p className="text-sm text-slate-400 mt-2">Les documents seront affichés ici une fois ajoutés</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Footer ultra-moderne */}
+        <div className="flex justify-center">
+          <div className="relative group">
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 via-indigo-500/10 to-purple-500/20 rounded-3xl blur-xl opacity-60 group-hover:opacity-80 transition-opacity duration-500"></div>
+            
+            <div className="relative bg-white/20 backdrop-blur-2xl border border-white/30 rounded-3xl p-6 shadow-2xl hover:shadow-3xl transition-all duration-500 hover:-translate-y-1">
+              <div className="flex flex-col lg:flex-row items-center justify-between space-y-4 lg:space-y-0 lg:space-x-8">
+                
+                {/* Section synchronisation */}
+                <div className="flex items-center space-x-3">
+                  <div className="relative">
+                    <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse shadow-lg shadow-green-400/50"></div>
+                    <div className="absolute inset-0 w-3 h-3 bg-green-400 rounded-full animate-ping"></div>
+                  </div>
+                  <div className="text-center lg:text-left">
+                    <p className="text-sm font-medium text-slate-700">Dernière synchronisation</p>
+                    <p className="text-xs text-slate-600">
+                      {new Date().toLocaleDateString('fr-FR', { 
+                        day: '2-digit', 
+                        month: 'short', 
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Séparateur */}
+                <div className="hidden lg:block h-8 w-px bg-gradient-to-b from-transparent via-white/30 to-transparent"></div>
+
+                {/* Section sécurité */}
+                <div className="flex items-center space-x-4">
+                  <a 
+                    href="https://www.ssllabs.com/ssltest/analyze.html?d=app.vital-sync.ch" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="group flex items-center space-x-2 px-4 py-2 bg-white/20 backdrop-blur-sm border border-white/30 rounded-2xl hover:bg-white/30 hover:border-green-500/40 transition-all duration-300 hover:scale-105"
+                  >
+                    <div className="relative">
+                      <Shield className="h-4 w-4 text-green-600 group-hover:text-green-500 transition-colors" />
+                      <div className="absolute inset-0 bg-green-400/20 rounded-full blur-sm group-hover:bg-green-400/40 transition-all duration-300"></div>
+                    </div>
+                    <span className="text-xs font-medium text-slate-700 group-hover:text-slate-800 transition-colors">
+                      Audit SSL/TLS
+                    </span>
+                    <ExternalLink className="h-3 w-3 text-slate-500 group-hover:text-slate-600 transition-colors" />
+                  </a>
+                </div>
+
+                {/* Séparateur */}
+                <div className="hidden lg:block h-8 w-px bg-gradient-to-b from-transparent via-white/30 to-transparent"></div>
+
+                {/* Section développeur */}
+                <div className="text-center lg:text-right space-y-1">
+                  <div className="flex items-center justify-center lg:justify-end space-x-2">
+                    <p className="text-sm font-semibold text-slate-800">
+                      Développé par{' '}
+                      <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent font-bold">
+                        Amarres®
+                      </span>
+                    </p>
+                    <div className="flex items-center">
+                      <img 
+                        src="/logo-amarre.png" 
+                        alt="Logo Amarre" 
+                        className="w-9 h-9 object-contain transition-transform duration-300 hover:scale-150"
+                      />
+                    </div>
+                  </div>
+                  <p className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent font-lite">
+                    Software Development
                   </p>
                 </div>
               </div>
+
+              {/* Ligne décorative */}
+              <div className="mt-4 pt-4 border-t border-white/20">
+                <div className="h-px bg-gradient-to-r from-transparent via-blue-500/30 to-transparent"></div>
+              </div>
             </div>
           </div>
         </div>
       </div>
-    )}
-    
-    {/* Onglet documents */}
-    {activeTab === 'documents' && (
-      <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 border-b border-blue-100">
-          <h3 className="text-lg font-semibold text-blue-900">Documents</h3>
-        </div>
-        <div className="p-6">
-          <p className="text-gray-500 text-center py-10">Aucun document disponible</p>
-        </div>
-      </div>
-    )}
-  </div>
-);
+    </div>
+  );
 };

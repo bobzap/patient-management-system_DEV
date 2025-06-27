@@ -1,357 +1,379 @@
-/* src/styles/entretien.css - Version nettoyée et corrigée */
+/* src/styles/entretien.css - Version couleurs adoucies et corrections */
 
-/* ===== VARIABLES CSS COULEURS COHÉRENTES ===== */
+/* ===== VARIABLES CSS COULEURS TRÈS DOUCES ===== */
 :root {
-  /* Couleurs Santé au Travail - VERT */
-  --sante-50: #f0fdf4;
-  --sante-100: #dcfce7;
-  --sante-200: #bbf7d0;
-  --sante-300: #86efac;
-  --sante-400: #4ade80;
-  --sante-500: #22c55e;
-  --sante-600: #16a34a;
-  --sante-700: #15803d;
-  --sante-800: #166534;
-  --sante-900: #14532d;
+  /* Couleurs Santé au Travail - JAUNE TRÈS DOUX */
+  --sante-50: #fefdf9;
+  --sante-100: #fefbf0;
+  --sante-200: #fef6d3;
+  --sante-300: #fdecaa;
+  --sante-400: #fbd970;
+  --sante-500: #f7c947;
+  --sante-600: #e8b71a;
+  --sante-700: #c29712;
+  --sante-800: #9c7914;
+  --sante-900: #7d6314;
 
-  /* Couleurs Examen Clinique - BLEU */
-  --examen-50: #eff6ff;
-  --examen-100: #dbeafe;
-  --examen-200: #bfdbfe;
-  --examen-300: #93c5fd;
-  --examen-400: #60a5fa;
-  --examen-500: #3b82f6;
-  --examen-600: #2563eb;
-  --examen-700: #1d4ed8;
-  --examen-800: #1e40af;
-  --examen-900: #1e3a8a;
+  /* Couleurs Examen Clinique - VIOLET TRÈS DOUX */
+  --examen-50: #fbfaff;
+  --examen-100: #f6f3ff;
+  --examen-200: #ede8ff;
+  --examen-300: #ddd4ff;
+  --examen-400: #c5b3ff;
+  --examen-500: #aa8ff0;
+  --examen-600: #9371e3;
+  --examen-700: #7f5bc8;
+  --examen-800: #6b4ca3;
+  --examen-900: #5a4085;
 
-  /* Couleurs IMAA - ORANGE */
-  --imaa-50: #fff7ed;
-  --imaa-100: #ffedd5;
-  --imaa-200: #fed7aa;
-  --imaa-300: #fdba74;
-  --imaa-400: #fb923c;
-  --imaa-500: #f97316;
-  --imaa-600: #ea580c;
-  --imaa-700: #c2410c;
-  --imaa-800: #9a3412;
-  --imaa-900: #7c2d12;
+  /* Couleurs IMAA - ORANGE TRÈS DOUX */
+  --imaa-50: #fefbf8;
+  --imaa-100: #fef4eb;
+  --imaa-200: #fde4c7;
+  --imaa-300: #fccf9a;
+  --imaa-400: #f9ab5b;
+  --imaa-500: #f68b2f;
+  --imaa-600: #e7721f;
+  --imaa-700: #c05a1a;
+  --imaa-800: #98471c;
+  --imaa-900: #7a3b19;
 
-  /* Couleurs Conclusion - ROSE */
-  --conclusion-50: #fdf2f8;
-  --conclusion-100: #fce7f3;
-  --conclusion-200: #fbcfe8;
-  --conclusion-300: #f9a8d4;
-  --conclusion-400: #f472b6;
-  --conclusion-500: #ec4899;
-  --conclusion-600: #db2777;
-  --conclusion-700: #be185d;
-  --conclusion-800: #9d174d;
-  --conclusion-900: #831843;
+  /* Couleurs Conclusion - ROSE TRÈS DOUX */
+  --conclusion-50: #fef9fb;
+  --conclusion-100: #fdf2f6;
+  --conclusion-200: #fce7ee;
+  --conclusion-300: #f9d0dd;
+  --conclusion-400: #f3a8c1;
+  --conclusion-500: #ea7ba1;
+  --conclusion-600: #dd5684;
+  --conclusion-700: #c4406a;
+  --conclusion-800: #a33857;
+  --conclusion-900: #89324b;
 
-  /* Couleurs générales */
-  --medical-50: #f0f9ff;
-  --medical-500: #0ea5e9;
-  --medical-600: #0284c7;
+  /* Couleurs générales harmonieuses */
+  --medical-50: #f8fafc;
+  --medical-100: #f1f5f9;
+  --medical-200: #e2e8f0;
+  --medical-300: #cbd5e1;
+  --medical-400: #94a3b8;
+  --medical-500: #64748b;
+  --medical-600: #475569;
+  --medical-700: #334155;
+  --medical-800: #1e293b;
+  --medical-900: #0f172a;
 }
 
-/* ===== CLASSES GLASSMORPHIQUES DE BASE ===== */
+/* ===== SIDEBAR TRANSPARENTE (NOUVEAU) ===== */
+.sidebar-glass {
+  background: linear-gradient(135deg, 
+    rgba(255, 255, 255, 0.75) 0%, 
+    rgba(248, 250, 252, 0.65) 100%
+  ) !important;
+  backdrop-filter: blur(25px) !important;
+  -webkit-backdrop-filter: blur(25px) !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.3) !important;
+  box-shadow: 
+    4px 0 32px 0 rgba(31, 38, 135, 0.06),
+    2px 0 16px 0 rgba(31, 38, 135, 0.04) !important;
+}
+
+/* ===== CLASSES GLASSMORPHIQUES HARMONIEUSES ===== */
 .glass-card {
-  background: rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.9);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.6);
   box-shadow: 
-    0 8px 32px 0 rgba(31, 38, 135, 0.15),
-    0 4px 16px 0 rgba(31, 38, 135, 0.1),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.4);
+    0 8px 32px 0 rgba(31, 38, 135, 0.06),
+    0 4px 16px 0 rgba(31, 38, 135, 0.04),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.8);
 }
 
 .btn-glass {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.8);
   backdrop-filter: blur(15px);
   -webkit-backdrop-filter: blur(15px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.5);
   border-radius: 12px;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 
-    0 4px 16px 0 rgba(31, 38, 135, 0.1),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.3);
+    0 4px 16px 0 rgba(31, 38, 135, 0.04),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.6);
 }
 
 .btn-glass:hover {
-  background: rgba(255, 255, 255, 0.3);
-  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.95);
+  transform: translateY(-1px);
   box-shadow: 
-    0 8px 25px 0 rgba(31, 38, 135, 0.2),
-    0 4px 16px 0 rgba(31, 38, 135, 0.1),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.4);
+    0 8px 25px 0 rgba(31, 38, 135, 0.08),
+    0 4px 16px 0 rgba(31, 38, 135, 0.06),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.7);
 }
 
-.input-glass {
-  background: rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(15px);
-  -webkit-backdrop-filter: blur(15px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  transition: all 0.3s ease;
-}
-
-.input-glass:focus {
-  background: rgba(255, 255, 255, 0.3);
-  border-color: rgba(14, 165, 233, 0.5);
-  box-shadow: 
-    0 0 0 3px rgba(14, 165, 233, 0.1),
-    0 4px 16px 0 rgba(31, 38, 135, 0.1);
-}
-
-/* ===== SIDEBAR GLASSMORPHIQUE ===== */
-.sidebar-glass {
-  background: linear-gradient(135deg, 
-    rgba(255, 255, 255, 0.3) 0%, 
-    rgba(255, 255, 255, 0.2) 100%
-  );
-  backdrop-filter: blur(25px);
-  -webkit-backdrop-filter: blur(25px);
-  border-right: 1px solid rgba(255, 255, 255, 0.3);
-  box-shadow: 
-    4px 0 32px 0 rgba(31, 38, 135, 0.15),
-    2px 0 16px 0 rgba(31, 38, 135, 0.1),
-    inset 1px 0 0 0 rgba(255, 255, 255, 0.4);
-}
-
-/* ===== NAVIGATION ITEMS DE BASE ===== */
+/* ===== NAVIGATION ITEMS TRÈS ADOUCIS ===== */
 .nav-item {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.7);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.4);
   border-radius: 12px;
   padding: 12px 16px;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 2px 8px 0 rgba(31, 38, 135, 0.1);
+  box-shadow: 0 2px 8px 0 rgba(31, 38, 135, 0.04);
 }
 
 .nav-item:hover {
-  background: rgba(255, 255, 255, 0.2);
-  transform: translateX(4px);
+  background: rgba(255, 255, 255, 0.85);
+  transform: translateX(2px);
   box-shadow: 
-    0 4px 16px 0 rgba(31, 38, 135, 0.15),
-    2px 0 8px 0 rgba(31, 38, 135, 0.1);
+    0 4px 16px 0 rgba(31, 38, 135, 0.06),
+    2px 0 8px 0 rgba(31, 38, 135, 0.04);
 }
 
 .nav-item.active {
   background: linear-gradient(135deg, 
-    var(--medical-600) 0%, 
-    var(--conclusion-600) 100%
+    var(--medical-500) 0%, 
+    var(--medical-600) 100%
   );
   color: white;
-  border-color: rgba(255, 255, 255, 0.4);
+  border-color: rgba(255, 255, 255, 0.3);
   box-shadow: 
-    0 8px 25px 0 rgba(31, 38, 135, 0.25),
-    0 4px 16px 0 rgba(31, 38, 135, 0.15),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.3);
+    0 8px 25px 0 rgba(31, 38, 135, 0.12),
+    0 4px 16px 0 rgba(31, 38, 135, 0.08),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.2);
 }
 
 /* ===== CLASSES DE BASE POUR LES SECTIONS ===== */
 .section-container {
-  background: rgba(255, 255, 255, 0.9) !important;
+  background: rgba(255, 255, 255, 0.98) !important;
   backdrop-filter: blur(20px) !important;
   -webkit-backdrop-filter: blur(20px) !important;
-  border: 2px solid rgba(148, 163, 184, 0.4) !important;
+  border: 1px solid rgba(203, 213, 225, 0.5) !important;
   border-radius: 16px !important;
   box-shadow: 
-    0 8px 32px 0 rgba(31, 38, 135, 0.15),
-    0 4px 16px 0 rgba(31, 38, 135, 0.1),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.5) !important;
+    0 8px 32px 0 rgba(31, 38, 135, 0.06),
+    0 4px 16px 0 rgba(31, 38, 135, 0.04),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.9) !important;
   overflow: hidden !important;
   margin-bottom: 24px !important;
 }
 
+/* ENTÊTES MOINS TRANSPARENTS */
 .section-header {
-  background: rgba(255, 255, 255, 0.8) !important;
+  background: rgba(255, 255, 255, 0.95) !important;
   backdrop-filter: blur(15px) !important;
   -webkit-backdrop-filter: blur(15px) !important;
-  border-bottom: 2px solid rgba(148, 163, 184, 0.3) !important;
+  border-bottom: 1px solid rgba(203, 213, 225, 0.4) !important;
   padding: 16px 24px !important;
   cursor: pointer !important;
   transition: all 0.3s ease !important;
 }
 
 .section-header:hover {
-  background: rgba(255, 255, 255, 0.95) !important;
-  border-bottom-color: rgba(148, 163, 184, 0.5) !important;
+  background: rgba(255, 255, 255, 1) !important;
+  border-bottom-color: rgba(203, 213, 225, 0.6) !important;
 }
 
 .section-content {
-  background: rgba(255, 255, 255, 0.6) !important;
+  background: rgba(255, 255, 255, 0.9) !important;
   backdrop-filter: blur(10px) !important;
   -webkit-backdrop-filter: blur(10px) !important;
   padding: 24px !important;
-  border-top: 1px solid rgba(255, 255, 255, 0.4) !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.6) !important;
 }
 
-/* ===== SECTION SANTÉ AU TRAVAIL - VERT ===== */
+/* ===== SECTION SANTÉ AU TRAVAIL - MOINS TRANSPARENT ===== */
 .sante-section {
-  border-color: var(--sante-500) !important;
+  border-color: rgba(247, 201, 71, 0.6) !important;
   background: linear-gradient(135deg, 
-    rgba(34, 197, 94, 0.15) 0%, 
-    rgba(22, 163, 74, 0.1) 100%
+    rgba(247, 201, 71, 0.15) 0%, 
+    rgba(232, 183, 26, 0.12) 100%
   ) !important;
 }
 
 .sante-section .section-header {
   background: linear-gradient(135deg, 
-    rgba(34, 197, 94, 0.25) 0%, 
-    rgba(22, 163, 74, 0.2) 100%
+    rgba(247, 201, 71, 0.25) 0%, 
+    rgba(232, 183, 26, 0.2) 100%
   ) !important;
-  border-bottom-color: var(--sante-500) !important;
+  border-bottom-color: rgba(247, 201, 71, 0.5) !important;
 }
 
 .sante-section .section-header.active {
   background: linear-gradient(135deg, 
-    rgba(34, 197, 94, 0.35) 0%, 
-    rgba(22, 163, 74, 0.3) 100%
+    rgba(247, 201, 71, 0.35) 0%, 
+    rgba(232, 183, 26, 0.3) 100%
   ) !important;
-  border-bottom-color: var(--sante-600) !important;
+  border-bottom-color: rgba(247, 201, 71, 0.7) !important;
 }
 
-/* ===== SECTION EXAMEN CLINIQUE - BLEU ===== */
+/* ===== SECTION EXAMEN CLINIQUE - MOINS TRANSPARENT ===== */
 .examen-section {
-  border-color: var(--examen-500) !important;
+  border-color: rgba(170, 143, 240, 0.6) !important;
   background: linear-gradient(135deg, 
-    rgba(59, 130, 246, 0.15) 0%, 
-    rgba(37, 99, 235, 0.1) 100%
+    rgba(170, 143, 240, 0.15) 0%, 
+    rgba(147, 113, 227, 0.12) 100%
   ) !important;
 }
 
 .examen-section .section-header {
   background: linear-gradient(135deg, 
-    rgba(59, 130, 246, 0.25) 0%, 
-    rgba(37, 99, 235, 0.2) 100%
+    rgba(170, 143, 240, 0.25) 0%, 
+    rgba(147, 113, 227, 0.2) 100%
   ) !important;
-  border-bottom-color: var(--examen-500) !important;
+  border-bottom-color: rgba(170, 143, 240, 0.5) !important;
 }
 
 .examen-section .section-header.active {
   background: linear-gradient(135deg, 
-    rgba(59, 130, 246, 0.35) 0%, 
-    rgba(37, 99, 235, 0.3) 100%
+    rgba(170, 143, 240, 0.35) 0%, 
+    rgba(147, 113, 227, 0.3) 100%
   ) !important;
-  border-bottom-color: var(--examen-600) !important;
+  border-bottom-color: rgba(170, 143, 240, 0.7) !important;
 }
 
-/* ===== SECTION IMAA - ORANGE ===== */
+/* ===== SECTION IMAA - MOINS TRANSPARENT ===== */
 .imaa-section {
-  border-color: var(--imaa-500) !important;
+  border-color: rgba(246, 139, 47, 0.6) !important;
   background: linear-gradient(135deg, 
-    rgba(249, 115, 22, 0.15) 0%, 
-    rgba(234, 88, 12, 0.1) 100%
+    rgba(246, 139, 47, 0.15) 0%, 
+    rgba(231, 114, 31, 0.12) 100%
   ) !important;
 }
 
 .imaa-section .section-header {
   background: linear-gradient(135deg, 
-    rgba(249, 115, 22, 0.25) 0%, 
-    rgba(234, 88, 12, 0.2) 100%
+    rgba(246, 139, 47, 0.25) 0%, 
+    rgba(231, 114, 31, 0.2) 100%
   ) !important;
-  border-bottom-color: var(--imaa-500) !important;
+  border-bottom-color: rgba(246, 139, 47, 0.5) !important;
 }
 
 .imaa-section .section-header.active {
   background: linear-gradient(135deg, 
-    rgba(249, 115, 22, 0.35) 0%, 
-    rgba(234, 88, 12, 0.3) 100%
+    rgba(246, 139, 47, 0.35) 0%, 
+    rgba(231, 114, 31, 0.3) 100%
   ) !important;
-  border-bottom-color: var(--imaa-600) !important;
+  border-bottom-color: rgba(246, 139, 47, 0.7) !important;
 }
 
-/* ===== SECTION CONCLUSION - ROSE ===== */
+/* ===== SECTION CONCLUSION - MOINS TRANSPARENT ===== */
 .conclusion-section {
-  border-color: var(--conclusion-500) !important;
+  border-color: rgba(234, 123, 161, 0.6) !important;
   background: linear-gradient(135deg, 
-    rgba(236, 72, 153, 0.15) 0%, 
-    rgba(219, 39, 119, 0.1) 100%
+    rgba(234, 123, 161, 0.15) 0%, 
+    rgba(221, 86, 132, 0.12) 100%
   ) !important;
 }
 
 .conclusion-section .section-header {
   background: linear-gradient(135deg, 
-    rgba(236, 72, 153, 0.25) 0%, 
-    rgba(219, 39, 119, 0.2) 100%
+    rgba(234, 123, 161, 0.25) 0%, 
+    rgba(221, 86, 132, 0.2) 100%
   ) !important;
-  border-bottom-color: var(--conclusion-500) !important;
+  border-bottom-color: rgba(234, 123, 161, 0.5) !important;
 }
 
 .conclusion-section .section-header.active {
   background: linear-gradient(135deg, 
-    rgba(236, 72, 153, 0.35) 0%, 
-    rgba(219, 39, 119, 0.3) 100%
+    rgba(234, 123, 161, 0.35) 0%, 
+    rgba(221, 86, 132, 0.3) 100%
   ) !important;
-  border-bottom-color: var(--conclusion-600) !important;
+  border-bottom-color: rgba(234, 123, 161, 0.7) !important;
 }
 
-/* ===== ONGLETS DES SECTIONS ===== */
-.section-tabs {
-  background: rgba(255, 255, 255, 0.9) !important;
-  backdrop-filter: blur(15px) !important;
-  -webkit-backdrop-filter: blur(15px) !important;
-  border-bottom: 2px solid rgba(148, 163, 184, 0.3) !important;
-  padding: 0 24px !important;
+/* ===== BOUTONS NAVIGATION CHAPITRES - COULEURS TRÈS DOUCES ===== */
+
+/* Navigation Santé - Jaune très doux */
+.nav-item[data-section="sante"] {
+  border-color: rgba(247, 201, 71, 0.3) !important;
 }
 
-.section-tab {
-  background: rgba(255, 255, 255, 0.6) !important;
-  backdrop-filter: blur(10px) !important;
-  -webkit-backdrop-filter: blur(10px) !important;
-  border: 2px solid rgba(148, 163, 184, 0.3) !important;
-  border-bottom: none !important;
-  border-radius: 12px 12px 0 0 !important;
-  padding: 12px 20px !important;
-  margin-right: 8px !important;
-  transition: all 0.3s ease !important;
-  font-weight: 600 !important;
-  color: #475569 !important;
-  position: relative !important;
-  top: 2px !important;
+.nav-item[data-section="sante"]:hover {
+  background: linear-gradient(135deg, rgba(247, 201, 71, 0.1) 0%, rgba(232, 183, 26, 0.06) 100%) !important;
+  border-color: rgba(247, 201, 71, 0.4) !important;
+  transform: translateX(2px) !important;
 }
 
-.section-tab:hover {
-  background: rgba(255, 255, 255, 0.8) !important;
-  transform: translateY(-2px) !important;
-  border-color: rgba(148, 163, 184, 0.5) !important;
+.nav-item[data-section="sante"].active {
+  background: linear-gradient(135deg, var(--sante-500) 0%, var(--sante-600) 100%) !important;
+  color: white !important;
+  border-color: var(--sante-600) !important;
 }
 
-.section-tab.active {
-  background: rgba(255, 255, 255, 0.95) !important;
-  border-color: rgba(148, 163, 184, 0.6) !important;
-  z-index: 10 !important;
+/* Navigation Examen - Violet très doux */
+.nav-item[data-section="examen"] {
+  border-color: rgba(170, 143, 240, 0.3) !important;
 }
 
-/* ===== CHAMPS DE FORMULAIRE DANS LES SECTIONS ===== */
+.nav-item[data-section="examen"]:hover {
+  background: linear-gradient(135deg, rgba(170, 143, 240, 0.1) 0%, rgba(147, 113, 227, 0.06) 100%) !important;
+  border-color: rgba(170, 143, 240, 0.4) !important;
+  transform: translateX(2px) !important;
+}
+
+.nav-item[data-section="examen"].active {
+  background: linear-gradient(135deg, var(--examen-500) 0%, var(--examen-600) 100%) !important;
+  color: white !important;
+  border-color: var(--examen-600) !important;
+}
+
+/* Navigation IMAA - Orange très doux */
+.nav-item[data-section="imaa"] {
+  border-color: rgba(246, 139, 47, 0.3) !important;
+}
+
+.nav-item[data-section="imaa"]:hover {
+  background: linear-gradient(135deg, rgba(246, 139, 47, 0.1) 0%, rgba(231, 114, 31, 0.06) 100%) !important;
+  border-color: rgba(246, 139, 47, 0.4) !important;
+  transform: translateX(2px) !important;
+}
+
+.nav-item[data-section="imaa"].active {
+  background: linear-gradient(135deg, var(--imaa-500) 0%, var(--imaa-600) 100%) !important;
+  color: white !important;
+  border-color: var(--imaa-600) !important;
+}
+
+/* Navigation Conclusion - Rose très doux */
+.nav-item[data-section="conclusion"] {
+  border-color: rgba(234, 123, 161, 0.3) !important;
+}
+
+.nav-item[data-section="conclusion"]:hover {
+  background: linear-gradient(135deg, rgba(234, 123, 161, 0.1) 0%, rgba(221, 86, 132, 0.06) 100%) !important;
+  border-color: rgba(234, 123, 161, 0.4) !important;
+  transform: translateX(2px) !important;
+}
+
+.nav-item[data-section="conclusion"].active {
+  background: linear-gradient(135deg, var(--conclusion-500) 0%, var(--conclusion-600) 100%) !important;
+  color: white !important;
+  border-color: var(--conclusion-600) !important;
+}
+
+/* ===== CHAMPS DE FORMULAIRE HARMONIEUX ===== */
 .field-group {
-  background: rgba(255, 255, 255, 0.8) !important;
+  background: rgba(255, 255, 255, 0.95) !important;
   backdrop-filter: blur(10px) !important;
   -webkit-backdrop-filter: blur(10px) !important;
-  border: 1px solid rgba(148, 163, 184, 0.3) !important;
+  border: 1px solid rgba(203, 213, 225, 0.3) !important;
   border-radius: 12px !important;
   padding: 20px !important;
   margin-bottom: 16px !important;
-  box-shadow: 0 4px 16px 0 rgba(31, 38, 135, 0.08) !important;
+  box-shadow: 0 4px 16px 0 rgba(31, 38, 135, 0.03) !important;
 }
 
 .field-group h3,
 .field-group h4 {
-  color: #1e293b !important;
+  color: var(--medical-800) !important;
   font-weight: 700 !important;
   margin-bottom: 16px !important;
   padding-bottom: 8px !important;
-  border-bottom: 2px solid rgba(148, 163, 184, 0.2) !important;
+  border-bottom: 1px solid rgba(203, 213, 225, 0.3) !important;
 }
 
-/* ===== AMÉLIORATION DES CONTRASTES - TOUS LES CHAMPS ===== */
-
-/* Champs de saisie généraux */
+/* ===== CHAMPS DE SAISIE HARMONIEUX ===== */
 input[type="text"],
 input[type="email"],
 input[type="number"],
@@ -360,20 +382,19 @@ input[type="time"],
 input[type="password"],
 textarea,
 select {
-  background: rgba(255, 255, 255, 0.95) !important;
-  border: 2px solid rgba(148, 163, 184, 0.6) !important;
+  background: rgba(255, 255, 255, 1) !important;
+  border: 1px solid rgba(203, 213, 225, 0.5) !important;
   border-radius: 8px !important;
   padding: 12px 16px !important;
   transition: all 0.3s ease !important;
   backdrop-filter: blur(5px) !important;
   -webkit-backdrop-filter: blur(5px) !important;
-  color: #1e293b !important;
+  color: var(--medical-800) !important;
   font-weight: 500 !important;
   font-size: 14px !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02) !important;
 }
 
-/* États focus pour tous les champs */
 input[type="text"]:focus,
 input[type="email"]:focus,
 input[type="number"]:focus,
@@ -383,21 +404,23 @@ input[type="password"]:focus,
 textarea:focus,
 select:focus {
   background: rgba(255, 255, 255, 1) !important;
-  border-color: #3b82f6 !important;
+  border-color: var(--medical-500) !important;
   box-shadow: 
-    0 0 0 3px rgba(59, 130, 246, 0.2) !important,
-    0 4px 16px rgba(59, 130, 246, 0.3) !important;
+    0 0 0 3px rgba(100, 116, 139, 0.08) !important,
+    0 4px 16px rgba(100, 116, 139, 0.12) !important;
   outline: none !important;
 }
 
-/* Cases à cocher améliorées */
+/* ===== CASES À COCHER CORRIGÉES (CONCLUSION SECTION) ===== */
+
+/* Cases à cocher générales */
 input[type="checkbox"] {
   appearance: none !important;
   -webkit-appearance: none !important;
   width: 20px !important;
   height: 20px !important;
-  background: rgba(255, 255, 255, 0.95) !important;
-  border: 2px solid rgba(148, 163, 184, 0.6) !important;
+  background: rgba(255, 255, 255, 1) !important;
+  border: 2px solid rgba(203, 213, 225, 0.6) !important;
   border-radius: 4px !important;
   position: relative !important;
   cursor: pointer !important;
@@ -405,11 +428,12 @@ input[type="checkbox"] {
   display: inline-block !important;
   vertical-align: middle !important;
   margin-right: 8px !important;
+  flex-shrink: 0 !important;
 }
 
 input[type="checkbox"]:checked {
-  background: #3b82f6 !important;
-  border-color: #3b82f6 !important;
+  background: var(--medical-600) !important;
+  border-color: var(--medical-600) !important;
 }
 
 input[type="checkbox"]:checked::after {
@@ -422,210 +446,17 @@ input[type="checkbox"]:checked::after {
   font-size: 14px !important;
   font-weight: bold !important;
   line-height: 1 !important;
+  z-index: 1 !important;
 }
 
-/* Boutons radio améliorés */
-input[type="radio"] {
-  appearance: none !important;
-  -webkit-appearance: none !important;
-  width: 20px !important;
-  height: 20px !important;
-  background: rgba(255, 255, 255, 0.95) !important;
-  border: 2px solid rgba(148, 163, 184, 0.6) !important;
-  border-radius: 50% !important;
-  position: relative !important;
-  cursor: pointer !important;
-  transition: all 0.3s ease !important;
-  display: inline-block !important;
-  vertical-align: middle !important;
-  margin-right: 8px !important;
-}
-
-input[type="radio"]:checked {
-  background: #3b82f6 !important;
-  border-color: #3b82f6 !important;
-}
-
-input[type="radio"]:checked::after {
-  content: '' !important;
-  position: absolute !important;
-  top: 50% !important;
-  left: 50% !important;
-  transform: translate(-50%, -50%) !important;
-  width: 10px !important;
-  height: 10px !important;
-  background: white !important;
-  border-radius: 50% !important;
-}
-
-/* Labels - Meilleur contraste */
-label {
-  color: #1e293b !important;
-  font-weight: 600 !important;
-  font-size: 14px !important;
-  margin-bottom: 8px !important;
-  display: inline-block !important;
-}
-
-/* Boutons - Style amélioré */
-button:not([class*="nav"]):not([class*="tab"]):not([class*="glass"]):not([class*="bg-"]) {
-  background: rgba(255, 255, 255, 0.95) !important;
-  border: 2px solid rgba(148, 163, 184, 0.6) !important;
-  color: #1e293b !important;
-  font-weight: 600 !important;
-  padding: 10px 16px !important;
-  border-radius: 8px !important;
-  cursor: pointer !important;
-  transition: all 0.3s ease !important;
-}
-
-button:not([class*="nav"]):not([class*="tab"]):not([class*="glass"]):not([class*="bg-"]):hover {
-  background: rgba(255, 255, 255, 1) !important;
-  border-color: #3b82f6 !important;
-  transform: translateY(-1px) !important;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3) !important;
-}
-
-/* Zones de texte */
-textarea {
-  min-height: 100px !important;
-  resize: vertical !important;
-  font-family: inherit !important;
-  line-height: 1.5 !important;
-}
-
-/* Select - Style amélioré */
-select {
-  cursor: pointer !important;
-  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m6 8 4 4 4-4'/%3e%3c/svg%3e") !important;
-  background-position: right 12px center !important;
-  background-repeat: no-repeat !important;
-  background-size: 16px 12px !important;
-  padding-right: 48px !important;
-}
-
-/* Placeholders */
-input::placeholder,
-textarea::placeholder {
-  color: #64748b !important;
-  opacity: 0.8 !important;
-  font-style: italic !important;
-}
-
-/* ===== CHAMPS SPÉCIFIQUES PAR SECTION ===== */
-
-/* Amélioration des champs dans les sections colorées */
-.sante-section input:focus,
-.sante-section textarea:focus,
-.sante-section select:focus {
-  border-color: var(--sante-500) !important;
-  box-shadow: 
-    0 0 0 3px rgba(34, 197, 94, 0.2) !important,
-    0 4px 16px rgba(34, 197, 94, 0.3) !important;
-}
-
-.examen-section input:focus,
-.examen-section textarea:focus,
-.examen-section select:focus {
-  border-color: var(--examen-500) !important;
-  box-shadow: 
-    0 0 0 3px rgba(59, 130, 246, 0.2) !important,
-    0 4px 16px rgba(59, 130, 246, 0.3) !important;
-}
-
-.imaa-section input:focus,
-.imaa-section textarea:focus,
-.imaa-section select:focus {
-  border-color: var(--imaa-500) !important;
-  box-shadow: 
-    0 0 0 3px rgba(249, 115, 22, 0.2) !important,
-    0 4px 16px rgba(249, 115, 22, 0.3) !important;
-}
-
-.conclusion-section input:focus,
-.conclusion-section textarea:focus,
-.conclusion-section select:focus {
-  border-color: var(--conclusion-500) !important;
-  box-shadow: 
-    0 0 0 3px rgba(236, 72, 153, 0.2) !important,
-    0 4px 16px rgba(236, 72, 153, 0.3) !important;
-}
-
-/* ===== CHAMPS SPÉCIFIQUES SECTION CONCLUSION - ROSE ===== */
-
-/* Champs de formulaire dans la section conclusion */
-.conclusion-section input[type="text"],
-.conclusion-section input[type="email"],
-.conclusion-section input[type="number"],
-.conclusion-section input[type="date"],
-.conclusion-section input[type="time"],
-.conclusion-section input[type="password"],
-.conclusion-section textarea,
-.conclusion-section select {
-  background: rgba(255, 255, 255, 0.95) !important;
-  border: 2px solid rgba(236, 72, 153, 0.6) !important;
-  border-radius: 8px !important;
-  padding: 12px 16px !important;
-  transition: all 0.3s ease !important;
-  backdrop-filter: blur(5px) !important;
-  -webkit-backdrop-filter: blur(5px) !important;
-  color: #1e293b !important;
-  font-weight: 500 !important;
-  font-size: 14px !important;
-  box-shadow: 0 2px 8px rgba(236, 72, 153, 0.1) !important;
-}
-
-/* Focus spécifique pour les champs de conclusion */
-.conclusion-section input[type="text"]:focus,
-.conclusion-section input[type="email"]:focus,
-.conclusion-section input[type="number"]:focus,
-.conclusion-section input[type="date"]:focus,
-.conclusion-section input[type="time"]:focus,
-.conclusion-section input[type="password"]:focus,
-.conclusion-section textarea:focus,
-.conclusion-section select:focus {
-  background: rgba(255, 255, 255, 1) !important;
-  border-color: var(--conclusion-500) !important;
-  box-shadow: 
-    0 0 0 3px rgba(236, 72, 153, 0.2) !important,
-    0 4px 16px rgba(236, 72, 153, 0.3) !important;
-  outline: none !important;
-}
-
-/* Surcharge pour les composants shadcn/ui dans la section conclusion */
-.conclusion-section [class*="border-input"],
-.conclusion-section [class*="bg-background"],
-.conclusion-section [class*="ring-offset-background"] {
-  background: rgba(255, 255, 255, 0.95) !important;
-  border: 2px solid rgba(236, 72, 153, 0.6) !important;
-  border-radius: 8px !important;
-}
-
-.conclusion-section [class*="border-input"]:focus,
-.conclusion-section [class*="bg-background"]:focus,
-.conclusion-section [class*="ring-offset-background"]:focus {
-  background: rgba(255, 255, 255, 1) !important;
-  border-color: var(--conclusion-500) !important;
-  box-shadow: 
-    0 0 0 3px rgba(236, 72, 153, 0.2) !important,
-    0 4px 16px rgba(236, 72, 153, 0.3) !important;
-  outline: none !important;
-}
-
-/* Supprime les styles ring de shadcn/ui qui interfèrent */
-.conclusion-section [class*="focus-visible:ring"] {
-  --tw-ring-color: rgba(236, 72, 153, 0.2) !important;
-  --tw-ring-offset-width: 0px !important;
-}
-
-/* Cases à cocher dans la section conclusion */
+/* CORRECTION SPÉCIALE POUR SECTION CONCLUSION */
 .conclusion-section input[type="checkbox"] {
   appearance: none !important;
   -webkit-appearance: none !important;
   width: 20px !important;
   height: 20px !important;
-  background: rgba(255, 255, 255, 0.95) !important;
-  border: 2px solid rgba(236, 72, 153, 0.6) !important;
+  background: rgba(255, 255, 255, 1) !important;
+  border: 2px solid rgba(234, 123, 161, 0.6) !important;
   border-radius: 4px !important;
   position: relative !important;
   cursor: pointer !important;
@@ -633,6 +464,7 @@ textarea::placeholder {
   display: inline-block !important;
   vertical-align: middle !important;
   margin-right: 8px !important;
+  flex-shrink: 0 !important;
 }
 
 .conclusion-section input[type="checkbox"]:checked {
@@ -650,16 +482,60 @@ textarea::placeholder {
   font-size: 14px !important;
   font-weight: bold !important;
   line-height: 1 !important;
+  z-index: 1 !important;
 }
 
-/* Boutons radio dans la section conclusion */
+/* Force sur tous les types de checkbox dans conclusion */
+.conclusion-section input[type="checkbox"],
 .conclusion-section input[type="radio"] {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+}
+
+/* Surcharge forcée pour composants React/shadcn */
+.conclusion-section [role="checkbox"],
+.conclusion-section .peer,
+.conclusion-section input[data-state] {
   appearance: none !important;
   -webkit-appearance: none !important;
   width: 20px !important;
   height: 20px !important;
-  background: rgba(255, 255, 255, 0.95) !important;
-  border: 2px solid rgba(236, 72, 153, 0.6) !important;
+  background: rgba(255, 255, 255, 1) !important;
+  border: 2px solid rgba(234, 123, 161, 0.6) !important;
+  border-radius: 4px !important;
+}
+
+.conclusion-section [role="checkbox"][data-state="checked"],
+.conclusion-section .peer:checked,
+.conclusion-section input[data-state="checked"] {
+  background: var(--conclusion-500) !important;
+  border-color: var(--conclusion-500) !important;
+}
+
+.conclusion-section [role="checkbox"][data-state="checked"]::after,
+.conclusion-section .peer:checked::after,
+.conclusion-section input[data-state="checked"]::after {
+  content: '✓' !important;
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  color: white !important;
+  font-size: 14px !important;
+  font-weight: bold !important;
+  line-height: 1 !important;
+  z-index: 1 !important;
+}
+
+/* ===== BOUTONS RADIO HARMONIEUX ===== */
+input[type="radio"] {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  width: 20px !important;
+  height: 20px !important;
+  background: rgba(255, 255, 255, 1) !important;
+  border: 2px solid rgba(203, 213, 225, 0.6) !important;
   border-radius: 50% !important;
   position: relative !important;
   cursor: pointer !important;
@@ -669,12 +545,12 @@ textarea::placeholder {
   margin-right: 8px !important;
 }
 
-.conclusion-section input[type="radio"]:checked {
-  background: var(--conclusion-500) !important;
-  border-color: var(--conclusion-500) !important;
+input[type="radio"]:checked {
+  background: var(--medical-600) !important;
+  border-color: var(--medical-600) !important;
 }
 
-.conclusion-section input[type="radio"]:checked::after {
+input[type="radio"]:checked::after {
   content: '' !important;
   position: absolute !important;
   top: 50% !important;
@@ -686,66 +562,336 @@ textarea::placeholder {
   border-radius: 50% !important;
 }
 
-/* Labels dans la section conclusion */
-.conclusion-section label {
-  color: var(--conclusion-800) !important;
+/* ===== LABELS HARMONIEUX ===== */
+label {
+  color: var(--medical-700) !important;
   font-weight: 600 !important;
   font-size: 14px !important;
   margin-bottom: 8px !important;
   display: inline-block !important;
 }
 
-/* Groupes de champs dans la section conclusion */
+/* ===== FOCUS SPÉCIFIQUES PAR SECTION (TRÈS DOUX) ===== */
+
+/* Santé au Travail - Focus jaune très doux */
+.sante-section input:focus,
+.sante-section textarea:focus,
+.sante-section select:focus {
+  border-color: var(--sante-500) !important;
+  box-shadow: 
+    0 0 0 3px rgba(247, 201, 71, 0.1) !important,
+    0 4px 16px rgba(247, 201, 71, 0.15) !important;
+}
+
+.sante-section input[type="checkbox"]:checked,
+.sante-section input[type="radio"]:checked {
+  background: var(--sante-500) !important;
+  border-color: var(--sante-500) !important;
+}
+
+/* Examen Clinique - Focus violet très doux */
+.examen-section input:focus,
+.examen-section textarea:focus,
+.examen-section select:focus {
+  border-color: var(--examen-500) !important;
+  box-shadow: 
+    0 0 0 3px rgba(170, 143, 240, 0.1) !important,
+    0 4px 16px rgba(170, 143, 240, 0.15) !important;
+}
+
+.examen-section input[type="checkbox"]:checked,
+.examen-section input[type="radio"]:checked {
+  background: var(--examen-500) !important;
+  border-color: var(--examen-500) !important;
+}
+
+/* IMAA - Focus orange très doux */
+.imaa-section input:focus,
+.imaa-section textarea:focus,
+.imaa-section select:focus {
+  border-color: var(--imaa-500) !important;
+  box-shadow: 
+    0 0 0 3px rgba(246, 139, 47, 0.1) !important,
+    0 4px 16px rgba(246, 139, 47, 0.15) !important;
+}
+
+.imaa-section input[type="checkbox"]:checked,
+.imaa-section input[type="radio"]:checked {
+  background: var(--imaa-500) !important;
+  border-color: var(--imaa-500) !important;
+}
+
+/* Conclusion - Focus rose très doux */
+.conclusion-section input:focus,
+.conclusion-section textarea:focus,
+.conclusion-section select:focus {
+  border-color: var(--conclusion-500) !important;
+  box-shadow: 
+    0 0 0 3px rgba(234, 123, 161, 0.1) !important,
+    0 4px 16px rgba(234, 123, 161, 0.15) !important;
+}
+
+/* ===== PLACEHOLDERS ET UTILITAIRES ===== */
+input::placeholder,
+textarea::placeholder {
+  color: var(--medical-400) !important;
+  opacity: 0.8 !important;
+  font-style: italic !important;
+}
+
+select {
+  cursor: pointer !important;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2394a3b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m6 8 4 4 4-4'/%3e%3c/svg%3e") !important;
+  background-position: right 12px center !important;
+  background-repeat: no-repeat !important;
+  background-size: 16px 12px !important;
+  padding-right: 48px !important;
+}
+
+textarea {
+  min-height: 100px !important;
+  resize: vertical !important;
+  font-family: inherit !important;
+  line-height: 1.5 !important;
+}
+
+/* ===== GROUPES DE CHAMPS SPÉCIFIQUES PAR SECTION ===== */
+
+/* Santé au Travail */
+.sante-section .field-group {
+  border: 1px solid rgba(247, 201, 71, 0.2) !important;
+  box-shadow: 0 4px 16px 0 rgba(247, 201, 71, 0.03) !important;
+}
+
+.sante-section .field-group h3,
+.sante-section .field-group h4 {
+  color: var(--sante-800) !important;
+  border-bottom: 1px solid rgba(247, 201, 71, 0.2) !important;
+}
+
+/* Examen Clinique */
+.examen-section .field-group {
+  border: 1px solid rgba(170, 143, 240, 0.2) !important;
+  box-shadow: 0 4px 16px 0 rgba(170, 143, 240, 0.03) !important;
+}
+
+.examen-section .field-group h3,
+.examen-section .field-group h4 {
+  color: var(--examen-800) !important;
+  border-bottom: 1px solid rgba(170, 143, 240, 0.2) !important;
+}
+
+/* IMAA */
+.imaa-section .field-group {
+  border: 1px solid rgba(246, 139, 47, 0.2) !important;
+  box-shadow: 0 4px 16px 0 rgba(246, 139, 47, 0.03) !important;
+}
+
+.imaa-section .field-group h3,
+.imaa-section .field-group h4 {
+  color: var(--imaa-800) !important;
+  border-bottom: 1px solid rgba(246, 139, 47, 0.2) !important;
+}
+
+/* Conclusion */
 .conclusion-section .field-group {
-  background: rgba(255, 255, 255, 0.8) !important;
-  backdrop-filter: blur(10px) !important;
-  -webkit-backdrop-filter: blur(10px) !important;
-  border: 1px solid rgba(236, 72, 153, 0.3) !important;
-  border-radius: 12px !important;
-  padding: 20px !important;
-  margin-bottom: 16px !important;
-  box-shadow: 0 4px 16px 0 rgba(236, 72, 153, 0.08) !important;
+  border: 1px solid rgba(234, 123, 161, 0.2) !important;
+  box-shadow: 0 4px 16px 0 rgba(234, 123, 161, 0.03) !important;
 }
 
 .conclusion-section .field-group h3,
 .conclusion-section .field-group h4 {
   color: var(--conclusion-800) !important;
-  font-weight: 700 !important;
-  margin-bottom: 16px !important;
-  padding-bottom: 8px !important;
-  border-bottom: 2px solid rgba(236, 72, 153, 0.2) !important;
+  border-bottom: 1px solid rgba(234, 123, 161, 0.2) !important;
 }
 
-/* ===== SCROLLBAR PERSONNALISÉE ===== */
+/* ===== SURCHARGES SHADCN/UI HARMONIEUSES ===== */
+
+/* Santé au Travail - Composants shadcn/ui */
+.sante-section [class*="border-input"],
+.sante-section [class*="bg-background"],
+.sante-section [class*="ring-offset-background"] {
+  background: rgba(255, 255, 255, 1) !important;
+  border: 1px solid rgba(247, 201, 71, 0.4) !important;
+  border-radius: 8px !important;
+}
+
+.sante-section [class*="border-input"]:focus,
+.sante-section [class*="bg-background"]:focus,
+.sante-section [class*="ring-offset-background"]:focus {
+  border-color: var(--sante-500) !important;
+  box-shadow: 
+    0 0 0 3px rgba(247, 201, 71, 0.1) !important,
+    0 4px 16px rgba(247, 201, 71, 0.15) !important;
+}
+
+/* Examen Clinique - Composants shadcn/ui */
+.examen-section [class*="border-input"],
+.examen-section [class*="bg-background"],
+.examen-section [class*="ring-offset-background"] {
+  background: rgba(255, 255, 255, 1) !important;
+  border: 1px solid rgba(170, 143, 240, 0.4) !important;
+  border-radius: 8px !important;
+}
+
+.examen-section [class*="border-input"]:focus,
+.examen-section [class*="bg-background"]:focus,
+.examen-section [class*="ring-offset-background"]:focus {
+  border-color: var(--examen-500) !important;
+  box-shadow: 
+    0 0 0 3px rgba(170, 143, 240, 0.1) !important,
+    0 4px 16px rgba(170, 143, 240, 0.15) !important;
+}
+
+/* IMAA - Composants shadcn/ui */
+.imaa-section [class*="border-input"],
+.imaa-section [class*="bg-background"],
+.imaa-section [class*="ring-offset-background"] {
+  background: rgba(255, 255, 255, 1) !important;
+  border: 1px solid rgba(246, 139, 47, 0.4) !important;
+  border-radius: 8px !important;
+}
+
+.imaa-section [class*="border-input"]:focus,
+.imaa-section [class*="bg-background"]:focus,
+.imaa-section [class*="ring-offset-background"]:focus {
+  border-color: var(--imaa-500) !important;
+  box-shadow: 
+    0 0 0 3px rgba(246, 139, 47, 0.1) !important,
+    0 4px 16px rgba(246, 139, 47, 0.15) !important;
+}
+
+/* Conclusion - Composants shadcn/ui */
+.conclusion-section [class*="border-input"],
+.conclusion-section [class*="bg-background"],
+.conclusion-section [class*="ring-offset-background"] {
+  background: rgba(255, 255, 255, 1) !important;
+  border: 1px solid rgba(234, 123, 161, 0.4) !important;
+  border-radius: 8px !important;
+}
+
+.conclusion-section [class*="border-input"]:focus,
+.conclusion-section [class*="bg-background"]:focus,
+.conclusion-section [class*="ring-offset-background"]:focus {
+  border-color: var(--conclusion-500) !important;
+  box-shadow: 
+    0 0 0 3px rgba(234, 123, 161, 0.1) !important,
+    0 4px 16px rgba(234, 123, 161, 0.15) !important;
+}
+
+/* ===== CORRECTION SPÉCIFIQUE POUR CHECKBOX/RADIO SHADCN ===== */
+
+/* Force les checkbox shadcn/ui à être visibles */
+.conclusion-section [data-state="checked"] {
+  background-color: var(--conclusion-500) !important;
+  border-color: var(--conclusion-500) !important;
+}
+
+.conclusion-section [data-state="unchecked"] {
+  background-color: rgba(255, 255, 255, 1) !important;
+  border-color: rgba(234, 123, 161, 0.6) !important;
+}
+
+/* Supprime les styles ring de shadcn/ui qui interfèrent */
+.sante-section [class*="focus-visible:ring"] {
+  --tw-ring-color: rgba(247, 201, 71, 0.1) !important;
+  --tw-ring-offset-width: 0px !important;
+}
+
+.examen-section [class*="focus-visible:ring"] {
+  --tw-ring-color: rgba(170, 143, 240, 0.1) !important;
+  --tw-ring-offset-width: 0px !important;
+}
+
+.imaa-section [class*="focus-visible:ring"] {
+  --tw-ring-color: rgba(246, 139, 47, 0.1) !important;
+  --tw-ring-offset-width: 0px !important;
+}
+
+.conclusion-section [class*="focus-visible:ring"] {
+  --tw-ring-color: rgba(234, 123, 161, 0.1) !important;
+  --tw-ring-offset-width: 0px !important;
+}
+
+/* ===== SCROLLBAR PERSONNALISÉE HARMONIEUSE ===== */
 .custom-scrollbar {
   scrollbar-width: thin;
-  scrollbar-color: rgba(148, 163, 184, 0.3) transparent;
+  scrollbar-color: rgba(203, 213, 225, 0.3) transparent;
 }
 
 .custom-scrollbar::-webkit-scrollbar {
-  width: 8px;
+  width: 6px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.3);
-  border-radius: 4px;
+  background: rgba(203, 213, 225, 0.3);
+  border-radius: 3px;
   backdrop-filter: blur(10px);
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(148, 163, 184, 0.5);
+  background: rgba(203, 213, 225, 0.5);
 }
 
-/* ===== ANIMATIONS ===== */
+/* ===== OMBRES HARMONIEUSES ===== */
+.shadow-soft {
+  box-shadow: 
+    0 4px 6px -1px rgba(0, 0, 0, 0.02),
+    0 2px 4px -1px rgba(0, 0, 0, 0.01);
+}
+
+.shadow-glass {
+  box-shadow: 
+    0 8px 32px 0 rgba(31, 38, 135, 0.06),
+    0 4px 16px 0 rgba(31, 38, 135, 0.04),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.8);
+}
+
+.shadow-elevated {
+  box-shadow: 
+    0 20px 25px -5px rgba(0, 0, 0, 0.03),
+    0 10px 10px -5px rgba(0, 0, 0, 0.02);
+}
+
+/* ===== COULEURS DE STATUT HARMONIEUSES ===== */
+.status-success {
+  background: rgba(34, 197, 94, 0.06) !important;
+  color: #15803d !important;
+  border: 1px solid rgba(34, 197, 94, 0.15) !important;
+  backdrop-filter: blur(12px) !important;
+}
+
+.status-warning {
+  background: rgba(246, 139, 47, 0.06) !important;
+  color: var(--imaa-800) !important;
+  border: 1px solid rgba(246, 139, 47, 0.15) !important;
+  backdrop-filter: blur(12px) !important;
+}
+
+.status-error {
+  background: rgba(239, 68, 68, 0.06) !important;
+  color: #dc2626 !important;
+  border: 1px solid rgba(239, 68, 68, 0.15) !important;
+  backdrop-filter: blur(12px) !important;
+}
+
+.status-info {
+  background: rgba(170, 143, 240, 0.06) !important;
+  color: var(--examen-800) !important;
+  border: 1px solid rgba(170, 143, 240, 0.15) !important;
+  backdrop-filter: blur(12px) !important;
+}
+
+/* ===== ANIMATIONS DOUCES ===== */
 @keyframes slideInFromLeft {
   from {
     opacity: 0;
-    transform: translateX(-20px);
+    transform: translateX(-10px);
   }
   to {
     opacity: 1;
@@ -756,7 +902,7 @@ textarea::placeholder {
 @keyframes fadeInUp {
   from {
     opacity: 0;
-    transform: translateY(20px);
+    transform: translateY(10px);
   }
   to {
     opacity: 1;
@@ -767,7 +913,7 @@ textarea::placeholder {
 @keyframes scaleIn {
   from {
     opacity: 0;
-    transform: scale(0.95);
+    transform: scale(0.99);
   }
   to {
     opacity: 1;
@@ -776,81 +922,101 @@ textarea::placeholder {
 }
 
 .animate-slide-in {
-  animation: slideInFromLeft 0.4s ease-out;
+  animation: slideInFromLeft 0.3s ease-out;
 }
 
 .animate-fade-in-up {
-  animation: fadeInUp 0.3s ease-out;
+  animation: fadeInUp 0.25s ease-out;
 }
 
 .animate-scale-in {
   animation: scaleIn 0.2s ease-out;
 }
 
-/* ===== OMBRES SPÉCIALISÉES ===== */
-.shadow-soft {
-  box-shadow: 
-    0 4px 6px -1px rgba(0, 0, 0, 0.05),
-    0 2px 4px -1px rgba(0, 0, 0, 0.03);
+/* ===== RESPONSIVE HARMONIEUX ===== */
+@media (max-width: 1024px) {
+  .sidebar-glass {
+    width: 240px;
+    background: linear-gradient(135deg, 
+      rgba(255, 255, 255, 0.85) 0%, 
+      rgba(248, 250, 252, 0.75) 100%
+    ) !important;
+  }
+  
+  .nav-item {
+    padding: 10px 14px;
+  }
+  
+  .section-header {
+    padding: 12px 16px !important;
+  }
+  
+  .section-content {
+    padding: 16px !important;
+  }
+  
+  .field-group {
+    padding: 16px !important;
+    margin-bottom: 12px !important;
+  }
 }
 
-.shadow-glass {
-  box-shadow: 
-    0 8px 32px 0 rgba(31, 38, 135, 0.15),
-    0 4px 16px 0 rgba(31, 38, 135, 0.1),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.4);
+@media (max-width: 768px) {
+  .sidebar-glass {
+    background: linear-gradient(135deg, 
+      rgba(255, 255, 255, 0.9) 0%, 
+      rgba(248, 250, 252, 0.8) 100%
+    ) !important;
+  }
+  
+  .section-container {
+    margin-bottom: 16px !important;
+  }
+  
+  input[type="checkbox"],
+  input[type="radio"] {
+    width: 22px !important;
+    height: 22px !important;
+  }
 }
 
-.shadow-elevated {
-  box-shadow: 
-    0 20px 25px -5px rgba(0, 0, 0, 0.08),
-    0 10px 10px -5px rgba(0, 0, 0, 0.04);
+/* ===== ACCESSIBILITÉ ===== */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
-/* ===== COULEURS DE STATUT ===== */
-.status-success {
-  background: rgba(34, 197, 94, 0.1) !important;
-  color: var(--sante-800) !important;
-  border: 1px solid var(--sante-400) !important;
-  backdrop-filter: blur(12px) !important;
+/* Focus visible pour l'accessibilité */
+.focus-visible:focus {
+  outline: 2px solid var(--medical-500) !important;
+  outline-offset: 2px !important;
+  box-shadow: 0 0 0 4px rgba(100, 116, 139, 0.1) !important;
 }
 
-.status-warning {
-  background: rgba(249, 115, 22, 0.1) !important;
-  color: var(--imaa-800) !important;
-  border: 1px solid var(--imaa-400) !important;
-  backdrop-filter: blur(12px) !important;
-}
-
-.status-error {
-  background: rgba(239, 68, 68, 0.1) !important;
-  color: #dc2626 !important;
-  border: 1px solid #f87171 !important;
-  backdrop-filter: blur(12px) !important;
-}
-
-.status-info {
-  background: rgba(59, 130, 246, 0.1) !important;
-  color: var(--examen-800) !important;
-  border: 1px solid var(--examen-400) !important;
-  backdrop-filter: blur(12px) !important;
-}
-
-/* ===== AMÉLIORATIONS SPÉCIFIQUES POUR LES FORMULAIRES ===== */
-
-/* Container pour les groupes de formulaires */
-.form-group {
-  margin-bottom: 20px !important;
-}
-
-.form-group label {
-  display: block !important;
-  margin-bottom: 8px !important;
+/* ===== BOUTONS HARMONIEUX ===== */
+button:not([class*="nav"]):not([class*="tab"]):not([class*="glass"]):not([class*="bg-"]) {
+  background: rgba(255, 255, 255, 1) !important;
+  border: 1px solid rgba(203, 213, 225, 0.5) !important;
+  color: var(--medical-700) !important;
   font-weight: 600 !important;
-  color: #374151 !important;
+  padding: 10px 16px !important;
+  border-radius: 8px !important;
+  cursor: pointer !important;
+  transition: all 0.3s ease !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02) !important;
 }
 
-/* ===== UTILITAIRES ===== */
+button:not([class*="nav"]):not([class*="tab"]):not([class*="glass"]):not([class*="bg-"]):hover {
+  background: rgba(255, 255, 255, 1) !important;
+  border-color: var(--medical-500) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 12px rgba(100, 116, 139, 0.12) !important;
+}
+
+/* ===== UTILITAIRES HARMONIEUX ===== */
 .text-gradient-sante {
   background: linear-gradient(135deg, var(--sante-600), var(--sante-500));
   -webkit-background-clip: text;
@@ -879,160 +1045,40 @@ textarea::placeholder {
   background-clip: text;
 }
 
-/* ===== RESPONSIVE ===== */
-@media (max-width: 1024px) {
-  .sidebar-glass {
-    width: 240px;
-  }
-  
-  .nav-item {
-    padding: 10px 14px;
-  }
-  
-  .glass-card {
-    backdrop-filter: blur(15px);
-    -webkit-backdrop-filter: blur(15px);
-  }
-  
-  .section-header {
-    padding: 12px 16px !important;
-  }
-  
-  .section-content {
-    padding: 16px !important;
-  }
-  
-  .field-group {
-    padding: 16px !important;
-    margin-bottom: 12px !important;
-  }
-  
-  input[type="text"],
-  input[type="email"],
-  input[type="number"],
-  input[type="date"],
-  input[type="time"],
-  input[type="password"],
-  textarea,
-  select {
-    padding: 12px 16px !important;
-    font-size: 16px !important; /* Évite le zoom sur iOS */
-  }
+/* ===== ONGLETS DES SECTIONS HARMONIEUX ===== */
+.section-tabs {
+  background: rgba(255, 255, 255, 0.98) !important;
+  backdrop-filter: blur(15px) !important;
+  -webkit-backdrop-filter: blur(15px) !important;
+  border-bottom: 1px solid rgba(203, 213, 225, 0.3) !important;
+  padding: 0 24px !important;
 }
 
-@media (max-width: 768px) {
-  .section-container {
-    margin-bottom: 16px !important;
-  }
-  
-  .section-tabs {
-    padding: 0 16px !important;
-  }
-  
-  .section-tab {
-    padding: 10px 16px !important;
-    margin-right: 4px !important;
-    font-size: 14px !important;
-  }
-  
-  input[type="checkbox"],
-  input[type="radio"] {
-    width: 22px !important;
-    height: 22px !important;
-  }
-  
-  input[type="checkbox"]:checked::after {
-    font-size: 16px !important;
-  }
-  
-  textarea,
-  select {
-    font-size: 16px !important; /* Évite le zoom sur iOS */
-  }
+.section-tab {
+  background: rgba(255, 255, 255, 0.9) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+  border: 1px solid rgba(203, 213, 225, 0.3) !important;
+  border-bottom: none !important;
+  border-radius: 12px 12px 0 0 !important;
+  padding: 12px 20px !important;
+  margin-right: 8px !important;
+  transition: all 0.3s ease !important;
+  font-weight: 600 !important;
+  color: var(--medical-700) !important;
+  position: relative !important;
+  top: 1px !important;
 }
 
-/* ===== ACCESSIBILITÉ ===== */
-@media (prefers-reduced-motion: reduce) {
-  * {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
+.section-tab:hover {
+  background: rgba(255, 255, 255, 1) !important;
+  transform: translateY(-1px) !important;
+  border-color: rgba(203, 213, 225, 0.5) !important;
 }
 
-/* Focus visible pour l'accessibilité */
-.focus-visible:focus {
-  outline: 2px solid var(--medical-500) !important;
-  outline-offset: 2px !important;
-  box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.25) !important;
-}
-
-/* ===== BOUTONS NAVIGATION CHAPITRES - COULEURS SPÉCIFIQUES ===== */
-
-/* Force absolue pour navigation Santé - Jaune */
-.nav-item[data-section="sante"][data-section="sante"] {
-  border-color: #fbbf24 !important;
-}
-
-.nav-item[data-section="sante"][data-section="sante"]:hover {
-  background: linear-gradient(135deg, rgba(251, 191, 36, 0.2) 0%, rgba(245, 158, 11, 0.15) 100%) !important;
-  border-color: #f59e0b !important;
-  transform: translateX(4px) !important;
-}
-
-.nav-item[data-section="sante"][data-section="sante"].active {
-  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%) !important;
-  color: white !important;
-  border-color: #f59e0b !important;
-}
-
-/* Force absolue pour navigation Examen - Violet */
-.nav-item[data-section="examen"][data-section="examen"] {
-  border-color: #a855f7 !important;
-}
-
-.nav-item[data-section="examen"][data-section="examen"]:hover {
-  background: linear-gradient(135deg, rgba(168, 85, 247, 0.2) 0%, rgba(147, 51, 234, 0.15) 100%) !important;
-  border-color: #9333ea !important;
-  transform: translateX(4px) !important;
-}
-
-.nav-item[data-section="examen"][data-section="examen"].active {
-  background: linear-gradient(135deg, #a855f7 0%, #9333ea 100%) !important;
-  color: white !important;
-  border-color: #9333ea !important;
-}
-
-/* Force absolue pour navigation IMAA - Orange */
-.nav-item[data-section="imaa"][data-section="imaa"] {
-  border-color: #f97316 !important;
-}
-
-.nav-item[data-section="imaa"][data-section="imaa"]:hover {
-  background: linear-gradient(135deg, rgba(249, 115, 22, 0.2) 0%, rgba(234, 88, 12, 0.15) 100%) !important;
-  border-color: #ea580c !important;
-  transform: translateX(4px) !important;
-}
-
-.nav-item[data-section="imaa"][data-section="imaa"].active {
-  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%) !important;
-  color: white !important;
-  border-color: #ea580c !important;
-}
-
-/* Force absolue pour navigation Conclusion - Rose */
-.nav-item[data-section="conclusion"][data-section="conclusion"] {
-  border-color: #ec4899 !important;
-}
-
-.nav-item[data-section="conclusion"][data-section="conclusion"]:hover {
-  background: linear-gradient(135deg, rgba(236, 72, 153, 0.2) 0%, rgba(219, 39, 119, 0.15) 100%) !important;
-  border-color: #db2777 !important;
-  transform: translateX(4px) !important;
-}
-
-.nav-item[data-section="conclusion"][data-section="conclusion"].active {
-  background: linear-gradient(135deg, #ec4899 0%, #db2777 100%) !important;
-  color: white !important;
-  border-color: #db2777 !important;
+.section-tab.active {
+  background: rgba(255, 255, 255, 1) !important;
+  border-color: rgba(203, 213, 225, 0.6) !important;
+  z-index: 10 !important;
+  color: var(--medical-800) !important;
 }

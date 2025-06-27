@@ -1,6 +1,5 @@
 // src/app/api/patients/[id]/entretiens/route.ts
 // Modifions cette partie pour corriger l'erreur
-
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
@@ -26,13 +25,15 @@ function getStatusStyle(status: string) {
   }
 }
 
+// ✅ CORRECTION : Changement de la signature de params
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> } // ✅ Promise<{ id: string }>
 ) {
   try {
-    const patientId = parseInt(params.id);
-    
+    const { id } = await params; // ✅ Await params et destructuration
+    const patientId = parseInt(id); // ✅ Utilise id au lieu de params.id
+   
     if (isNaN(patientId)) {
       return NextResponse.json({ success: false, error: 'ID patient invalide' }, { status: 400 });
     }
@@ -45,9 +46,9 @@ export async function GET(
 
     // Ajouter les styles de statut
     const formattedEntretiens = entretiens.map((entretien: { status: string }) => ({
-  ...entretien,
-  statusInfo: getStatusStyle(entretien.status)
-}));
+      ...entretien,
+      statusInfo: getStatusStyle(entretien.status)
+    }));
 
     return NextResponse.json({
       success: true,

@@ -24,15 +24,22 @@ export async function GET(
 // UPDATE patient
 export async function PUT(request: NextRequest) {
   const id = request.url.split('/').pop();
-
   if (!id) {
     return NextResponse.json({ error: "ID non trouvé" }, { status: 400 });
   }
-
+  
   try {
     const data = await request.json();
     console.log("6. API - données reçues:", { id, data });
     
+    // 👈 Calculer le temps total automatiquement
+    let tempsTrajetTotal = data.tempsTrajetTotal || '';
+    if (data.tempsTrajetAller && data.tempsTrajetRetour) {
+      const aller = parseInt(data.tempsTrajetAller) || 0;
+      const retour = parseInt(data.tempsTrajetRetour) || 0;
+      tempsTrajetTotal = (aller + retour).toString();
+    }
+   
     const patient = await prisma.patient.update({
       where: { id: Number(id) },
       data: {
@@ -43,7 +50,7 @@ export async function PUT(request: NextRequest) {
         dateNaissance: data.dateNaissance,
         age: parseInt(data.age),
         etatCivil: data.etatCivil,
-        
+       
         // Informations professionnelles
         poste: data.poste,
         numeroLigne: data.poste === 'Opérateur SB' ? data.numeroLigne : null,
@@ -55,12 +62,13 @@ export async function PUT(request: NextRequest) {
         departement: data.departement,
         dateEntree: data.dateEntree,
         anciennete: data.anciennete,
-
+        
         // Informations de transport
         tempsTrajetAller: data.tempsTrajetAller,
         tempsTrajetRetour: data.tempsTrajetRetour,
+        tempsTrajetTotal: tempsTrajetTotal || null, // 👈 Ajouter cette ligne
         typeTransport: data.typeTransport,
-
+        
         // Informations d'entretien
         numeroEntretien: data.numeroEntretien ? parseInt(data.numeroEntretien) : null,
         nomEntretien: data.nomEntretien,
@@ -74,7 +82,7 @@ export async function PUT(request: NextRequest) {
         updatedAt: new Date(),
       },
     });
-
+    
     console.log("7. API - patient mis à jour:", patient);
     return NextResponse.json({ data: patient });
   } catch (error) {

@@ -8,6 +8,14 @@ export async function POST(req: Request) {
   try {
     const data = await req.json();
     console.log('Données reçues:', data);
+    
+    // 👈 Calculer le temps total automatiquement
+    let tempsTrajetTotal = '';
+    if (data.tempsTrajetAller && data.tempsTrajetRetour) {
+      const aller = parseInt(data.tempsTrajetAller) || 0;
+      const retour = parseInt(data.tempsTrajetRetour) || 0;
+      tempsTrajetTotal = (aller + retour).toString();
+    }
 
     const patient = await prisma.patient.create({
       data: {
@@ -29,6 +37,7 @@ export async function POST(req: Request) {
         anciennete: data.anciennete,
         tempsTrajetAller: data.tempsTrajetAller,
         tempsTrajetRetour: data.tempsTrajetRetour,
+        tempsTrajetTotal: tempsTrajetTotal || null, // 👈 Ajouter cette ligne
         typeTransport: data.typeTransport,
         // Champs requis par le schéma
         dateCreation: new Date().toISOString().split('T')[0],
@@ -42,7 +51,7 @@ export async function POST(req: Request) {
         typeEntretien: ''
       }
     });
-
+    
     console.log('Patient créé:', patient);
     return NextResponse.json({ data: patient }, { status: 201 });
   } catch (error) {

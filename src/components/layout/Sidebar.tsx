@@ -1,4 +1,4 @@
-//src\components\layout\Sidebar.tsx
+//src\components\layout\Sidebar.tsx - Version optimisée finale
 
 'use client';
 
@@ -13,7 +13,6 @@ import {
   User,
   Shield,
   BarChart3,
-  Stethoscope,
   UserCog
 } from 'lucide-react'
 import { Logo } from '@/components/ui/Logo';
@@ -38,11 +37,11 @@ export const Sidebar = ({ activeTab, onTabChange }: SidebarProps) => {
   // Chargement avec skeleton glassmorphique
   if (isLoading) {
     return (
-      <div className="w-80 sidebar-glass flex flex-col h-screen">
-        <div className="p-6">
-          <div className="animate-pulse space-y-4">
-            <div className="h-16 glass rounded-xl"></div>
-            <div className="h-4 glass rounded w-3/4"></div>
+      <div className="w-72 sidebar-glass flex flex-col h-screen">
+        <div className="p-4">
+          <div className="animate-pulse space-y-3">
+            <div className="h-12 glass rounded-xl"></div>
+            <div className="h-3 glass rounded w-3/4"></div>
           </div>
         </div>
       </div>
@@ -120,33 +119,40 @@ export const Sidebar = ({ activeTab, onTabChange }: SidebarProps) => {
   }
 
   return (
-    <div className="w-80 sidebar-glass flex flex-col h-screen custom-scrollbar">
+    <div 
+      className="w-72 flex flex-col h-screen custom-scrollbar overflow-hidden"
+      style={{ 
+        background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.03) 25%, rgba(255, 255, 255, 0.02) 75%, rgba(255, 255, 255, 0.08) 100%)',
+        backdropFilter: 'blur(24px)',
+        borderRight: '1px solid rgba(255, 255, 255, 0.15)'
+      }}
+    >
       {/* Header avec logo */}
-      <div className="p-6 border-b border-white/10">
-        <div className="flex flex-col items-center justify-center space-y-3">
+      <div className="p-4 border-b border-white/10">
+        <div className="flex flex-col items-center justify-center space-y-2">
           <Logo 
-            width={200}
-            height={80}
+            width={160}
+            height={60}
             className="transition-all duration-300 hover:scale-105 drop-shadow-sm"
           />
           <div className="text-center">
-            <p className="text-slate-600 text-sm font-medium">Système Médical Sécurisé</p>
-            <div className="flex items-center justify-center space-x-2 mt-1">
-              <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></div>
-              <span className="text-xs text-slate-500">Connexion SSL Active</span>
+            <p className="text-slate-600 text-sm font-light">Système Médical Sécurisé</p>
+            <div className="flex items-center justify-center space-x-1 mt-0.5">
+              <div className="w-1 h-1 bg-green-400 rounded-full animate-pulse"></div>
+              <span className="text-sm text-slate-500 font-light">SSL Active</span>
             </div>
           </div>
         </div>
       </div>
 
       {/* Navigation principale */}
-      <nav className="flex-1 p-6 space-y-2 overflow-y-auto custom-scrollbar">
+      <nav className="flex-1 p-4 space-y-1 overflow-y-auto custom-scrollbar">
         <div className="space-y-1">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
-              className={`nav-item w-full group ${
+              className={`nav-item w-full group py-3 px-4 ${
                 activeTab === tab.id ? 'active bg-gradient-to-r from-blue-600 to-violet-600 text-white shadow-lg' : ''
               } ${tab.id === 'patients' ? 'patients-link' : ''}`}
             >
@@ -159,18 +165,18 @@ export const Sidebar = ({ activeTab, onTabChange }: SidebarProps) => {
                   {tab.icon}
                 </div>
                 <div className="flex-1 text-left">
-                  <span className={`font-medium text-sm ${
+                  <span className={`font-light text-lg ${
                     activeTab === tab.id 
                       ? 'text-white' 
-                      : 'text-slate-700 group-hover:text-slate-900'
+                      : 'text-slate-800 group-hover:text-slate-900'
                   }`}>
                     {tab.label}
                   </span>
                   {tab.description && (
-                    <p className={`text-xs mt-0.5 ${
+                    <p className={`text-base mt-0.5 font-normal ${
                       activeTab === tab.id 
                         ? 'text-white/80' 
-                        : 'text-slate-500 group-hover:text-slate-600'
+                        : 'text-slate-600 group-hover:text-slate-700'
                     }`}>
                       {tab.description}
                     </p>
@@ -183,23 +189,23 @@ export const Sidebar = ({ activeTab, onTabChange }: SidebarProps) => {
       </nav>
 
       {/* Profil utilisateur */}
-      <div className="p-6 border-t border-white/10 space-y-4">
+      <div className="p-4 border-t border-white/10 space-y-3">
         {/* Informations utilisateur */}
-        <div className="glass-card bg-white/5">
-          <div className="flex items-center space-x-3 mb-4">
+        <div className="backdrop-blur-2xl border border-white/40 rounded-2xl p-3 shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-1">
+          <div className="flex items-center space-x-3 mb-3">
             <div className="relative">
-              <div className="w-12 h-12 bg-gradient-to-br from-medical-400 to-medical-600 rounded-xl flex items-center justify-center shadow-soft">
-                <User className="h-6 w-6 text-white" />
+              <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center shadow-soft">
+                <User className="h-5 w-5 text-white" />
               </div>
-              <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-white shadow-sm ${
+              <div className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border border-white shadow-sm ${
                 user.isActive ? 'bg-green-400' : 'bg-red-400'
               }`}></div>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-semibold text-slate-800 truncate text-sm">
+              <p className="font-light text-slate-800 truncate text-sm">
                 {user.name || 'Utilisateur'}
               </p>
-              <p className="text-slate-600 text-xs truncate">
+              <p className="text-slate-600 text-sm truncate font-light">
                 {user.email}
               </p>
             </div>
@@ -207,8 +213,8 @@ export const Sidebar = ({ activeTab, onTabChange }: SidebarProps) => {
           
           {/* Badge de rôle et statut */}
           <div className="flex items-center justify-between">
-            <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-medium border ${getRoleBadgeClasses(user.role)}`}>
-              <Shield className="h-3 w-3 mr-1.5" />
+            <span className={`inline-flex items-center px-2 py-1 rounded-md text-sm font-light border ${getRoleBadgeClasses(user.role)}`}>
+              <Shield className="h-3 w-3 mr-1" />
               {getRoleDisplayName(user.role)}
             </span>
             
@@ -216,7 +222,7 @@ export const Sidebar = ({ activeTab, onTabChange }: SidebarProps) => {
               <div className={`h-2 w-2 rounded-full ${
                 user.isActive ? 'bg-green-400' : 'bg-red-400'
               }`}></div>
-              <span className={`text-xs font-medium ${
+              <span className={`text-sm font-light ${
                 user.isActive ? 'text-green-700' : 'text-red-600'
               }`}>
                 {user.isActive ? 'En ligne' : 'Inactif'}
@@ -225,24 +231,19 @@ export const Sidebar = ({ activeTab, onTabChange }: SidebarProps) => {
           </div>
         </div>
 
-        {/* Bouton de déconnexion */}
-        <button
+        {/* Bouton de déconnexion - Harmonisé et simplifié */}
+        <div
           onClick={handleSignOut}
-          className="btn-glass w-full flex items-center justify-center space-x-3 py-3 text-slate-700 hover:text-red-600 hover:bg-red-50/50 transition-all duration-200 border border-white/20 hover:border-red-200"
+          className="w-full border border-white/40 rounded-2xl transition-all duration-500 hover:-translate-y-1 hover:border-red-400/50 hover:shadow-lg flex items-center justify-center space-x-2 py-3 cursor-pointer"
+          style={{
+            background: 'none',
+            backdropFilter: 'blur(16px)'
+          }}
         >
-          <LogOut className="h-4 w-4" />
-          <span className="font-medium text-sm">Se déconnecter</span>
-        </button>
-      </div>
-
-      {/* Footer avec informations de sécurité */}
-      <div className="p-6 border-t border-white/10">
-        <div className="text-center space-y-2">
-          <div className="flex items-center justify-center space-x-2 text-xs text-slate-600">
-            <Shield className="h-3 w-3" />
-            <span>Session active 4h max</span>
-          </div>
-          <p className="text-xs text-slate-500">© 2024 Vital Sync</p>
+          <LogOut className="h-5 w-5" style={{ color: '#dc2626' }} />
+          <span className="font-medium text-base" style={{ color: '#dc2626', background: 'transparent' }}>
+            Se déconnecter
+          </span>
         </div>
       </div>
     </div>

@@ -38,6 +38,7 @@ export interface Patient {
   anciennete: string;
   tempsTrajetAller: string;
   tempsTrajetRetour: string;
+  tempsTrajetTotal?: string; 
   typeTransport: string;
   numeroEntretien?: number;
   nomEntretien?: string;

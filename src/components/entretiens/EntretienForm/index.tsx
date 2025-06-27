@@ -1,9 +1,8 @@
-// src/components/entretiens/EntretienForm/index.tsx - Version Finale Corrigée
+// src/components/entretiens/EntretienForm/index.tsx - Version Harmonisée Dashboard Style
 'use client';
 
-
 import '@/styles/entretien.css';
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { toast } from 'sonner';
 import { Patient } from '@/types';
 import { SanteTravail } from '../sections/SanteAuTravail';
@@ -14,7 +13,10 @@ import { defaultConclusionData } from '../types/defaultData';
 import type { VecuTravailData } from '../sections/SanteAuTravail/VecuTravail';
 import type { ModeVieData } from '../sections/SanteAuTravail/ModeVie';
 import { IMAA } from '../sections/IMAA';
-import { ZoomIn, ZoomOut, ChevronDown, ChevronUp, Check, Clock, Edit3 } from 'lucide-react';
+import { 
+  ZoomIn, ZoomOut, ChevronDown, ChevronUp, Clock, Edit3, 
+  PanelLeftClose, PanelLeftOpen, Save, ArrowLeft, Check
+} from 'lucide-react';
 import { Timer } from '@/components/ui/timer';
 import { useEntretienTimer } from '@/hooks/useEntretienTimer';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -47,7 +49,6 @@ interface Section {
   title: string;
   icon: React.ReactNode;
   color: string;
-  isCompleted: boolean;
   isActive: boolean;
 }
 
@@ -61,7 +62,7 @@ interface EntretienFormProps {
 // Données initiales
 const initialVecuTravailData: VecuTravailData = {
   motifVisite: { 
-    motifs: [''],
+    motifs: [],
     commentaires: '' 
   },
   postesOccupes: '',
@@ -106,6 +107,10 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
   const [showSaveConfirmDialog, setShowSaveConfirmDialog] = useState(false);
   const [activeSection, setActiveSection] = useState<string>('sante');
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['sante']));
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [showStatusDropdown, setShowStatusDropdown] = useState(false);
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
+  const statusButtonRef = useRef<HTMLButtonElement>(null);
 
   // Refs pour le scroll
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -143,109 +148,80 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
     initialPaused: initialTimerState.initialPaused
   });
 
-  // Configuration des sections avec statut de complétion
-  const sections: Section[] = [
-  {
-    id: 'sante',
-    title: 'Santé au Travail',
-    icon: <div className="w-5 h-5 bg-yellow-500 rounded-full flex items-center justify-center text-white text-xs">1</div>,
-    color: 'border-yellow-500 bg-yellow-50',
-    isCompleted: !!(entretienData.santeTravail.vecuTravail.motifVisite.motifs[0] || entretienData.santeTravail.vecuTravail.postesOccupes),
-    isActive: activeSection === 'sante'
-  },
-  {
-    id: 'examen',
-    title: 'Examen Clinique',
-    icon: <div className="w-5 h-5 bg-purple-500 rounded-full flex items-center justify-center text-white text-xs">2</div>,
-    color: 'border-purple-500 bg-purple-50',
-    isCompleted: !!(entretienData.examenClinique?.biometrie?.poids || entretienData.examenClinique?.biometrie?.tension),
-    isActive: activeSection === 'examen'
-  },
-    {
-      id: 'imaa',
-      title: 'IMAA',
-      icon: <div className="w-5 h-5 bg-orange-500 rounded-full flex items-center justify-center text-white text-xs">3</div>,
-      color: 'border-orange-500 bg-orange-50',
-      isCompleted: Object.keys(entretienData.imaa || {}).length > 0,
-      isActive: activeSection === 'imaa'
-    },
-    {
-      id: 'conclusion',
-      title: 'Conclusion',
-      icon: <div className="w-5 h-5 bg-pink-500 rounded-full flex items-center justify-center text-white text-xs">4</div>,
-      color: 'border-pink-500 bg-pink-50',
-      isCompleted: !!(entretienData.conclusion?.aptitude || entretienData.conclusion?.recommandations),
-      isActive: activeSection === 'conclusion'
+  // Générer le titre dynamique
+  const getDynamicTitle = useCallback(() => {
+    if (entretienId) {
+      return `${isReadOnly ? 'Consultation' : 'Modification'} de l'entretien n°${entretienData.numeroEntretien}`;
     }
-  ];
-
-  // Fonction de scroll intelligent vers une section
-  const scrollToSection = useCallback((sectionId: string) => {
-    const element = sectionRefs.current[sectionId];
-    if (element && scrollContainerRef.current) {
-      const container = scrollContainerRef.current;
-      const scrollTop = element.offsetTop - 80;
-      
-      container.scrollTo({
-        top: scrollTop,
-        behavior: 'smooth'
-      });
-      
-      setActiveSection(sectionId);
-      
-      if (!expandedSections.has(sectionId)) {
-        setExpandedSections(prev => new Set([...prev, sectionId]));
-      }
-    }
-  }, [expandedSections]);
-
-  // Navigation suivant/précédent
-  const goToNextSection = useCallback(() => {
-    const currentIndex = sections.findIndex(s => s.id === activeSection);
-    if (currentIndex < sections.length - 1) {
-      scrollToSection(sections[currentIndex + 1].id);
-    }
-  }, [activeSection, sections, scrollToSection]);
-
-  const goToPrevSection = useCallback(() => {
-    const currentIndex = sections.findIndex(s => s.id === activeSection);
-    if (currentIndex > 0) {
-      scrollToSection(sections[currentIndex - 1].id);
-    }
-  }, [activeSection, sections, scrollToSection]);
-
-  // Toggle expansion d'une section
-  const toggleSection = useCallback((sectionId: string) => {
-    setExpandedSections(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(sectionId)) {
-        newSet.delete(sectionId);
-      } else {
-        newSet.add(sectionId);
-      }
-      return newSet;
-    });
     
-    if (!expandedSections.has(sectionId)) {
-      setTimeout(() => scrollToSection(sectionId), 100);
+    // Pour nouvel entretien - titre de base
+    const baseTitle = `Nouvel entretien : N°${entretienData.numeroEntretien}`;
+    
+    // Protection renforcée pour les motifs
+    const motifs = entretienData.santeTravail?.vecuTravail?.motifVisite?.motifs;
+    const validMotifs = Array.isArray(motifs) ? motifs.filter(m => m && typeof m === 'string' && m.trim()) : [];
+    
+    if (validMotifs.length > 0) {
+      const motifsToShow = validMotifs.slice(0, 2).join(' & ');
+      return (
+        <>
+          {baseTitle}
+          <div className="text-sm font-light text-blue-600/80 mt-1">
+            {motifsToShow}
+          </div>
+        </>
+      );
     }
-  }, [expandedSections, scrollToSection]);
+    
+    return baseTitle;
+  }, [entretienId, isReadOnly, entretienData.numeroEntretien, entretienData.santeTravail?.vecuTravail?.motifVisite?.motifs]);
 
-  // Fonctions de sauvegarde
+  // Titre pour la sidebar
+  const getSidebarTitle = useCallback(() => {
+    return 'Navigation';
+  }, []);
+
+  // Obtenir le style du statut
+  const getStatusInfo = useCallback((status: string) => {
+    switch (status) {
+      case 'finalise':
+        return {
+          label: 'Finalisé',
+          bgColor: 'bg-emerald-100',
+          textColor: 'text-emerald-800',
+          borderColor: 'border-emerald-300',
+          icon: '✓'
+        };
+      case 'brouillon':
+      default:
+        return {
+          label: 'Brouillon',
+          bgColor: 'bg-amber-100',
+          textColor: 'text-amber-800',
+          borderColor: 'border-amber-300',
+          icon: '✏️'
+        };
+    }
+  }, []);
+
+  // Fonction de sauvegarde
   const saveEntretien = useCallback(async () => {
     try {
       const currentId = localEntretienId || entretienId;
       const now = new Date();
+      
+      const donneesASerialiser = {
+        santeTravail: entretienData.santeTravail,
+        examenClinique: entretienData.examenClinique,
+        imaa: entretienData.imaa,
+        conclusion: entretienData.conclusion
+      };
+      
       const entretienToSave: EntretienToSave = {
         patientId: patient.id || 0,
         numeroEntretien: entretienData.numeroEntretien,
         status: entretienData.status,
-        donneesEntretien: JSON.stringify({
-          santeTravail: entretienData.santeTravail,
-          examenClinique: entretienData.examenClinique,
-          imaa: entretienData.imaa,
-          conclusion: entretienData.conclusion
-        })
+        donneesEntretien: JSON.stringify(donneesASerialiser)
       };
       
       if (!currentId) {
@@ -286,6 +262,119 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
     }
   }, [localEntretienId, entretienId, patient.id, entretienData]);
 
+  // Gérer le changement de statut
+  const handleStatusChange = useCallback(async (newStatus: string) => {
+    if (isReadOnly) return;
+    
+    const currentId = localEntretienId || entretienId;
+    const entretienToSave = {
+      patientId: patient.id || 0,
+      numeroEntretien: entretienData.numeroEntretien,
+      status: newStatus,
+      donneesEntretien: JSON.stringify({
+        santeTravail: entretienData.santeTravail,
+        examenClinique: entretienData.examenClinique,
+        imaa: entretienData.imaa,
+        conclusion: entretienData.conclusion
+      })
+    };
+    
+    try {
+      const url = currentId ? `/api/entretiens/${currentId}` : '/api/entretiens';
+      const method = currentId ? 'PUT' : 'POST';
+      
+      const response = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(entretienToSave)
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Erreur HTTP ${response.status}`);
+      }
+      
+      const result = await response.json();
+      
+      // Mettre à jour l'état local APRÈS la sauvegarde réussie
+      setEntretienData(prev => ({ ...prev, status: newStatus }));
+      setShowStatusDropdown(false);
+      
+      toast.success(`Statut mis à jour : ${newStatus === 'brouillon' ? 'Brouillon' : 'Finalisé'}`);
+      
+      // Si nouveau entretien créé, sauvegarder l'ID
+      if (!currentId && result.data?.id) {
+        setLocalEntretienId(result.data.id);
+      }
+      
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour du statut:', error);
+      toast.error('Erreur lors de la mise à jour du statut');
+    }
+  }, [isReadOnly, localEntretienId, entretienId, patient.id, entretienData]);
+
+  // Effet pour calculer la position du dropdown
+  useEffect(() => {
+    if (showStatusDropdown && statusButtonRef.current) {
+      const rect = statusButtonRef.current.getBoundingClientRect();
+      setDropdownPosition({
+        top: rect.bottom + 8,
+        left: rect.left
+      });
+    }
+  }, [showStatusDropdown]);
+
+  // Configuration des sections
+  const sections: Section[] = useMemo(() => [
+    {
+      id: 'sante',
+      title: 'Santé au Travail',
+      icon: <div className="w-5 h-5 bg-gradient-to-br from-amber-400 to-yellow-500 rounded-full flex items-center justify-center text-white text-xs font-bold">1</div>,
+      color: 'border-yellow-500 bg-yellow-50',
+      isActive: activeSection === 'sante'
+    },
+    {
+      id: 'examen',
+      title: 'Examen Clinique',
+      icon: <div className="w-5 h-5 bg-gradient-to-br from-purple-400 to-violet-500 rounded-full flex items-center justify-center text-white text-xs font-bold">2</div>,
+      color: 'border-purple-500 bg-purple-50',
+      isActive: activeSection === 'examen'
+    },
+    {
+      id: 'imaa',
+      title: 'IMAA',
+      icon: <div className="w-5 h-5 bg-gradient-to-br from-orange-400 to-amber-500 rounded-full flex items-center justify-center text-white text-xs font-bold">3</div>,
+      color: 'border-orange-500 bg-orange-50',
+      isActive: activeSection === 'imaa'
+    },
+    {
+      id: 'conclusion',
+      title: 'Conclusion',
+      icon: <div className="w-5 h-5 bg-gradient-to-br from-pink-400 to-rose-500 rounded-full flex items-center justify-center text-white text-xs font-bold">4</div>,
+      color: 'border-pink-500 bg-pink-50',
+      isActive: activeSection === 'conclusion'
+    }
+  ], [activeSection]);
+
+  // Fonction de scroll intelligent vers une section
+  const scrollToSection = useCallback((sectionId: string) => {
+    const element = sectionRefs.current[sectionId];
+    if (element && scrollContainerRef.current) {
+      const container = scrollContainerRef.current;
+      const scrollTop = element.offsetTop - 80;
+      
+      container.scrollTo({
+        top: scrollTop,
+        behavior: 'smooth'
+      });
+      
+      setActiveSection(sectionId);
+      
+      if (!expandedSections.has(sectionId)) {
+        setExpandedSections(prev => new Set([...prev, sectionId]));
+      }
+    }
+  }, [expandedSections]);
+
   const handleCloseEntretien = useCallback(async () => {
     const currentId = localEntretienId || entretienId;
     
@@ -306,9 +395,60 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
     }
   }, [localEntretienId, entretienId, isPaused, entretienData.status, forcePause, onClose]);
 
+  // Navigation suivant/précédent
+  const goToNextSection = useCallback(() => {
+    const currentIndex = sections.findIndex(s => s.id === activeSection);
+    if (currentIndex < sections.length - 1) {
+      scrollToSection(sections[currentIndex + 1].id);
+    }
+  }, [activeSection, sections, scrollToSection]);
+
+  const goToPrevSection = useCallback(() => {
+    const currentIndex = sections.findIndex(s => s.id === activeSection);
+    if (currentIndex > 0) {
+      scrollToSection(sections[currentIndex - 1].id);
+    }
+  }, [activeSection, sections, scrollToSection]);
+
+  // Toggle expansion d'une section
+  const toggleSection = useCallback((sectionId: string) => {
+    setExpandedSections(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(sectionId)) {
+        newSet.delete(sectionId);
+      } else {
+        newSet.add(sectionId);
+      }
+      return newSet;
+    });
+    
+    if (!expandedSections.has(sectionId)) {
+      setTimeout(() => scrollToSection(sectionId), 100);
+    }
+  }, [expandedSections, scrollToSection]);
+
   // Handlers de changement de données
   const handleSanteTravailChange = useCallback((newData: { vecuTravail: VecuTravailData; modeVie: ModeVieData }) => {
-    setEntretienData(prev => ({ ...prev, santeTravail: newData }));
+    setEntretienData(prev => {
+      const updated = { 
+        ...prev, 
+        santeTravail: {
+          vecuTravail: {
+            ...prev.santeTravail.vecuTravail,
+            ...newData.vecuTravail,
+            motifVisite: {
+              ...prev.santeTravail.vecuTravail.motifVisite,
+              ...newData.vecuTravail.motifVisite
+            }
+          },
+          modeVie: {
+            ...prev.santeTravail.modeVie,
+            ...newData.modeVie
+          }
+        }
+      };
+      return updated;
+    });
   }, []);
   
   const handleExamenCliniqueChange = useCallback((newData: any) => {
@@ -342,18 +482,32 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
             break;
         }
       }
+      
+      if (e.key === 'Escape') {
+        setShowStatusDropdown(false);
+      }
+    };
+
+    const handleClickOutside = (e: MouseEvent) => {
+      if (showStatusDropdown) {
+        setShowStatusDropdown(false);
+      }
     };
 
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [saveEntretien, goToNextSection, goToPrevSection, isReadOnly]);
+    document.addEventListener('click', handleClickOutside);
+    
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, [saveEntretien, goToNextSection, goToPrevSection, isReadOnly, showStatusDropdown]);
 
   // Chargement des données d'entretien
   useEffect(() => {
     if (entretienId) {
       const fetchEntretien = async () => {
         try {
-          console.log(`Chargement de l'entretien ${entretienId}`);
           const response = await fetch(`/api/entretiens/${entretienId}`);
           
           if (!response.ok) {
@@ -366,22 +520,54 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
             throw new Error('Données non trouvées');
           }
           
+          // Parsing sécurisé
           let donnees = {};
           if (typeof result.data.donneesEntretien === 'string') {
-            donnees = JSON.parse(result.data.donneesEntretien);
-          } else {
-            donnees = result.data.donneesEntretien || {};
+            try {
+              donnees = JSON.parse(result.data.donneesEntretien);
+            } catch (parseError) {
+              console.error('Erreur de parsing JSON:', parseError);
+              donnees = {};
+            }
+          } else if (result.data.donneesEntretien && typeof result.data.donneesEntretien === 'object') {
+            donnees = result.data.donneesEntretien;
           }
           
-          setEntretienData({
+          // Construction sécurisée des données avec fusion correcte
+          const nouvellesDonnees = {
             numeroEntretien: result.data.numeroEntretien,
             status: result.data.status,
-            santeTravail: donnees.santeTravail || { vecuTravail: initialVecuTravailData, modeVie: initialModeVieData },
-            examenClinique: donnees.examenClinique || defaultExamenCliniqueData,
+            santeTravail: {
+              vecuTravail: {
+                ...initialVecuTravailData,
+                ...donnees.santeTravail?.vecuTravail,
+                motifVisite: {
+                  motifs: Array.isArray(donnees.santeTravail?.vecuTravail?.motifVisite?.motifs) 
+                    ? donnees.santeTravail.vecuTravail.motifVisite.motifs
+                    : initialVecuTravailData.motifVisite.motifs,
+                  commentaires: donnees.santeTravail?.vecuTravail?.motifVisite?.commentaires || 
+                                initialVecuTravailData.motifVisite.commentaires
+                }
+              },
+              modeVie: {
+                ...initialModeVieData,
+                ...donnees.santeTravail?.modeVie
+              }
+            },
+            examenClinique: {
+              ...defaultExamenCliniqueData,
+              ...donnees.examenClinique
+            },
             imaa: donnees.imaa || {},
-            conclusion: donnees.conclusion || defaultConclusionData
-          });
+            conclusion: {
+              ...defaultConclusionData,
+              ...donnees.conclusion
+            }
+          };
           
+          setEntretienData(nouvellesDonnees);
+          
+          // Gestion du timer si entretien existant
           if (result.data.tempsDebut) {
             const debut = new Date(result.data.tempsDebut);
             const now = new Date();
@@ -408,6 +594,7 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
               initialPaused: shouldBePaused
             });
           }
+          
         } catch (error) {
           console.error('Erreur lors du chargement des données:', error);
           toast.error('Erreur lors du chargement des données');
@@ -463,175 +650,263 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
   }, [localEntretienId, entretienId, isPaused, entretienData.status]);
 
   return (
-    <div className="h-full flex relative">
-  {/* Sidebar de navigation des sections */}
-  <div className="w-80 bg-white/20 backdrop-blur-xl border-r border-white/30 shadow-2xl flex flex-col">
+    <div className="h-full flex relative" style={{ zoom: `${globalZoom}%` }}>
+      {/* Sidebar de navigation des sections */}
+      <div 
+        className={`${sidebarCollapsed ? 'w-16' : 'w-80'} transition-all duration-300 flex flex-col h-screen overflow-hidden`}
+        style={{ 
+          background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.03) 25%, rgba(255, 255, 255, 0.02) 75%, rgba(255, 255, 255, 0.08) 100%)',
+          backdropFilter: 'blur(24px)',
+          borderRight: '1px solid rgba(255, 255, 255, 0.15)'
+        }}
+      >
         {/* En-tête de navigation */}
-        <div className="p-4 border-b border-white/30">
+        <div className="p-4 border-b border-white/10">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="font-semibold text-slate-700">Navigation</h3>
+            {!sidebarCollapsed && (
+              <div className="flex-1">
+                <h1 className="text-xl font-medium bg-gradient-to-r from-blue-700 to-indigo-700 bg-clip-text text-transparent">
+                  {getSidebarTitle()}
+                </h1>
+              </div>
+            )}
             <div className="flex items-center gap-1">
+              {!sidebarCollapsed && (
+                <>
+                  <button
+                    onClick={() => setGlobalZoom(prev => Math.max(prev - 5, 80))}
+                    className="p-2 hover:bg-white/40 rounded-lg text-slate-600 transition-all"
+                    title="Zoom -"
+                  >
+                    <ZoomOut size={16} />
+                  </button>
+                  <span className="text-xs font-medium text-slate-600 min-w-[35px] text-center">{globalZoom}%</span>
+                  <button
+                    onClick={() => setGlobalZoom(prev => Math.min(prev + 5, 120))}
+                    className="p-2 hover:bg-white/40 rounded-lg text-slate-600 transition-all"
+                    title="Zoom +"
+                  >
+                    <ZoomIn size={16} />
+                  </button>
+                </>
+              )}
               <button
-                onClick={() => setGlobalZoom(prev => Math.max(prev - 5, 80))}
-                className="p-1 hover:bg-white/40 rounded text-slate-600"
-                title="Zoom -"
+                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                className="p-2 hover:bg-white/40 rounded-lg text-slate-600 transition-all"
+                title={sidebarCollapsed ? "Étendre la sidebar" : "Réduire la sidebar"}
               >
-                <ZoomOut size={14} />
-              </button>
-              <span className="text-xs font-medium text-slate-600 min-w-[35px] text-center">{globalZoom}%</span>
-              <button
-                onClick={() => setGlobalZoom(prev => Math.min(prev + 5, 120))}
-                className="p-1 hover:bg-white/40 rounded text-slate-600"
-                title="Zoom +"
-              >
-                <ZoomIn size={14} />
+                {sidebarCollapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
               </button>
             </div>
           </div>
           
-          {/* Progression globale */}
-<div className="bg-slate-300 rounded-full h-3 mb-2 shadow-inner border border-slate-400">
-  <div 
-    className="bg-gradient-to-r from-green-500 to-green-600 h-3 rounded-full transition-all duration-500 shadow-lg"
-    style={{ width: `${(sections.filter(s => s.isCompleted).length / sections.length) * 100}%` }}
-  />
-</div>
-          <p className="text-sm text-slate-700 text-center font-medium">
-  {sections.filter(s => s.isCompleted).length} sur {sections.length} sections complétées
-</p>
+          {!sidebarCollapsed && (
+            <p className="text-sm text-slate-700 text-center font-light">
+              Navigation entre les sections
+            </p>
+          )}
         </div>
 
         {/* Liste des sections */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-2">
-          {sections.map((section, index) => (
-            <div key={section.id} className="relative">
-              <button
-                onClick={() => scrollToSection(section.id)}
-                data-section={section.id}
-                className={`nav-item w-full text-left p-3 rounded-lg transition-all duration-200 border-2 ${
-                  section.isActive ? 'active' : ''
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="relative">
-                      {section.icon}
-                      {section.isCompleted && (
-                        <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full flex items-center justify-center">
-                          <Check size={8} className="text-white" />
+        <div className="flex-1 overflow-y-auto custom-scrollbar p-4">
+          <div style={{ height: '120px' }}></div>
+          
+          <div className="space-y-6">
+            {sections.map((section, index) => (
+              <div key={section.id} className="relative">
+                <button
+                  onClick={() => scrollToSection(section.id)}
+                  data-section={section.id}
+                  className={`nav-item w-full ${
+                    section.isActive ? 'active' : ''
+                  } transition-all duration-300`}
+                  title={sidebarCollapsed ? section.title : undefined}
+                >
+                  <div className={`flex items-center ${sidebarCollapsed ? 'justify-center' : 'justify-between'}`}>
+                    <div className={`flex items-center ${sidebarCollapsed ? '' : 'gap-3'}`}>
+                      <div className="relative">
+                        {section.icon}
+                      </div>
+                      {!sidebarCollapsed && (
+                        <div>
+                          <span className="font-medium text-slate-800">{section.title}</span>
+                          <div className="flex items-center gap-1 mt-1">
+                            <span className="text-xs text-slate-500">Partie {index + 1}</span>
+                          </div>
                         </div>
                       )}
                     </div>
-                    <div>
-                      <span className="font-medium text-slate-800">{section.title}</span>
-                      <div className="flex items-center gap-1 mt-1">
-                        <span className="text-xs text-slate-500">Partie {index + 1}</span>
-                        {section.isCompleted && (
-                          <span className="text-xs text-green-600 font-medium">✓ Complétée</span>
-                        )}
+                    
+                    {!sidebarCollapsed && (
+                      <div
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleSection(section.id);
+                        }}
+                        className="p-1 hover:bg-white/40 rounded cursor-pointer"
+                      >
+                        {expandedSections.has(section.id) ? 
+                          <div className="w-4 h-4 bg-gradient-to-br from-red-500 to-rose-600 rounded-full flex items-center justify-center">
+                            <span className="text-white text-xs font-bold">−</span>
+                          </div> : 
+                          <div className="w-4 h-4 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-full flex items-center justify-center">
+                            <span className="text-white text-xs font-bold">+</span>
+                          </div>
+                        }
                       </div>
-                    </div>
+                    )}
                   </div>
-                  
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      toggleSection(section.id);
-                    }}
-                    className="p-1 hover:bg-white/40 rounded"
-                  >
-                    {expandedSections.has(section.id) ? 
-  <div className="w-4 h-4 bg-red-500 rounded-full flex items-center justify-center">
-    <span className="text-white text-xs font-bold">−</span>
-  </div> : 
-  <div className="w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
-    <span className="text-white text-xs font-bold">+</span>
-  </div>
-}
-                  </button>
-                </div>
-              </button>
-            </div>
-          ))}
+                </button>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Actions de navigation */}
-        <div className="p-4 border-t border-white/30 space-y-2">
-          <div className="flex gap-2">
-            <button
-              onClick={goToPrevSection}
-              disabled={activeSection === sections[0]?.id}
-              className="flex-1 px-3 py-2 text-sm btn-glass disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-            >
-              ← Précédent
-            </button>
-            <button
-              onClick={goToNextSection}
-              disabled={activeSection === sections[sections.length - 1]?.id}
-              className="flex-1 px-3 py-2 text-sm btn-glass disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-            >
-              Suivant →
-            </button>
+        {!sidebarCollapsed && (
+          <div className="p-4 border-t border-white/10 space-y-2">
+            <div className="flex gap-2">
+              <button
+                onClick={goToPrevSection}
+                disabled={activeSection === sections[0]?.id}
+                className="flex-1 px-3 py-2 text-sm bg-white/30 backdrop-blur-xl border border-white/40 rounded-xl hover:bg-white/40 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium text-slate-700"
+              >
+                ← Précédent
+              </button>
+              <button
+                onClick={goToNextSection}
+                disabled={activeSection === sections[sections.length - 1]?.id}
+                className="flex-1 px-3 py-2 text-sm bg-white/30 backdrop-blur-xl border border-white/40 rounded-xl hover:bg-white/40 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium text-slate-700"
+              >
+                Suivant →
+              </button>
+            </div>
+            
+            {/* Raccourcis clavier */}
+            <div className="text-xs text-slate-500 text-center space-y-1">
+              <div>⌘/Ctrl + S : Sauvegarder</div>
+              <div>⌘/Ctrl + ↑/↓ : Navigation</div>
+            </div>
           </div>
-          
-          {/* Raccourcis clavier */}
-          <div className="text-xs text-slate-500 text-center space-y-1">
-            <div>⌘/Ctrl + S : Sauvegarder</div>
-            <div>⌘/Ctrl + ↑/↓ : Navigation</div>
-          </div>
-        </div>
+        )}
       </div>
 
       {/* Zone principale avec contenu */}
       <div className="flex-1 flex flex-col">
         {/* En-tête fixe */}
-        <div className="bg-white/90 backdrop-blur-md border-b border-white/40 shadow-sm">
-          <div className="p-4">
-            <div className="flex justify-between items-center">
-              <div>
-                <h1 className="text-xl font-bold bg-gradient-to-r from-blue-700 to-violet-700 bg-clip-text text-transparent">
-                  {entretienId 
-                    ? `${isReadOnly ? 'Consultation' : 'Modification'} de l'entretien n°${entretienData.numeroEntretien}` 
-                    : 'Nouvel entretien'} - {patient.civilites} {patient.nom} {patient.prenom}
-                </h1>
-                <div className="text-sm text-slate-600 mt-1">
-                  {patient.age} ans • {patient.poste} • {patient.departement}
-                  {isReadOnly && (
-                    <span className="ml-2 inline-flex items-center px-2 py-1 rounded-full bg-blue-100 text-blue-700 text-xs font-medium">
-                      <Clock size={12} className="mr-1" />
-                      Lecture seule
-                    </span>
+        <div className="relative">
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 via-indigo-500/10 to-purple-500/10 rounded-bl-3xl blur-xl"></div>
+          <div className="relative bg-white/25 backdrop-blur-2xl border-b border-white/40 shadow-xl">
+            <div className="p-6">
+              <div className="flex justify-between items-center">
+                <div className="space-y-2">
+                  <div className="text-2xl font-medium bg-gradient-to-r from-blue-700 to-indigo-700 bg-clip-text text-transparent">
+                    {getDynamicTitle()}
+                  </div>
+                  <div className="flex items-center space-x-4">
+                    <div className="relative">
+                      <div className="absolute inset-0 bg-gradient-to-r from-slate-500/20 to-gray-500/20 rounded-2xl blur"></div>
+                      <div className="relative bg-white/40 backdrop-blur-xl border border-white/50 rounded-2xl px-4 py-2">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
+                            <span className="text-white font-bold text-sm">
+                              {patient.civilites === 'Monsieur' ? 'M' : patient.civilites === 'Madame' ? 'Mme' : 'Mx'}
+                            </span>
+                          </div>
+                          <div>
+                            <p className="font-medium text-slate-800">
+                              {patient.nom} {patient.prenom}
+                            </p>
+                            <div className="flex items-center space-x-2 text-sm text-slate-600">
+                              <span>{patient.age} ans</span>
+                              <span>•</span>
+                              <span>{patient.poste}</span>
+                              <span>•</span>
+                              <span>{patient.departement}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {isReadOnly && (
+                      <div className="relative">
+                        <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-indigo-500/10 rounded-xl blur"></div>
+                        <div className="relative bg-blue-50/80 backdrop-blur-xl border border-blue-200/50 rounded-xl px-3 py-2 flex items-center">
+                          <Clock size={16} className="text-blue-600 mr-2" />
+                          <span className="text-sm font-medium text-blue-800">Lecture seule</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Menu déroulant de statut */}
+                    <div className="relative">
+                      <div className="absolute inset-0 bg-gradient-to-r from-slate-500/10 to-gray-500/10 rounded-xl blur"></div>
+                      <div className="relative">
+                        <div className="flex items-center gap-2">
+                          <label className="text-sm font-medium text-slate-700">Statut :</label>
+                          <div className="relative">
+                            <button
+                              ref={statusButtonRef}
+                              onClick={() => !isReadOnly && setShowStatusDropdown(!showStatusDropdown)}
+                              disabled={isReadOnly}
+                              className={`flex items-center gap-2 px-3 py-2 rounded-xl border backdrop-blur-xl transition-all ${
+                                getStatusInfo(entretienData.status).bgColor
+                              } ${getStatusInfo(entretienData.status).borderColor} ${
+                                isReadOnly ? 'cursor-not-allowed opacity-60' : 'hover:shadow-lg cursor-pointer'
+                              }`}
+                            >
+                              <span className="text-lg">{getStatusInfo(entretienData.status).icon}</span>
+                              <span className={`text-sm font-medium ${getStatusInfo(entretienData.status).textColor}`}>
+                                {getStatusInfo(entretienData.status).label}
+                              </span>
+                              {!isReadOnly && (
+                                <svg 
+                                  className={`w-4 h-4 transition-transform ${showStatusDropdown ? 'rotate-180' : ''} ${getStatusInfo(entretienData.status).textColor}`}
+                                  fill="none" 
+                                  stroke="currentColor" 
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                </svg>
+                              )}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-4">
+                  <Timer 
+                    seconds={seconds}
+                    isPaused={isPaused}
+                    onTogglePause={togglePause}
+                    isReadOnly={isReadOnly || entretienData.status !== 'brouillon'}
+                    className="relative bg-white/40 backdrop-blur-xl border border-white/50 rounded-xl px-4 py-2 shadow-lg"
+                  />
+                  
+                  {onClose && (
+                    <button
+                      onClick={handleCloseEntretien}
+                      className="px-4 py-2 text-sm font-medium bg-white/40 backdrop-blur-xl border border-white/50 rounded-xl hover:bg-white/50 transition-all duration-300 text-slate-700 flex items-center gap-2 shadow-lg hover:shadow-xl hover:-translate-y-0.5"
+                    >
+                      <ArrowLeft size={16} />
+                      Retour
+                    </button>
+                  )}
+                  
+                  {!isReadOnly && (
+                    <button 
+                      onClick={saveEntretien}
+                      className="px-6 py-2 text-sm font-medium bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 flex items-center gap-2"
+                    >
+                      <Save size={16} />
+                      Sauvegarder
+                    </button>
                   )}
                 </div>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <Timer 
-                  seconds={seconds}
-                  isPaused={isPaused}
-                  onTogglePause={togglePause}
-                  isReadOnly={isReadOnly || entretienData.status !== 'brouillon'}
-                  className="glass-card"
-                />
-                
-                {onClose && (
-                  <button
-                    onClick={handleCloseEntretien}
-                    className="px-4 py-2 text-sm font-medium text-slate-700 btn-glass"
-                  >
-                    ← Retour
-                  </button>
-                )}
-                
-                {!isReadOnly && (
-                  <button 
-                    onClick={saveEntretien}
-                    className="px-4 py-2 text-sm font-medium bg-gradient-to-r from-blue-500 to-violet-600 text-white rounded-lg hover:from-blue-600 hover:to-violet-700 transition-all shadow-lg flex items-center gap-2"
-                  >
-                    <Edit3 size={14} />
-                    Sauvegarder
-                  </button>
-                )}
               </div>
             </div>
           </div>
@@ -641,7 +916,6 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
         <div 
           ref={scrollContainerRef}
           className="flex-1 overflow-y-auto custom-scrollbar"
-          style={{ zoom: `${globalZoom}%` }}
         >
           <div className="p-6 space-y-6">
            
@@ -658,22 +932,27 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-yellow-500 rounded-full flex items-center justify-center text-white font-bold">
-          1
-        </div>
-                    <h2 className="text-lg font-semibold text-slate-800">Santé au Travail</h2>
-                    {sections.find(s => s.id === 'sante')?.isCompleted && (
-                      <Check size={20} className="text-green-600" />
-                    )}
+                    <div className="w-8 h-8 bg-gradient-to-br from-amber-500 to-yellow-600 rounded-xl flex items-center justify-center text-white font-bold shadow-lg">
+                      1
+                    </div>
+                    <h2 className="text-lg font-medium text-slate-800">Santé au Travail</h2>
                   </div>
-                  {expandedSections.has('sante') ? 
-  <div className="w-5 h-5 bg-red-500 rounded-full flex items-center justify-center">
-    <span className="text-white text-sm font-bold">−</span>
-  </div> : 
-  <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
-    <span className="text-white text-sm font-bold">+</span>
-  </div>
-}
+                  <div 
+                    className="w-5 h-5 bg-gradient-to-br rounded-full flex items-center justify-center shadow-lg cursor-pointer"
+                    style={{
+                      background: expandedSections.has('sante') 
+                        ? 'linear-gradient(135deg, #ef4444 0%, #f43f5e 100%)' 
+                        : 'linear-gradient(135deg, #10b981 0%, #14b8a6 100%)'
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleSection('sante');
+                    }}
+                  >
+                    <span className="text-white text-sm font-bold">
+                      {expandedSections.has('sante') ? '−' : '+'}
+                    </span>
+                  </div>
                 </div>
               </div>
               
@@ -701,22 +980,19 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center text-white font-bold">
-          2
-        </div>
-                    <h2 className="text-lg font-semibold text-slate-800">Examen Clinique</h2>
-                    {sections.find(s => s.id === 'examen')?.isCompleted && (
-                      <Check size={20} className="text-green-600" />
-                    )}
+                    <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-violet-600 rounded-xl flex items-center justify-center text-white font-bold shadow-lg">
+                      2
+                    </div>
+                    <h2 className="text-lg font-medium text-slate-800">Examen Clinique</h2>
                   </div>
                   {expandedSections.has('examen') ? 
-  <div className="w-5 h-5 bg-red-500 rounded-full flex items-center justify-center">
-    <span className="text-white text-sm font-bold">−</span>
-  </div> : 
-  <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
-    <span className="text-white text-sm font-bold">+</span>
-  </div>
-}
+                    <div className="w-5 h-5 bg-gradient-to-br from-red-500 to-rose-600 rounded-full flex items-center justify-center shadow-lg">
+                      <span className="text-white text-sm font-bold">−</span>
+                    </div> : 
+                    <div className="w-5 h-5 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-full flex items-center justify-center shadow-lg">
+                      <span className="text-white text-sm font-bold">+</span>
+                    </div>
+                  }
                 </div>
               </div>
               
@@ -744,22 +1020,19 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center text-white font-bold">
+                    <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-amber-600 rounded-xl flex items-center justify-center text-white font-bold shadow-lg">
                       3
                     </div>
-                    <h2 className="text-lg font-semibold text-slate-800">IMAA</h2>
-                    {sections.find(s => s.id === 'imaa')?.isCompleted && (
-                      <Check size={20} className="text-green-600" />
-                    )}
+                    <h2 className="text-lg font-medium text-slate-800">IMAA</h2>
                   </div>
                   {expandedSections.has('imaa') ? 
-  <div className="w-5 h-5 bg-red-500 rounded-full flex items-center justify-center">
-    <span className="text-white text-sm font-bold">−</span>
-  </div> : 
-  <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
-    <span className="text-white text-sm font-bold">+</span>
-  </div>
-}
+                    <div className="w-5 h-5 bg-gradient-to-br from-red-500 to-rose-600 rounded-full flex items-center justify-center shadow-lg">
+                      <span className="text-white text-sm font-bold">−</span>
+                    </div> : 
+                    <div className="w-5 h-5 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-full flex items-center justify-center shadow-lg">
+                      <span className="text-white text-xs font-bold">+</span>
+                    </div>
+                  }
                 </div>
               </div>
               
@@ -774,7 +1047,7 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
               )}
             </div>
 
-            {/* Section Conclusion - ROSE */}
+            {/* Section Conclusion */}
             <div 
               ref={(el) => sectionRefs.current['conclusion'] = el}
               className={`section-container conclusion-section transition-all duration-300 ${
@@ -787,22 +1060,19 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-pink-500 rounded-full flex items-center justify-center text-white font-bold">
+                    <div className="w-8 h-8 bg-gradient-to-br from-pink-500 to-rose-600 rounded-xl flex items-center justify-center text-white font-bold shadow-lg">
                       4
                     </div>
-                    <h2 className="text-lg font-semibold text-slate-800">Conclusion</h2>
-                    {sections.find(s => s.id === 'conclusion')?.isCompleted && (
-                      <Check size={20} className="text-green-600" />
-                    )}
+                    <h2 className="text-lg font-medium text-slate-800">Conclusion</h2>
                   </div>
                   {expandedSections.has('conclusion') ? 
-  <div className="w-5 h-5 bg-red-500 rounded-full flex items-center justify-center">
-    <span className="text-white text-sm font-bold">−</span>
-  </div> : 
-  <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
-    <span className="text-white text-sm font-bold">+</span>
-  </div>
-}
+                    <div className="w-5 h-5 bg-gradient-to-br from-red-500 to-rose-600 rounded-full flex items-center justify-center shadow-lg">
+                      <span className="text-white text-sm font-bold">−</span>
+                    </div> : 
+                    <div className="w-5 h-5 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-full flex items-center justify-center shadow-lg">
+                      <span className="text-white text-xs font-bold">+</span>
+                    </div>
+                  }
                 </div>
               </div>
               
@@ -822,23 +1092,28 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
               <button
                 onClick={goToPrevSection}
                 disabled={activeSection === sections[0]?.id}
-                className="px-6 py-3 btn-glass disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-lg"
+                className="px-6 py-3 bg-white/40 backdrop-blur-xl border border-white/50 rounded-xl hover:bg-white/50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 font-medium text-slate-700"
               >
                 <ChevronUp size={16} />
                 Section précédente
               </button>
               
               <div className="flex items-center gap-4">
-                <div className="text-sm text-slate-600">
-                  Section {sections.findIndex(s => s.id === activeSection) + 1} sur {sections.length}
+                <div className="relative">
+                  <div className="absolute inset-0 bg-gradient-to-r from-slate-500/10 to-gray-500/10 rounded-xl blur"></div>
+                  <div className="relative bg-white/30 backdrop-blur-xl border border-white/40 rounded-xl px-4 py-2">
+                    <div className="text-sm text-slate-600 font-medium">
+                      Section {sections.findIndex(s => s.id === activeSection) + 1} sur {sections.length}
+                    </div>
+                  </div>
                 </div>
                 
                 {!isReadOnly && (
                   <button 
                     onClick={saveEntretien}
-                    className="px-6 py-3 bg-gradient-to-r from-blue-500 to-violet-600 text-white rounded-lg hover:from-blue-600 hover:to-violet-700 transition-all shadow-lg flex items-center gap-2"
+                    className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 flex items-center gap-2 font-medium"
                   >
-                    <Edit3 size={16} />
+                    <Save size={16} />
                     Sauvegarder les modifications
                   </button>
                 )}
@@ -847,45 +1122,28 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
               <button
                 onClick={goToNextSection}
                 disabled={activeSection === sections[sections.length - 1]?.id}
-                className="px-6 py-3 btn-glass disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-lg"
+                className="px-6 py-3 bg-white/40 backdrop-blur-xl border border-white/50 rounded-xl hover:bg-white/50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 font-medium text-slate-700"
               >
                 Section suivante
                 <ChevronDown size={16} />
               </button>
             </div>
 
-            {/* Résumé final si toutes les sections sont complétées */}
-            {sections.every(s => s.isCompleted) && (
-              <div className="glass-card bg-gradient-to-r from-green-100 to-blue-100 rounded-xl p-6 border border-green-200 shadow-lg">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
-                    <Check size={20} className="text-white" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-green-800">Entretien complété !</h3>
-                    <p className="text-sm text-green-600">Toutes les sections ont été remplies.</p>
+            {/* Résumé final */}
+            {entretienData.status === 'finalise' && (
+              <div className="relative">
+                <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-cyan-500/10 rounded-3xl blur-xl"></div>
+                <div className="relative bg-white/40 backdrop-blur-2xl border border-white/50 rounded-3xl p-8 shadow-xl">
+                  <div className="flex items-center gap-4 mb-6">
+                    <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center shadow-lg">
+                      <Check size={24} className="text-white" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-medium text-emerald-800">Entretien finalisé !</h3>
+                      <p className="text-sm text-emerald-600 font-light">Cet entretien a été marqué comme terminé.</p>
+                    </div>
                   </div>
                 </div>
-                
-                {!isReadOnly && entretienData.status === 'brouillon' && (
-                  <div className="flex gap-3">
-                    <button
-                      onClick={() => {
-                        setEntretienData(prev => ({ ...prev, status: 'finalise' }));
-                        saveEntretien();
-                      }}
-                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all"
-                    >
-                      Finaliser l'entretien
-                    </button>
-                    <button
-                      onClick={saveEntretien}
-                      className="px-4 py-2 btn-glass text-green-700 border border-green-300"
-                    >
-                      Sauvegarder en brouillon
-                    </button>
-                  </div>
-                )}
               </div>
             )}
           </div>
@@ -913,6 +1171,54 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
         thirdOptionText="Quitter sans sauvegarder"
         variant="info"
       />
+
+      {/* Dropdown de statut */}
+      {showStatusDropdown && !isReadOnly && (
+        <div 
+          className="fixed w-48 bg-white border border-gray-200 rounded-xl shadow-2xl overflow-hidden"
+          style={{ 
+            zIndex: 2147483647,
+            top: `${dropdownPosition.top}px`,
+            left: `${dropdownPosition.left}px`,
+            backgroundColor: 'white',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.8)'
+          }}
+        >
+          <div className="py-1">
+            <button
+              onClick={() => handleStatusChange('brouillon')}
+              className={`w-full text-left px-4 py-3 hover:bg-amber-50 transition-colors flex items-center gap-3 ${
+                entretienData.status === 'brouillon' ? 'bg-amber-50' : ''
+              }`}
+            >
+              <span className="text-lg">✏️</span>
+              <div>
+                <div className="font-medium text-amber-800">Brouillon</div>
+                <div className="text-xs text-amber-600">En cours de rédaction</div>
+              </div>
+              {entretienData.status === 'brouillon' && (
+                <div className="ml-auto w-2 h-2 bg-amber-500 rounded-full"></div>
+              )}
+            </button>
+            
+            <button
+              onClick={() => handleStatusChange('finalise')}
+              className={`w-full text-left px-4 py-3 hover:bg-emerald-50 transition-colors flex items-center gap-3 ${
+                entretienData.status === 'finalise' ? 'bg-emerald-50' : ''
+              }`}
+            >
+              <span className="text-lg">✓</span>
+              <div>
+                <div className="font-medium text-emerald-800">Finalisé</div>
+                <div className="text-xs text-emerald-600">Entretien terminé</div>
+              </div>
+              {entretienData.status === 'finalise' && (
+                <div className="ml-auto w-2 h-2 bg-emerald-500 rounded-full"></div>
+              )}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

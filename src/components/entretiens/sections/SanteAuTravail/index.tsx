@@ -1,13 +1,13 @@
 // src/components/entretiens/sections/SanteAuTravail/index.tsx
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import VecuTravail, { VecuTravailData } from './VecuTravail';
 import ModeVie, { ModeVieData } from './ModeVie';
 
 const initialVecuTravailData: VecuTravailData = {
   motifVisite: {
-    motif: '',
+    motifs: [], // Changé de motif: '' à motifs: []
     commentaires: ''
   },
   postesOccupes: '',
@@ -80,17 +80,39 @@ interface SanteTravailProps {
 }
 
 export const SanteTravail = ({ data, onChange, isReadOnly = false }: SanteTravailProps) => {
-  console.log('SANTÉ: Props reçues:', data);
+  // ✅ CORRECTION : Fonction pour construire safeData
+  const buildSafeData = useCallback((inputData: any) => ({
+    vecuTravail: {
+      ...initialVecuTravailData,
+      ...inputData?.vecuTravail,
+      motifVisite: {
+        ...initialVecuTravailData.motifVisite,
+        ...inputData?.vecuTravail?.motifVisite,
+        motifs: Array.isArray(inputData?.vecuTravail?.motifVisite?.motifs) 
+          ? inputData.vecuTravail.motifVisite.motifs 
+          : []
+      }
+    },
+    modeVie: {
+      ...initialModeVieData,
+      ...inputData?.modeVie
+    }
+  }), []);
 
-  // Vérification de sécurité
-  const safeData = {
-    vecuTravail: data?.vecuTravail || initialVecuTravailData,
-    modeVie: data?.modeVie || initialModeVieData
-  };
+  // ✅ CORRECTION : Calculer safeData à chaque rendu
+  const safeData = useMemo(() => buildSafeData(data), [data, buildSafeData]);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [localData, setLocalData] = useState(safeData);
 
+  // ✅ CORRECTION CRITIQUE : Synchroniser localData avec safeData quand data change
+  useEffect(() => {
+    const newSafeData = buildSafeData(data);
+    setLocalData(newSafeData);
+  }, [data, buildSafeData]);
+
+
+  
   const handleVecuTravailChange = (newVecuData: VecuTravailData) => {
     // Ignorer les modifications en mode lecture seule
     if (isReadOnly) return;

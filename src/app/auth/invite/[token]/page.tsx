@@ -1,9 +1,9 @@
-// src/app/auth/invite/[token]/page.tsx - Corrigé pour Next.js 15
+// src/app/auth/invite/[token]/page.tsx - VERSION UNIFORMISÉE AVEC LE DASHBOARD
 'use client'
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Eye, EyeOff, CheckCircle, Lock, Mail, User } from 'lucide-react'
+import { Eye, EyeOff, CheckCircle, Lock, Mail, User, Shield, ExternalLink } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface InvitationData {
@@ -71,7 +71,7 @@ export default function InviteAcceptPage({
     }
 
     validateInvitation()
-  }, [token, router]) // 🔧 CORRECTION: Dépend maintenant de token au lieu de params.token
+  }, [token, router])
 
   const validateForm = () => {
     if (!formData.name.trim()) {
@@ -138,10 +138,13 @@ export default function InviteAcceptPage({
   // Affichage pendant le chargement du token ou de l'invitation
   if (isLoading || !token) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-        <div className="bg-white rounded-xl shadow-lg p-8 w-full max-w-md text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent mx-auto mb-4"></div>
-          <p className="text-gray-600">Validation de l'invitation...</p>
+      <div className="min-h-screen p-8 flex items-center justify-center">
+        <div className="relative">
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-indigo-500/10 rounded-3xl blur-xl"></div>
+          <div className="relative bg-white/30 backdrop-blur-2xl border border-white/40 rounded-3xl p-8 text-center shadow-xl max-w-xl w-full">
+            <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent mx-auto mb-4"></div>
+            <p className="text-slate-600 font-light">Validation de l'invitation...</p>
+          </div>
         </div>
       </div>
     )
@@ -152,142 +155,236 @@ export default function InviteAcceptPage({
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-      <div className="max-w-md w-full">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <div className="mx-auto h-12 w-12 bg-green-600 rounded-lg flex items-center justify-center mb-4">
-            <CheckCircle className="h-6 w-6 text-white" />
-          </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Bienvenue !</h1>
-          <p className="text-gray-600">Finalisons la création de votre compte</p>
-        </div>
-
-        {/* Informations de l'invitation */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-          <h3 className="font-medium text-blue-900 mb-2">Invitation reçue</h3>
-          <div className="space-y-2 text-sm text-blue-800">
-            <div className="flex items-center">
-              <Mail className="h-4 w-4 mr-2" />
-              <span>{invitationData.email}</span>
-            </div>
-            <div className="flex items-center">
-              <User className="h-4 w-4 mr-2" />
-              <span>Rôle : {getRoleDisplayName(invitationData.role)}</span>
-            </div>
-            <div className="text-xs text-blue-600">
-              Invité par : {invitationData.invitedBy}
+    <div className="min-h-screen p-8">
+      <div className="max-w-xl mx-auto space-y-8">
+        
+        {/* Header style dashboard */}
+        <div className="text-center space-y-6">
+          <div className="relative">
+            <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-cyan-500/10 rounded-3xl blur-2xl"></div>
+            <div className="relative bg-white/25 backdrop-blur-2xl border border-white/40 rounded-3xl p-8 shadow-2xl">
+              <div className="flex flex-col items-center space-y-4">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/20 to-teal-500/20 rounded-2xl blur-xl"></div>
+                  <div className="relative mx-auto h-12 w-12 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center shadow-lg">
+                    <CheckCircle className="h-6 w-6 text-white" />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <h1 className="text-2xl font-light text-slate-900">Bienvenue !</h1>
+                  <p className="text-slate-600 font-light">Finalisons la création de votre compte</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Formulaire */}
-        <div className="bg-white rounded-xl shadow-lg p-8">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Nom complet */}
-            <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
-                Nom complet
-              </label>
-              <input
-                id="name"
-                type="text"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="block w-full px-3 py-3 border border-gray-300 rounded-lg 
-                         focus:ring-2 focus:ring-blue-500 focus:border-blue-500 
-                         placeholder-gray-400"
-                placeholder="Votre nom complet"
-                required
-              />
+        {/* Informations de l'invitation style dashboard */}
+        <div className="relative">
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-indigo-500/5 rounded-2xl blur"></div>
+          <div className="relative bg-blue-50/60 backdrop-blur-xl border border-blue-200/40 rounded-2xl p-6">
+            <h3 className="font-medium text-blue-900 mb-4 flex items-center">
+              <Mail className="h-5 w-5 mr-2" />
+              Invitation reçue
+            </h3>
+            <div className="space-y-3 text-sm text-blue-800">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <Mail className="h-4 w-4 mr-2 text-blue-600" />
+                  <span className="font-medium">{invitationData.email}</span>
+                </div>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <User className="h-4 w-4 mr-2 text-blue-600" />
+                  <span>Rôle : {getRoleDisplayName(invitationData.role)}</span>
+                </div>
+              </div>
+              <div className="text-xs text-blue-600 pt-2 border-t border-blue-200/30">
+                Invité par : {invitationData.invitedBy}
+              </div>
             </div>
+          </div>
+        </div>
 
-            {/* Mot de passe */}
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-                Mot de passe
-              </label>
-              <div className="relative">
+        {/* Formulaire style dashboard */}
+        <div className="relative">
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-indigo-600/10 rounded-3xl blur-xl"></div>
+          <div className="relative bg-white/40 backdrop-blur-2xl border border-white/50 rounded-3xl p-8 shadow-xl">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              
+              {/* Nom complet */}
+              <div className="space-y-2">
+                <label htmlFor="name" className="block text-sm font-medium text-slate-700">
+                  Nom complet
+                </label>
                 <input
-                  id="password"
-                  type={showPassword ? 'text' : 'password'}
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="block w-full pr-10 px-3 py-3 border border-gray-300 rounded-lg 
-                           focus:ring-2 focus:ring-blue-500 focus:border-blue-500 
-                           placeholder-gray-400"
-                  placeholder="Choisissez un mot de passe sécurisé"
+                  id="name"
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  className="block w-full px-4 py-3 bg-white/60 backdrop-blur-xl border border-white/50 rounded-xl 
+                           focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 focus:bg-white/80
+                           placeholder-slate-400 text-slate-800 transition-all duration-300"
+                  placeholder="Votre nom complet"
                   required
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600" />
-                  ) : (
-                    <Eye className="h-5 w-5 text-gray-400 hover:text-gray-600" />
-                  )}
-                </button>
               </div>
-              <p className="mt-1 text-xs text-gray-500">
-                Au moins 8 caractères avec chiffres et caractères spéciaux
-              </p>
-            </div>
 
-            {/* Confirmation mot de passe */}
-            <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
-                Confirmer le mot de passe
-              </label>
-              <input
-                id="confirmPassword"
-                type="password"
-                value={formData.confirmPassword}
-                onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                className="block w-full px-3 py-3 border border-gray-300 rounded-lg 
-                         focus:ring-2 focus:ring-blue-500 focus:border-blue-500 
-                         placeholder-gray-400"
-                placeholder="Confirmez votre mot de passe"
-                required
-              />
-            </div>
-
-            {/* Bouton de création */}
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full flex justify-center py-3 px-4 border border-transparent 
-                       rounded-lg shadow-sm text-sm font-medium text-white 
-                       bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 
-                       focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 
-                       disabled:cursor-not-allowed transition-colors"
-            >
-              {isSubmitting ? (
-                <div className="flex items-center">
-                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
-                  Création du compte...
+              {/* Mot de passe */}
+              <div className="space-y-2">
+                <label htmlFor="password" className="block text-sm font-medium text-slate-700">
+                  Mot de passe
+                </label>
+                <div className="relative">
+                  <input
+                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    className="block w-full pr-12 px-4 py-3 bg-white/60 backdrop-blur-xl border border-white/50 rounded-xl 
+                             focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 focus:bg-white/80
+                             placeholder-slate-400 text-slate-800 transition-all duration-300"
+                    placeholder="Choisissez un mot de passe sécurisé"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute inset-y-0 right-0 pr-4 flex items-center hover:bg-white/20 rounded-r-xl transition-colors"
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-5 w-5 text-slate-400 hover:text-slate-600" />
+                    ) : (
+                      <Eye className="h-5 w-5 text-slate-400 hover:text-slate-600" />
+                    )}
+                  </button>
                 </div>
-              ) : (
-                <div className="flex items-center">
-                  <Lock className="h-4 w-4 mr-2" />
-                  Créer mon compte
-                </div>
-              )}
-            </button>
-          </form>
+                <p className="text-xs text-slate-500 font-light">
+                  Au moins 8 caractères avec chiffres et caractères spéciaux
+                </p>
+              </div>
 
-          {/* Footer */}
-          <div className="mt-6 text-center text-sm text-gray-600">
-            <p>En créant votre compte, vous acceptez nos conditions d'utilisation</p>
-            <p className="mt-1">© 2025 Vital Sync - Système sécurisé</p>
+              {/* Confirmation mot de passe */}
+              <div className="space-y-2">
+                <label htmlFor="confirmPassword" className="block text-sm font-medium text-slate-700">
+                  Confirmer le mot de passe
+                </label>
+                <input
+                  id="confirmPassword"
+                  type="password"
+                  value={formData.confirmPassword}
+                  onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                  className="block w-full px-4 py-3 bg-white/60 backdrop-blur-xl border border-white/50 rounded-xl 
+                           focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 focus:bg-white/80
+                           placeholder-slate-400 text-slate-800 transition-all duration-300"
+                  placeholder="Confirmez votre mot de passe"
+                  required
+                />
+              </div>
+
+              {/* Bouton de création */}
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full flex justify-center py-3 px-4 border border-transparent 
+                         rounded-xl shadow-sm text-sm font-medium text-white 
+                         bg-gradient-to-r from-blue-600 to-indigo-600 
+                         hover:from-blue-700 hover:to-indigo-700 
+                         focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500/50 
+                         disabled:opacity-50 disabled:cursor-not-allowed 
+                         transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5"
+              >
+                {isSubmitting ? (
+                  <div className="flex items-center">
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
+                    Création du compte...
+                  </div>
+                ) : (
+                  <div className="flex items-center">
+                    <Lock className="h-4 w-4 mr-2" />
+                    Créer mon compte
+                  </div>
+                )}
+              </button>
+            </form>
+
+            {/* Conditions d'utilisation */}
+            <div className="mt-6 text-center text-sm text-slate-600">
+              <p className="font-light">En créant votre compte, vous acceptez nos conditions d'utilisation</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer style dashboard */}
+        <div className="flex justify-center">
+          <div className="relative group">
+            {/* Effet de glow */}
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 via-indigo-500/10 to-purple-500/20 rounded-3xl blur-xl opacity-60 group-hover:opacity-80 transition-opacity duration-500"></div>
+            
+            {/* Container principal */}
+            <div className="relative bg-white/20 backdrop-blur-2xl border border-white/30 rounded-3xl p-6 shadow-2xl hover:shadow-3xl transition-all duration-500 hover:-translate-y-1">
+              <div className="flex flex-col lg:flex-row items-center justify-between space-y-4 lg:space-y-0 lg:space-x-8">
+                
+                {/* Section sécurité */}
+                <div className="flex items-center space-x-4">
+                  <a 
+                    href="https://www.ssllabs.com/ssltest/analyze.html?d=app.vital-sync.ch" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="group flex items-center space-x-2 px-4 py-2 bg-white/20 backdrop-blur-sm border border-white/30 rounded-2xl hover:bg-white/30 hover:border-green-500/40 transition-all duration-300 hover:scale-105"
+                  >
+                    <div className="relative">
+                      <Shield className="h-4 w-4 text-green-600 group-hover:text-green-500 transition-colors" />
+                      <div className="absolute inset-0 bg-green-400/20 rounded-full blur-sm group-hover:bg-green-400/40 transition-all duration-300"></div>
+                    </div>
+                    <span className="text-xs font-medium text-slate-700 group-hover:text-slate-800 transition-colors">
+                      Audit SSL/TLS
+                    </span>
+                    <ExternalLink className="h-3 w-3 text-slate-500 group-hover:text-slate-600 transition-colors" />
+                  </a>
+                </div>
+
+                {/* Séparateur */}
+                <div className="hidden lg:block h-8 w-px bg-gradient-to-b from-transparent via-white/30 to-transparent"></div>
+
+                {/* Section développeur */}
+                <div className="text-center lg:text-right space-y-1">
+                  <div className="flex items-center justify-center lg:justify-end space-x-2">
+                    <p className="text-sm font-semibold text-slate-800">
+                      Développé par{' '}
+                      <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent font-bold">
+                        Amarre®
+                      </span>
+                    </p>
+                    <div className="flex items-center">
+                      <img 
+                        src="/logo-amarre.png" 
+                        alt="Logo Amarre" 
+                        className="w-6 h-6 object-contain transition-transform duration-300 hover:scale-110"
+                      />
+                    </div>
+                  </div>
+                  <p className="text-xs text-slate-600 italic">
+                    Software Development
+                  </p>
+                </div>
+              </div>
+
+              {/* Ligne décorative */}
+              <div className="mt-4 pt-4 border-t border-white/20">
+                <div className="h-px bg-gradient-to-r from-transparent via-blue-500/30 to-transparent"></div>
+              </div>
+            </div>
           </div>
         </div>
 
         {/* Informations de sécurité */}
-        <div className="mt-6 text-center text-xs text-gray-500">
-          <p>🔒 Connexion chiffrée SSL/TLS</p>
+        <div className="text-center text-xs text-slate-500 space-y-1">
+          <p className="flex items-center justify-center space-x-2">
+            <Lock className="h-3 w-3" />
+            <span>Connexion chiffrée SSL/TLS</span>
+          </p>
           <p>Cette invitation expire le {new Date(invitationData.expiresAt).toLocaleDateString('fr-FR')}</p>
         </div>
       </div>

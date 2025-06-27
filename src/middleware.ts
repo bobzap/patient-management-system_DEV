@@ -1,4 +1,4 @@
-// src/middleware.ts - Version corrigée pour réduire les logs
+// src/middleware.ts - Version corrigée pour les fichiers statiques
 import { withAuth } from "next-auth/middleware"
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
@@ -12,6 +12,7 @@ const ROUTE_PERMISSIONS = {
     '/auth/error',
     '/auth/forgot-password',
     '/auth/invite',
+    '/auth/activate',  // 🔧 AJOUT: Page d'activation
     '/api/auth',
   ],
   
@@ -54,7 +55,12 @@ const SILENT_ROUTES = [
   '/api/lists',
   '/_next',
   '/favicon.ico',
-  '/images'
+  '/images',
+  // 🔧 AJOUT: Fichiers statiques à ne pas logger
+  '/logo-amarre.png',
+  '/vital-sync-logo.png',
+  '/robots.txt',
+  '/sitemap.xml'
 ]
 
 // Fonction pour vérifier les permissions
@@ -105,10 +111,22 @@ function shouldLog(pathname: string): boolean {
   return !SILENT_ROUTES.some(route => pathname.startsWith(route))
 }
 
+// 🔧 AJOUT: Fonction pour vérifier si c'est un fichier statique
+function isStaticFile(pathname: string): boolean {
+  // Vérifier les extensions de fichiers statiques
+  const staticExtensions = /\.(png|jpg|jpeg|gif|svg|ico|webp|css|js|woff|woff2|ttf|eot|map)$/i
+  return staticExtensions.test(pathname)
+}
+
 export default withAuth(
   function middleware(req: NextRequest) {
     const token = req.nextauth.token
     const { pathname } = req.nextUrl
+    
+    // 🔧 NOUVEAU: Permettre l'accès aux fichiers statiques sans auth
+    if (isStaticFile(pathname)) {
+      return NextResponse.next()
+    }
     
    // Vérifier le timeout de session
 if (token && !checkSessionTimeout(token)) {
@@ -155,6 +173,11 @@ if (token && !hasPermission(token.role as string, pathname)) {
       authorized: ({ token, req }) => {
         const { pathname } = req.nextUrl
         
+        // 🔧 NOUVEAU: Autoriser les fichiers statiques
+        if (isStaticFile(pathname)) {
+          return true
+        }
+        
         // Routes publiques toujours autorisées
         if (ROUTE_PERMISSIONS.public.some(route => pathname.startsWith(route))) {
           return true
@@ -173,10 +196,11 @@ export const config = {
     /*
      * Protéger toutes les routes sauf :
      * - api/auth (NextAuth)
-     * - _next/static (fichiers statiques)
-     * - _next/image (optimisation d'images)
+     * - _next/static (fichiers statiques Next.js)
+     * - _next/image (optimisation d'images Next.js)
      * - favicon.ico
-     * - images publiques
+     * - images/ (dossier images publiques)
+     * - Fichiers avec extensions statiques (gérés par isStaticFile)
      */
     '/((?!api/auth|_next/static|_next/image|favicon.ico|images/).*)',
   ],

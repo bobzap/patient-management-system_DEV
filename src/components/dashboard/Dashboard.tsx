@@ -2,22 +2,30 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
 import { 
   BarChart3, Users, Clock, FileText, CheckCircle,
   AlertCircle, Filter, Download, RefreshCw, X, 
-  AlertTriangle,
-  Activity
+  AlertTriangle, Activity, TrendingUp, Calendar,
+  Stethoscope, Shield, Target, ArrowRight, Plus,
+  Settings, ExternalLink  // <- Ajouter ExternalLink ici
 } from 'lucide-react';
 
 // Import des composants
 import { StatCard } from './StatCard';
 import { PieChart } from './PieChart';
 import { BarChart } from './BarChart';
-import { RisquesList } from './RisquesList';
-import { HealthMetrics, createHealthMetrics } from './HealthMetrics';
-import { GaugeMetrics } from './GaugeMetrics';
 import { analyzeEntretiensData } from '@/services/dashboard-analysis';
+
+
+
+// Types
+interface Patient {
+  id: number;
+  nom: string;
+  prenom: string;
+  civilites: string;
+  departement: string;
+}
 
 interface DashboardProps {
   patients: {
@@ -46,31 +54,24 @@ export const Dashboard = ({ patients }: DashboardProps) => {
         console.log("Début du chargement des entretiens");
         const allEntretiens: any[] = [];
         
-        // Parcourir tous les patients
         for (const patient of patients.data) {
           try {
             console.log(`Chargement des entretiens pour le patient ${patient.id}`);
             const response = await fetch(`/api/patients/${patient.id}/entretiens`);
             const result = await response.json();
             
-            console.log(`Résultat pour patient ${patient.id}:`, result);
-            
             if (result.success && result.data && result.data.length > 0) {
-              // Ajouter les informations du patient à chaque entretien
               const entretiensWithPatient = result.data.map((entretien: any) => ({
                 ...entretien,
                 patient
               }));
               
-              // Pour chaque entretien, charger ses données détaillées
               for (const entretien of entretiensWithPatient) {
                 try {
-                  console.log(`Chargement des détails pour l'entretien ${entretien.id}`);
                   const detailResponse = await fetch(`/api/entretiens/${entretien.id}`);
                   const detailResult = await detailResponse.json();
                   
                   if (detailResult.success && detailResult.data) {
-                    // Si les données sont une chaîne JSON, les parser
                     if (typeof detailResult.data.donneesEntretien === 'string') {
                       try {
                         const donneesObject = JSON.parse(detailResult.data.donneesEntretien);
@@ -79,11 +80,9 @@ export const Dashboard = ({ patients }: DashboardProps) => {
                         console.warn(`Erreur de parsing des données pour l'entretien ${entretien.id}:`, e);
                       }
                     } else if (detailResult.data.donneesEntretien) {
-                      // Si c'est déjà un objet, l'utiliser directement
                       entretien.donneesObject = detailResult.data.donneesEntretien;
                     }
                     
-                    // Ajouter d'autres informations importantes
                     entretien.tempsDebut = detailResult.data.tempsDebut;
                     entretien.tempsFin = detailResult.data.tempsFin;
                     entretien.tempsPause = detailResult.data.tempsPause;
@@ -102,13 +101,10 @@ export const Dashboard = ({ patients }: DashboardProps) => {
           }
         }
         
-        console.log(`Total d'entretiens chargés: ${allEntretiens.length}`);
         setEntretiens(allEntretiens);
         
-        // Analyser les données collectées
         try {
           const metricsData = await analyzeEntretiensData(allEntretiens, patients.data);
-          console.log("Métriques calculées:", metricsData);
           setDashboardData(metricsData);
         } catch (analyzeError) {
           console.error("Erreur lors de l'analyse des données:", analyzeError);
@@ -212,7 +208,6 @@ export const Dashboard = ({ patients }: DashboardProps) => {
     }));
   }, [filteredData]);
   
-  // Données d'activité par mois
   const activiteParMoisData = useMemo(() => {
     if (!filteredData || !filteredData.activiteParMois) return [];
     
@@ -224,132 +219,159 @@ export const Dashboard = ({ patients }: DashboardProps) => {
     setRefreshTrigger(prev => prev + 1);
   };
 
-  // Rendu du composant avec style glassmorphique moderne
+  // Navigation functions
+  const navigateToPatients = () => {
+    window.dispatchEvent(new CustomEvent('navigateTo', { 
+      detail: { tab: 'patients' } 
+    }));
+  };
+
+  const navigateToNewDossier = () => {
+    window.dispatchEvent(new CustomEvent('navigateTo', { 
+      detail: { tab: 'newDossier' } 
+    }));
+  };
+
+  const navigateToCalendar = () => {
+    window.dispatchEvent(new CustomEvent('navigateTo', { 
+      detail: { tab: 'calendar' } 
+    }));
+  };
+
+  const navigateToAdmin = () => {
+    window.dispatchEvent(new CustomEvent('navigateTo', { 
+      detail: { tab: 'admin' } 
+    }));
+  };
+
   return (
-    <div className="min-h-screen p-6">
+    <div className="min-h-screen p-8">
       <div className="max-w-7xl mx-auto space-y-8">
         
-        {/* En-tête du tableau de bord modernisé */}
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
-          <div>
-            <h1 className="text-3xl font-bold text-slate-900">Tableau de bord</h1>
-            <p className="text-slate-600 mt-1">Statistiques et activité infirmière</p>
-          </div>
-          
-          {/* Filtres et contrôles modernisés */}
-          <div className="flex items-center space-x-3">
-            {/* Période avec style glass */}
-            <div className="flex items-center space-x-2 glass rounded-xl p-1">
-              {[
-                { key: 'week' as const, label: 'Semaine' },
-                { key: 'month' as const, label: 'Mois' },
-                { key: 'all' as const, label: 'Total' }
-              ].map(({ key, label }) => (
-                <button
-                  key={key}
-                  onClick={() => setSelectedTimeRange(key)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                    selectedTimeRange === key
-                      ? 'bg-blue-600 text-white shadow-md'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
+        {/* En-tête ultra-moderne */}
+        <div className="relative">
+          <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between space-y-6 lg:space-y-0">
+            <div className="space-y-1">
+              <h1 className="text-4xl font-light text-slate-900 tracking-tight">Tableau de bord</h1>
+              <p className="text-lg text-slate-500 font-light">Vue d'ensemble • Santé au travail</p>
             </div>
             
-            {/* Actions modernisées */}
-            <div className="flex items-center space-x-2">
+            {/* Contrôles flottants */}
+            <div className="flex items-end space-x-4">
+              {/* Sélecteur de période ultra-moderne */}
               <div className="relative">
-                <button 
-                  onClick={() => setShowFilters(!showFilters)}
-                  className={`btn-glass p-2.5 ${
-                    showFilters || departmentFilter || statusFilter
-                      ? 'bg-blue-50 border-blue-200' 
-                      : 'hover:bg-blue-50'
-                  }`}
-                >
-                  <Filter className="h-4 w-4 text-slate-600" />
-                </button>
-                
-                {showFilters && (
-                  <div className="absolute z-10 right-0 mt-2 w-64 glass-card">
-                    <h3 className="text-sm font-semibold text-slate-700 mb-3">Filtres avancés</h3>
-                    
-                    {/* Département */}
-                    <div className="mb-3">
-                      <label className="block text-xs text-slate-600 mb-1">Département</label>
-                      <select
-                        value={departmentFilter}
-                        onChange={(e) => setDepartmentFilter(e.target.value)}
-                        className="input-glass w-full text-sm"
-                      >
-                        <option value="">Tous les départements</option>
-                        {uniqueDepartments.map(dept => (
-                          <option key={dept} value={dept}>{dept}</option>
-                        ))}
-                      </select>
-                    </div>
-                    
-                    {/* Statut */}
-                    <div className="mb-3">
-                      <label className="block text-xs text-slate-600 mb-1">État de l'entretien</label>
-                      <select
-                        value={statusFilter}
-                        onChange={(e) => setStatusFilter(e.target.value)}
-                        className="input-glass w-full text-sm"
-                      >
-                        <option value="">Tous les états</option>
-                        <option value="brouillon">Brouillon</option>
-                        <option value="finalise">Finalisé</option>
-                        <option value="archive">Archivé</option>
-                      </select>
-                    </div>
-                    
-                    {/* Boutons d'actions */}
-                    <div className="flex justify-between mt-4">
-                      <button 
-                        onClick={resetFilters}
-                        className="text-xs text-slate-600 hover:text-slate-800"
-                      >
-                        Réinitialiser
-                      </button>
-                      <button 
-                        onClick={() => setShowFilters(false)}
-                        className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700"
-                      >
-                        Appliquer
-                      </button>
-                    </div>
-                  </div>
-                )}
+                <div className="flex items-center bg-white/20 backdrop-blur-xl border border-white/30 rounded-2xl p-1 shadow-lg">
+                  {[
+                    { key: 'week' as const, label: '7j' },
+                    { key: 'month' as const, label: '30j' },
+                    { key: 'all' as const, label: 'Tout' }
+                  ].map(({ key, label }) => (
+                    <button
+                      key={key}
+                      onClick={() => setSelectedTimeRange(key)}
+                      className={`relative px-6 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 ${
+                        selectedTimeRange === key
+                          ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/25 scale-105'
+                          : 'text-slate-600 hover:text-slate-900 hover:bg-white/40'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
               </div>
               
-              <button 
-                onClick={refreshData}
-                className="btn-glass p-2.5 hover:bg-blue-50"
-                title="Rafraîchir les données"
-              >
-                <RefreshCw className="h-4 w-4 text-slate-600" />
-              </button>
-              
-              <button className="btn-glass p-2.5 hover:bg-blue-50">
-                <Download className="h-4 w-4 text-slate-600" />
-              </button>
+              {/* Actions flottantes */}
+              <div className="flex items-center space-x-3">
+                <div className="relative">
+                  <button 
+                    onClick={() => setShowFilters(!showFilters)}
+                    className={`p-3 bg-white/20 backdrop-blur-xl border border-white/30 rounded-xl hover:bg-white/30 transition-all duration-300 shadow-lg ${
+                      showFilters || departmentFilter || statusFilter
+                        ? 'bg-blue-500/20 border-blue-400/40 text-blue-600' 
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    <Filter className="h-5 w-5" />
+                  </button>
+                  
+                  {showFilters && (
+                    <div className="absolute z-50 right-0 mt-4 w-80 bg-white/90 backdrop-blur-2xl border border-white/40 rounded-2xl shadow-2xl p-6">
+                      <h3 className="text-lg font-semibold text-slate-800 mb-4">Filtres avancés</h3>
+                      
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium text-slate-600 mb-2">Département</label>
+                          <select
+                            value={departmentFilter}
+                            onChange={(e) => setDepartmentFilter(e.target.value)}
+                            className="w-full px-4 py-3 bg-white/60 backdrop-blur-sm border border-white/40 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all"
+                          >
+                            <option value="">Tous les départements</option>
+                            {uniqueDepartments.map(dept => (
+                              <option key={dept} value={dept}>{dept}</option>
+                            ))}
+                          </select>
+                        </div>
+                        
+                        <div>
+                          <label className="block text-sm font-medium text-slate-600 mb-2">Statut</label>
+                          <select
+                            value={statusFilter}
+                            onChange={(e) => setStatusFilter(e.target.value)}
+                            className="w-full px-4 py-3 bg-white/60 backdrop-blur-sm border border-white/40 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all"
+                          >
+                            <option value="">Tous les statuts</option>
+                            <option value="brouillon">Brouillon</option>
+                            <option value="finalise">Finalisé</option>
+                            <option value="archive">Archivé</option>
+                          </select>
+                        </div>
+                      </div>
+                      
+                      <div className="flex justify-between mt-6">
+                        <button 
+                          onClick={resetFilters}
+                          className="px-4 py-2 text-sm text-slate-600 hover:text-slate-800 transition-colors"
+                        >
+                          Réinitialiser
+                        </button>
+                        <button 
+                          onClick={() => setShowFilters(false)}
+                          className="px-6 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-sm rounded-lg hover:shadow-lg transition-all"
+                        >
+                          Appliquer
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                
+                <button 
+                  onClick={refreshData}
+                  className="p-3 bg-white/20 backdrop-blur-xl border border-white/30 rounded-xl hover:bg-white/30 transition-all duration-300 text-slate-600 hover:text-slate-900 shadow-lg"
+                  title="Actualiser"
+                >
+                  <RefreshCw className="h-5 w-5" />
+                </button>
+                
+                <button className="p-3 bg-white/20 backdrop-blur-xl border border-white/30 rounded-xl hover:bg-white/30 transition-all duration-300 text-slate-600 hover:text-slate-900 shadow-lg">
+                  <Download className="h-5 w-5" />
+                </button>
+              </div>
             </div>
           </div>
         </div>
         
         {/* Indicateurs de filtres actifs */}
         {(departmentFilter || statusFilter || selectedTimeRange !== 'all') && (
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-3">
             {selectedTimeRange !== 'all' && (
-              <div className="inline-flex items-center px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
-                Période: {selectedTimeRange === 'week' ? 'Semaine' : 'Mois'}
+              <div className="inline-flex items-center px-4 py-2 bg-blue-500/10 backdrop-blur-sm text-blue-700 rounded-xl text-sm border border-blue-200/50">
+                Période: {selectedTimeRange === 'week' ? '7 jours' : '30 jours'}
                 <button 
                   onClick={() => setSelectedTimeRange('all')}
-                  className="ml-2 text-blue-600 hover:text-blue-800"
+                  className="ml-3 p-1 hover:bg-blue-500/20 rounded-full transition-colors"
                 >
                   <X size={14} />
                 </button>
@@ -357,11 +379,11 @@ export const Dashboard = ({ patients }: DashboardProps) => {
             )}
             
             {departmentFilter && (
-              <div className="inline-flex items-center px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
-                Département: {departmentFilter}
+              <div className="inline-flex items-center px-4 py-2 bg-indigo-500/10 backdrop-blur-sm text-indigo-700 rounded-xl text-sm border border-indigo-200/50">
+                {departmentFilter}
                 <button 
                   onClick={() => setDepartmentFilter('')}
-                  className="ml-2 text-blue-600 hover:text-blue-800"
+                  className="ml-3 p-1 hover:bg-indigo-500/20 rounded-full transition-colors"
                 >
                   <X size={14} />
                 </button>
@@ -369,14 +391,12 @@ export const Dashboard = ({ patients }: DashboardProps) => {
             )}
             
             {statusFilter && (
-              <div className="inline-flex items-center px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
-                État: {
-                  statusFilter === 'finalise' ? 'Finalisé' : 
-                  statusFilter === 'archive' ? 'Archivé' : 'Brouillon'
-                }
+              <div className="inline-flex items-center px-4 py-2 bg-purple-500/10 backdrop-blur-sm text-purple-700 rounded-xl text-sm border border-purple-200/50">
+                {statusFilter === 'finalise' ? 'Finalisé' : 
+                 statusFilter === 'archive' ? 'Archivé' : 'Brouillon'}
                 <button 
                   onClick={() => setStatusFilter('')}
-                  className="ml-2 text-blue-600 hover:text-blue-800"
+                  className="ml-3 p-1 hover:bg-purple-500/20 rounded-full transition-colors"
                 >
                   <X size={14} />
                 </button>
@@ -385,336 +405,481 @@ export const Dashboard = ({ patients }: DashboardProps) => {
             
             <button 
               onClick={resetFilters}
-              className="inline-flex items-center px-3 py-1 bg-gray-100 text-gray-800 rounded-full text-sm hover:bg-gray-200"
+              className="inline-flex items-center px-4 py-2 bg-slate-500/10 backdrop-blur-sm text-slate-700 rounded-xl text-sm border border-slate-200/50 hover:bg-slate-500/20 transition-colors"
             >
-              Réinitialiser les filtres
+              Tout réinitialiser
             </button>
           </div>
         )}
-        
-        {/* Cartes de statistiques principales avec nouveau style */}
+
+        {/* Métriques principales */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {/* Total des entretiens */}
-          <StatCard
-            title="Total des entretiens"
-            value={filteredData?.totalEntretiens || 0}
-            icon={<FileText size={20} />}
-            description={`${patients.data.length} patients actifs`}
-            trend={filteredData?.tendances?.croissanceEntretiens}
-            colorScheme="blue"
-            isLoading={isLoading}
-          />
-          
-          {/* Heures d'entretien */}
-          <StatCard
-            title="Heures d'entretien"
-            value={filteredData?.totalHeures || 0}
-            icon={<Clock size={20} />}
-            description={`${filteredData?.tendances?.tempsMoyenEntretien || 0} min en moyenne`}
-            colorScheme="green"
-            isLoading={isLoading}
-          />
-          
-          {/* Entretiens finalisés */}
-          <StatCard
-            title="Entretiens finalisés"
-            value={filteredData?.entretiensByStatus?.finalise || 0}
-            icon={<CheckCircle size={20} />}
-            description={`${filteredData?.tendances?.tauxFinalisation || 0}% du total`}
-            colorScheme="amber"
-            isLoading={isLoading}
-          />
-          
-          {/* Risques détectés */}
-          <StatCard
-            title="Risques détectés"
-            value={filteredData?.detectionPrecoce?.risqueEleve || 0}
-            icon={<AlertCircle size={20} />}
-            description="Nécessitant une attention immédiate"
-            colorScheme="pink"
-            isLoading={isLoading}
-          />
+          <div className="group relative">
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-indigo-600/20 rounded-2xl blur-xl opacity-70 group-hover:opacity-100 transition-opacity"></div>
+            <div className="relative bg-white/30 backdrop-blur-2xl border border-white/40 rounded-2xl p-6 shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-1">
+              <div className="flex justify-between items-start">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-slate-900">Total entretiens</p>
+                  {isLoading ? (
+                    <div className="h-8 w-16 bg-slate-200/50 rounded animate-pulse"></div>
+                  ) : (
+                    <p className="text-3xl font-light text-slate-900">{filteredData?.totalEntretiens || 0}</p>
+                  )}
+                  <p className="text-xs text-slate-500">{patients.data.length} employés actifs</p>
+                </div>
+                <div className="p-3 bg-blue-500/20 backdrop-blur-sm rounded-xl">
+                  <FileText className="h-6 w-6 text-blue-600" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="group relative">
+            <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/20 to-teal-600/20 rounded-2xl blur-xl opacity-70 group-hover:opacity-100 transition-opacity"></div>
+            <div className="relative bg-white/30 backdrop-blur-2xl border border-white/40 rounded-2xl p-6 shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-1">
+              <div className="flex justify-between items-start">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-slate-900">Heures d'entretien</p>
+                  {isLoading ? (
+                    <div className="h-8 w-20 bg-slate-200/50 rounded animate-pulse"></div>
+                  ) : (
+                    <p className="text-3xl font-light text-slate-900">{filteredData?.totalHeures || 0}h</p>
+                  )}
+                  <p className="text-xs text-slate-500">{filteredData?.tendances?.tempsMoyenEntretien || 0} min/entretien</p>
+                </div>
+                <div className="p-3 bg-emerald-500/20 backdrop-blur-sm rounded-xl">
+                  <Clock className="h-6 w-6 text-emerald-600" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="group relative">
+            <div className="absolute inset-0 bg-gradient-to-br from-amber-500/20 to-orange-600/20 rounded-2xl blur-xl opacity-70 group-hover:opacity-100 transition-opacity"></div>
+            <div className="relative bg-white/30 backdrop-blur-2xl border border-white/40 rounded-2xl p-6 shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-1">
+              <div className="flex justify-between items-start">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-slate-900">Taux finalisation</p>
+                  {isLoading ? (
+                    <div className="h-8 w-16 bg-slate-200/50 rounded animate-pulse"></div>
+                  ) : (
+                    <p className="text-3xl font-light text-slate-900">{filteredData?.tendances?.tauxFinalisation || 0}%</p>
+                  )}
+                  <p className="text-xs text-slate-500">{filteredData?.entretiensByStatus?.finalise || 0} finalisés</p>
+                </div>
+                <div className="p-3 bg-amber-500/20 backdrop-blur-sm rounded-xl">
+                  <CheckCircle className="h-6 w-6 text-amber-600" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="group relative">
+            <div className="absolute inset-0 bg-gradient-to-br from-rose-500/20 to-pink-600/20 rounded-2xl blur-xl opacity-70 group-hover:opacity-100 transition-opacity"></div>
+            <div className="relative bg-white/30 backdrop-blur-2xl border border-white/40 rounded-2xl p-6 shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-1">
+              <div className="flex justify-between items-start">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-slate-900">Alertes actives</p>
+                  {isLoading ? (
+                    <div className="h-8 w-12 bg-slate-200/50 rounded animate-pulse"></div>
+                  ) : (
+                    <p className="text-3xl font-light text-slate-900">{filteredData?.detectionPrecoce?.risqueEleve || 0}</p>
+                  )}
+                  <p className="text-xs text-slate-500">Nécessitent un suivi</p>
+                </div>
+                <div className="p-3 bg-rose-500/20 backdrop-blur-sm rounded-xl">
+                  <AlertCircle className="h-6 w-6 text-rose-600" />
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* Actions rapides avec style glass */}
-        <div className="glass-card">
-          <h3 className="text-lg font-semibold text-slate-900 mb-4">Actions rapides</h3>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <button
-              onClick={() => {
-                window.dispatchEvent(new CustomEvent('navigateTo', { 
-                  detail: { tab: 'patients' } 
-                }));
-              }}
-              className="w-full flex items-center justify-between p-4 bg-blue-50/50 rounded-xl hover:bg-blue-100/50 transition-all duration-200 group border border-blue-100/50"
-            >
-              <div className="flex items-center">
-                <div className="p-2 bg-blue-600 rounded-lg mr-3 group-hover:bg-blue-700 transition-colors">
-                  <Users className="text-white" size={18} />
-                </div>
-                <span className="text-sm font-medium text-slate-800">
-                  Voir tous les dossiers
-                </span>
+        {/* Actions rapides */}
+        <div className="relative">
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 via-indigo-500/10 to-purple-500/10 rounded-3xl blur-2xl"></div>
+          <div className="relative bg-white/25 backdrop-blur-2xl border border-white/40 rounded-3xl p-8 shadow-2xl">
+            <div className="flex items-center space-x-3 mb-8">
+              <div className="p-2 bg-blue-500/20 backdrop-blur-sm rounded-xl">
+                <Activity className="h-6 w-6 text-blue-600" />
               </div>
-              <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" className="text-slate-400">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
+              <h2 className="text-2xl font-light text-slate-900">Actions rapides</h2>
+            </div>
             
-            <button
-              onClick={() => {
-                window.dispatchEvent(new CustomEvent('navigateTo', { 
-                  detail: { tab: 'newDossier' } 
-                }));
-              }}
-              className="w-full flex items-center justify-between p-4 bg-green-50/50 rounded-xl hover:bg-green-100/50 transition-all duration-200 group border border-green-100/50"
-            >
-              <div className="flex items-center">
-                <div className="p-2 bg-green-600 rounded-lg mr-3 group-hover:bg-green-700 transition-colors">
-                  <svg className="text-white" width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" 
-                          d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-                  </svg>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <button
+                onClick={navigateToPatients}
+                className="group relative overflow-hidden bg-white/40 backdrop-blur-xl border border-white/50 rounded-2xl p-6 hover:bg-white/50 transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl"
+              >
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-indigo-600/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                <div className="relative">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="p-3 bg-blue-500/20 backdrop-blur-sm rounded-xl group-hover:bg-blue-500/30 transition-colors">
+                      <Users className="h-6 w-6 text-blue-600" />
+                    </div>
+                    <ArrowRight className="h-5 w-5 text-slate-400 group-hover:text-blue-600 group-hover:translate-x-1 transition-all" />
+                  </div>
+                  <h3 className="text-lg font-medium text-slate-900 mb-2">Dossiers employés</h3>
+                  <p className="text-sm text-slate-600">Consulter et gérer les dossiers</p>
                 </div>
-                <span className="text-sm font-medium text-slate-800">
-                  Créer un nouveau dossier
-                </span>
-              </div>
-              <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" className="text-slate-400">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
-            
-            <button
-              onClick={() => {
-                window.dispatchEvent(new CustomEvent('navigateTo', { 
-                  detail: { tab: 'admin' } 
-                }));
-              }}
-              className="w-full flex items-center justify-between p-4 bg-purple-50/50 rounded-xl hover:bg-purple-100/50 transition-all duration-200 group border border-purple-100/50"
-            >
-              <div className="flex items-center">
-                <div className="p-2 bg-purple-600 rounded-lg mr-3 group-hover:bg-purple-700 transition-colors">
-                  <svg className="text-white" width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" 
-                          d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" 
-                          d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
+              </button>
+              
+              <button
+                onClick={navigateToNewDossier}
+                className="group relative overflow-hidden bg-white/40 backdrop-blur-xl border border-white/50 rounded-2xl p-6 hover:bg-white/50 transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl"
+              >
+                <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-teal-600/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                <div className="relative">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="p-3 bg-emerald-500/20 backdrop-blur-sm rounded-xl group-hover:bg-emerald-500/30 transition-colors">
+                      <Plus className="h-6 w-6 text-emerald-600" />
+                    </div>
+                    <ArrowRight className="h-5 w-5 text-slate-400 group-hover:text-emerald-600 group-hover:translate-x-1 transition-all" />
+                  </div>
+                  <h3 className="text-lg font-medium text-slate-900 mb-2">Nouveau dossier</h3>
+                  <p className="text-sm text-slate-600">Créer un nouvel employé</p>
                 </div>
-                <span className="text-sm font-medium text-slate-800">
-                  Gestion administrative
-                </span>
-              </div>
-              <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" className="text-slate-400">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
+              </button>
+              
+              <button
+                onClick={navigateToCalendar}
+                className="group relative overflow-hidden bg-white/40 backdrop-blur-xl border border-white/50 rounded-2xl p-6 hover:bg-white/50 transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl"
+              >
+                <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-indigo-600/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                <div className="relative">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="p-3 bg-purple-500/20 backdrop-blur-sm rounded-xl group-hover:bg-purple-500/30 transition-colors">
+                      <Calendar className="h-6 w-6 text-purple-600" />
+                    </div>
+                    <ArrowRight className="h-5 w-5 text-slate-400 group-hover:text-purple-600 group-hover:translate-x-1 transition-all" />
+                  </div>
+                  <h3 className="text-lg font-medium text-slate-900 mb-2">Calendrier</h3>
+                  <p className="text-sm text-slate-600">Planifier les visites</p>
+                </div>
+              </button>
+              
+              <button
+                onClick={navigateToAdmin}
+                className="group relative overflow-hidden bg-white/40 backdrop-blur-xl border border-white/50 rounded-2xl p-6 hover:bg-white/50 transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl"
+              >
+                <div className="absolute inset-0 bg-gradient-to-br from-slate-500/10 to-gray-600/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                <div className="relative">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="p-3 bg-slate-500/20 backdrop-blur-sm rounded-xl group-hover:bg-slate-500/30 transition-colors">
+                      <Settings className="h-6 w-6 text-slate-600" />
+                    </div>
+                    <ArrowRight className="h-5 w-5 text-slate-400 group-hover:text-slate-600 group-hover:translate-x-1 transition-all" />
+                  </div>
+                  <h3 className="text-lg font-medium text-slate-900 mb-2">Administration</h3>
+                  <p className="text-sm text-slate-600">Configuration système</p>
+                </div>
+              </button>
+            </div>
           </div>
         </div>
-        
-        {/* Première rangée de graphiques avec style glass */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+        {/* Analyses */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Types de visites */}
-          <div className="col-span-1">
-            <PieChart
-              data={typesVisitesData}
-              title="Types de visites"
-              colors={['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899']}
-              height={300}
-            />
-          </div>
-          
-          {/* Risques professionnels identifiés */}
-          <div className="col-span-1">
-            <RisquesList
-              risques={filteredData?.risquesProfessionnels || []}
-              title="Risques professionnels identifiés"
-              maxItems={5}
-              totalEntretiens={filteredData?.totalEntretiens || 0}
-              isLoading={isLoading}
-            />
-          </div>
-          
-          {/* Indicateurs de performance */}
-          <div className="col-span-1">
-            <GaugeMetrics
-              metrics={[
-                {
-                  id: 'taux-finalisation',
-                  value: filteredData?.tendances?.tauxFinalisation || 0,
-                  title: 'Taux de finalisation',
-                  color: '#3b82f6',
-                  description: 'Entretiens finalisés'
-                },
-                {
-                  id: 'detection-precoce',
-                  value: filteredData?.totalEntretiens
-                    ? Math.round((filteredData.detectionPrecoce?.risqueEleve || 0) / filteredData.totalEntretiens * 100)
-                    : 0,
-                  title: 'Détection précoce',
-                  color: '#ef4444',
-                  description: 'Risques identifiés'
-                },
-                {
-                  id: 'croissance',
-                  value: Math.max(0, filteredData?.tendances?.croissanceEntretiens || 0),
-                  title: 'Évolution',
-                  color: '#10b981',
-                  description: 'vs période précédente'
-                }
-              ]}
-              title="Indicateurs de performance"
-              isLoading={isLoading}
-            />
-          </div>
-        </div>
-        
-        {/* Activité par mois */}
-        <div>
-          <BarChart
-            data={activiteParMoisData}
-            title="Activité par mois"
-            xAxisKey="mois"
-            series={[
-              {
-                key: 'count',
-                name: 'Entretiens',
-                color: '#3b82f6'
-              }
-            ]}
-            height={250}
-          />
-        </div>
-        
-        {/* Statut des entretiens & Détection précoce AI avec style glass */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Statut des entretiens */}
-          <div className="glass-card">
-            <h3 className="text-lg font-semibold text-slate-900 mb-4">Statut des entretiens</h3>
-            <div className="grid grid-cols-3 gap-4">
-              {/* En cours */}
-              <div className="bg-amber-50/80 backdrop-blur-sm rounded-lg p-4 border border-amber-100/50 flex flex-col items-center text-center">
-                <div className="mb-2 text-amber-600">
-                  <Clock size={24} />
+          <div className="relative">
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-indigo-600/10 rounded-3xl blur-xl"></div>
+            <div className="relative bg-white/30 backdrop-blur-2xl border border-white/40 rounded-3xl p-8 shadow-xl">
+              <div className="flex items-center space-x-3 mb-6">
+                <div className="p-2 bg-blue-500/20 backdrop-blur-sm rounded-xl">
+                  <BarChart3 className="h-5 w-5 text-blue-600" />
                 </div>
-                <p className="text-sm font-medium text-slate-700">En cours</p>
-                <p className="text-2xl font-bold text-slate-900 mt-1">
-                  {filteredData?.entretiensByStatus?.brouillon || 0}
-                </p>
+                <h3 className="text-xl font-light text-slate-900">Répartition des visites</h3>
               </div>
               
-              {/* Finalisés */}
-              <div className="bg-green-50/80 backdrop-blur-sm rounded-lg p-4 border border-green-100/50 flex flex-col items-center text-center">
-                <div className="mb-2 text-green-600">
-                  <CheckCircle size={24} />
+              {typesVisitesData.length === 0 ? (
+                <div className="flex items-center justify-center h-64 text-slate-500">
+                  <div className="text-center">
+                    <div className="p-4 bg-slate-100/50 backdrop-blur-sm rounded-2xl mb-4">
+                      <BarChart3 className="h-12 w-12 text-slate-400 mx-auto" />
+                    </div>
+                    <p className="font-medium">Aucune visite enregistrée</p>
+                  </div>
                 </div>
-                <p className="text-sm font-medium text-slate-700">Finalisés</p>
-                <p className="text-2xl font-bold text-slate-900 mt-1">
-                  {filteredData?.entretiensByStatus?.finalise || 0}
-                </p>
-              </div>
-              
-              {/* Archivés */}
-              <div className="bg-slate-50/80 backdrop-blur-sm rounded-lg p-4 border border-slate-100/50 flex flex-col items-center text-center">
-                <div className="mb-2 text-slate-600">
-                  <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
-                      d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
-                  </svg>
-                </div>
-                <p className="text-sm font-medium text-slate-700">Archivés</p>
-                <p className="text-2xl font-bold text-slate-900 mt-1">
-                  {filteredData?.entretiensByStatus?.archive || 0}
-                </p>
-              </div>
+              ) : (
+                <PieChart
+                  data={typesVisitesData}
+                  title=""
+                  colors={['#3b82f6', '#6366f1', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444']}
+                  height={280}
+                  emptyText="Aucune visite enregistrée"
+                />
+              )}
             </div>
           </div>
           
-          {/* Détection précoce AI */}
-          <div className="glass-card">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold text-slate-900">Détection précoce AI</h3>
-              <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
-                Prochainement
+          {/* Risques professionnels */}
+          <div className="relative">
+            <div className="absolute inset-0 bg-gradient-to-br from-rose-500/10 to-pink-600/10 rounded-3xl blur-xl"></div>
+            <div className="relative bg-white/30 backdrop-blur-2xl border border-white/40 rounded-3xl p-8 shadow-xl">
+              <div className="flex items-center space-x-3 mb-6">
+                <div className="p-2 bg-rose-500/20 backdrop-blur-sm rounded-xl">
+                  <Shield className="h-5 w-5 text-rose-600" />
+                </div>
+                <h3 className="text-xl font-light text-slate-900">Risques identifiés</h3>
+              </div>
+              
+              {isLoading ? (
+                <div className="space-y-4">
+                  {[...Array(4)].map((_, index) => (
+                    <div key={index} className="space-y-2">
+                      <div className="flex justify-between">
+                        <div className="h-4 w-32 bg-slate-200/50 rounded animate-pulse"></div>
+                        <div className="h-4 w-12 bg-slate-200/50 rounded animate-pulse"></div>
+                      </div>
+                      <div className="h-2 w-full bg-slate-200/50 rounded animate-pulse"></div>
+                    </div>
+                  ))}
+                </div>
+              ) : filteredData?.risquesProfessionnels?.length > 0 ? (
+                <div className="space-y-4">
+                  {filteredData.risquesProfessionnels.slice(0, 6).map((risque: any, index: number) => {
+                    const percentage = filteredData.totalEntretiens > 0 
+                      ? Math.round((risque.count / filteredData.totalEntretiens) * 100) 
+                      : 0;
+                    
+                    const colors = ['bg-blue-500', 'bg-indigo-500', 'bg-purple-500', 'bg-rose-500', 'bg-amber-500', 'bg-emerald-500'];
+                    const colorClass = colors[index % colors.length];
+                    
+                    return (
+                      <div key={index} className="space-y-3 p-4 bg-white/40 backdrop-blur-sm rounded-2xl border border-white/30">
+                        <div className="flex justify-between items-center">
+                          <span className="font-medium text-slate-800 text-sm">{risque.nom}</span>
+                          <div className="flex items-center space-x-2">
+                            <span className="text-sm font-medium text-slate-700">{risque.count}</span>
+                            <span className="text-xs text-slate-500 bg-slate-100/60 px-2 py-1 rounded-full">
+                              {percentage}%
+                            </span>
+                          </div>
+                        </div>
+                        <div className="relative">
+                          <div className="w-full h-3 bg-slate-200/60 rounded-full overflow-hidden">
+                            <div 
+                              className={`h-full ${colorClass} rounded-full transition-all duration-700 ease-out shadow-sm`}
+                              style={{ 
+                                width: `${percentage}%`,
+                                filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))'
+                              }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="flex items-center justify-center h-64 text-slate-500">
+                  <div className="text-center">
+                    <div className="p-4 bg-slate-100/50 backdrop-blur-sm rounded-2xl mb-4">
+                      <Shield className="h-12 w-12 text-slate-400 mx-auto" />
+                    </div>
+                    <p className="font-medium">Aucun risque identifié</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Santé au travail */}
+        <div className="relative">
+          <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-cyan-500/10 rounded-3xl blur-2xl"></div>
+          <div className="relative bg-white/25 backdrop-blur-2xl border border-white/40 rounded-3xl p-8 shadow-2xl">
+            <div className="flex items-center space-x-3 mb-8">
+              <div className="p-2 bg-emerald-500/20 backdrop-blur-sm rounded-xl">
+                <Stethoscope className="h-6 w-6 text-emerald-600" />
+              </div>
+              <h2 className="text-2xl font-light text-slate-900">Indicateurs santé</h2>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Visites planifiées */}
+              <div className="group relative">
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-indigo-600/20 rounded-2xl blur opacity-60 group-hover:opacity-80 transition-opacity"></div>
+                <div className="relative bg-white/50 backdrop-blur-xl border border-white/60 rounded-2xl p-6 hover:bg-white/60 transition-all duration-300">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="p-3 bg-blue-500/20 backdrop-blur-sm rounded-xl">
+                      <Calendar className="h-6 w-6 text-blue-600" />
+                    </div>
+                    <div className="text-right">
+                      <p className="text-2xl font-light text-slate-900">{filteredData?.visiteMedicalePlanifiee || 0}</p>
+                      <p className="text-xs text-slate-500">à planifier</p>
+                    </div>
+                  </div>
+                  <h4 className="font-medium text-slate-800">Visites médicales</h4>
+                  <p className="text-sm text-slate-600 mt-1">Planification requise</p>
+                </div>
+              </div>
+
+              {/* Limitations actives */}
+              <div className="group relative">
+                <div className="absolute inset-0 bg-gradient-to-br from-amber-500/20 to-orange-600/20 rounded-2xl blur opacity-60 group-hover:opacity-80 transition-opacity"></div>
+                <div className="relative bg-white/50 backdrop-blur-xl border border-white/60 rounded-2xl p-6 hover:bg-white/60 transition-all duration-300">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="p-3 bg-amber-500/20 backdrop-blur-sm rounded-xl">
+                      <AlertTriangle className="h-6 w-6 text-amber-600" />
+                    </div>
+                    <div className="text-right">
+                      <p className="text-2xl font-light text-slate-900">{filteredData?.limitationsActives || 0}</p>
+                      <p className="text-xs text-slate-500">en cours</p>
+                    </div>
+                  </div>
+                  <h4 className="font-medium text-slate-800">Limitations</h4>
+                  <p className="text-sm text-slate-600 mt-1">Suivi nécessaire</p>
+                </div>
+              </div>
+
+              {/* Détections précoces */}
+              <div className="group relative">
+                <div className="absolute inset-0 bg-gradient-to-br from-rose-500/20 to-pink-600/20 rounded-2xl blur opacity-60 group-hover:opacity-80 transition-opacity"></div>
+                <div className="relative bg-white/50 backdrop-blur-xl border border-white/60 rounded-2xl p-6 hover:bg-white/60 transition-all duration-300">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="p-3 bg-rose-500/20 backdrop-blur-sm rounded-xl">
+                      <Shield className="h-6 w-6 text-rose-600" />
+                    </div>
+                    <div className="text-right">
+                      <p className="text-2xl font-light text-slate-900">{filteredData?.detectionPrecoce?.risqueEleve || 0}</p>
+                      <p className="text-xs text-slate-500">alertes</p>
+                    </div>
+                  </div>
+                  <h4 className="font-medium text-slate-800">Détection précoce</h4>
+                  <p className="text-sm text-slate-600 mt-1">Intervention requise</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Activité mensuelle */}
+        <div className="relative">
+          <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 to-purple-600/10 rounded-3xl blur-xl"></div>
+          <div className="relative bg-white/30 backdrop-blur-2xl border border-white/40 rounded-3xl p-8 shadow-xl">
+            <div className="flex items-center space-x-3 mb-6">
+              <div className="p-2 bg-indigo-500/20 backdrop-blur-sm rounded-xl">
+                <TrendingUp className="h-6 w-6 text-indigo-600" />
+              </div>
+              <h3 className="text-2xl font-light text-slate-900">Évolution de l'activité</h3>
+            </div>
+            
+            {activiteParMoisData.length === 0 ? (
+              <div className="flex items-center justify-center h-64 text-slate-500">
+                <div className="text-center">
+                  <div className="p-4 bg-slate-100/50 backdrop-blur-sm rounded-2xl mb-4">
+                    <TrendingUp className="h-12 w-12 text-slate-400 mx-auto" />
+                  </div>
+                  <p className="font-medium">Aucune donnée d'activité</p>
+                </div>
+              </div>
+            ) : (
+              <BarChart
+                data={activiteParMoisData}
+                title=""
+                xAxisKey="mois"
+                series={[
+                  {
+                    key: 'count',
+                    name: 'Entretiens réalisés',
+                    color: '#6366f1'
+                  }
+                ]}
+                height={320}
+              />
+            )}
+          </div>
+        </div>
+        
+        {/* Footer ultra-moderne */}
+<div className="flex justify-center">
+  <div className="relative group">
+    {/* Effet de glow */}
+    <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 via-indigo-500/10 to-purple-500/20 rounded-3xl blur-xl opacity-60 group-hover:opacity-80 transition-opacity duration-500"></div>
+    
+    {/* Container principal */}
+    <div className="relative bg-white/20 backdrop-blur-2xl border border-white/30 rounded-3xl p-6 shadow-2xl hover:shadow-3xl transition-all duration-500 hover:-translate-y-1">
+      <div className="flex flex-col lg:flex-row items-center justify-between space-y-4 lg:space-y-0 lg:space-x-8">
+        
+        {/* Section synchronisation */}
+        <div className="flex items-center space-x-3">
+          <div className="relative">
+            <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse shadow-lg shadow-green-400/50"></div>
+            <div className="absolute inset-0 w-3 h-3 bg-green-400 rounded-full animate-ping"></div>
+          </div>
+          <div className="text-center lg:text-left">
+            <p className="text-sm font-medium text-slate-700">
+              Dernière synchronisation
+            </p>
+            <p className="text-xs text-slate-600">
+              {new Date().toLocaleDateString('fr-FR', { 
+                day: '2-digit', 
+                month: 'short', 
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+              })}
+            </p>
+          </div>
+        </div>
+
+        {/* Séparateur */}
+        <div className="hidden lg:block h-8 w-px bg-gradient-to-b from-transparent via-white/30 to-transparent"></div>
+
+        {/* Section sécurité */}
+        <div className="flex items-center space-x-4">
+          <a 
+            href="https://www.ssllabs.com/ssltest/analyze.html?d=app.vital-sync.ch" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="group flex items-center space-x-2 px-4 py-2 bg-white/20 backdrop-blur-sm border border-white/30 rounded-2xl hover:bg-white/30 hover:border-green-500/40 transition-all duration-300 hover:scale-105"
+          >
+            <div className="relative">
+              <Shield className="h-4 w-4 text-green-600 group-hover:text-green-500 transition-colors" />
+              <div className="absolute inset-0 bg-green-400/20 rounded-full blur-sm group-hover:bg-green-400/40 transition-all duration-300"></div>
+            </div>
+            <span className="text-xs font-medium text-slate-700 group-hover:text-slate-800 transition-colors">
+              Audit SSL/TLS
+            </span>
+            <ExternalLink className="h-3 w-3 text-slate-500 group-hover:text-slate-600 transition-colors" />
+          </a>
+        </div>
+
+        {/* Séparateur */}
+        <div className="hidden lg:block h-8 w-px bg-gradient-to-b from-transparent via-white/30 to-transparent"></div>
+
+        {/* Section développeur */}
+        <div className="text-center lg:text-right space-y-1">
+          <div className="flex items-center justify-center lg:justify-end space-x-2">
+            <p className="text-sm font-semibold text-slate-800">
+              Développé par{' '}
+              <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent font-bold">
+                Amarres®
               </span>
-            </div>
-            
-            <div className="grid grid-cols-3 gap-4">
-              {/* Risque élevé */}
-              <div className="bg-red-50/80 backdrop-blur-sm rounded-lg p-4 border border-red-100/50 flex flex-col items-center text-center">
-                <div className="mb-2 text-red-600">
-                  <AlertCircle size={24} />
-                </div>
-                <p className="text-sm font-medium text-slate-700">Risque élevé</p>
-                <p className="text-2xl font-bold text-slate-900 mt-1">
-                  {filteredData?.detectionPrecoce?.risqueEleve || 0}
-                </p>
-              </div>
-              
-              {/* Risque moyen */}
-              <div className="bg-amber-50/80 backdrop-blur-sm rounded-lg p-4 border border-amber-100/50 flex flex-col items-center text-center">
-                <div className="mb-2 text-amber-600">
-                  <AlertTriangle size={24} />
-                </div>
-                <p className="text-sm font-medium text-slate-700">Risque moyen</p>
-                <p className="text-2xl font-bold text-slate-900 mt-1">
-                  {filteredData?.detectionPrecoce?.risqueMoyen || 0}
-                </p>
-              </div>
-              
-              {/* Risque faible */}
-              <div className="bg-green-50/80 backdrop-blur-sm rounded-lg p-4 border border-green-100/50 flex flex-col items-center text-center">
-                <div className="mb-2 text-green-600">
-                  <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
-                          d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                  </svg>
-                </div>
-                <p className="text-sm font-medium text-slate-700">Risque faible</p>
-                <p className="text-2xl font-bold text-slate-900 mt-1">
-                  {filteredData?.detectionPrecoce?.risqueFaible || 0}
-                </p>
-              </div>
-            </div>
-            
-            <div className="mt-4 p-3 bg-blue-50/80 backdrop-blur-sm border border-blue-200/50 rounded-lg">
-              <p className="text-sm text-blue-800">
-                La fonctionnalité de détection précoce par Intelligence Artificielle sera disponible dans une prochaine mise à jour. 
-                Elle permettra d'identifier automatiquement les employés présentant des risques potentiels pour leur santé au travail.
-              </p>
+            </p>
+            {/* Emplacement pour votre logo PNG */}
+            <div className="flex items-center">
+              <img 
+                src="/logo-amarre.png" 
+                alt="Logo Amarre" 
+                className="w-9 h-9 object-contain transition-transform duration-300 hover:scale-150"
+              />
             </div>
           </div>
+          <p className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent font-lite">
+            Software Development
+          </p>
         </div>
-        
-        {/* Actions à suivre */}
-        <div>
-          <HealthMetrics
-            metrics={createHealthMetrics({
-              visiteMedicalePlanifiee: filteredData?.visiteMedicalePlanifiee || 0,
-              limitationsActives: filteredData?.limitationsActives || 0,
-              etudePostePrevue: filteredData?.etudePostePrevue || 0,
-              entretienManagerPrevu: filteredData?.entretienManagerPrevu || 0,
-              detectionsRisque: filteredData?.detectionPrecoce?.risqueEleve || 0
-            })}
-            title="Actions à suivre"
-            isLoading={isLoading}
-          />
-        </div>
-        
-        {/* Bas de page modernisé */}
-        <div className="text-center text-slate-500 text-sm">
-          <div className="glass rounded-lg p-3 inline-block">
-            <p>Données mises à jour le {new Date().toLocaleDateString('fr-FR', { 
-              day: '2-digit', 
-              month: '2-digit', 
-              year: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit'
-            })}</p>
-          </div>
-        </div>
+      </div>
+
+      {/* Ligne décorative */}
+      <div className="mt-4 pt-4 border-t border-white/20">
+        <div className="h-px bg-gradient-to-r from-transparent via-blue-500/30 to-transparent"></div>
+      </div>
+    </div>
+  </div>
+</div>
       </div>
     </div>
   );

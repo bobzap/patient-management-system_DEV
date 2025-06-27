@@ -66,47 +66,47 @@ export const ListManager = () => {
   }, []);
 
   // Fonction de mise à jour
-  const handleUpdate = async (listId: string, newItems: string[]) => {
-    try {
-      console.log('📝 Tentative de mise à jour:', { listId, itemCount: newItems.length });
-      
-      const response = await fetch(`/api/lists/${listId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ items: newItems }),
-      });
+const handleUpdate = async (listId: string, newItems: string[]) => {
+  try {
+    console.log('📝 Tentative de mise à jour:', { listId, itemCount: newItems.length });
+    
+    const response = await fetch(`/api/lists/${listId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ items: newItems }),
+    });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Erreur HTTP ${response.status}: ${errorText}`);
-      }
-
-      const result = await response.json();
-
-      if (result.success) {
-        // Mettre à jour l'état local avec les nouvelles données
-        setLists(prev => 
-          prev.map(list => 
-            list.listId === listId 
-              ? { ...list, items: result.data.items }
-              : list
-          )
-        );
-        
-        // Recharger toutes les listes pour s'assurer de la synchronisation
-        fetchLists();
-        
-        toast.success('Liste mise à jour avec succès');
-      } else {
-        throw new Error(result.error || 'Erreur lors de la mise à jour');
-      }
-    } catch (error) {
-      console.error('❌ Erreur lors de la mise à jour:', error);
-      toast.error(`Erreur: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Erreur HTTP ${response.status}: ${errorText}`);
     }
-  };
+
+    const result = await response.json();
+
+    if (result.success) {
+      // ✅ SEULEMENT la mise à jour locale - PAS de rechargement API
+      setLists(prev => 
+        prev.map(list => 
+          list.listId === listId 
+            ? { ...list, items: result.data.items }
+            : list
+        )
+      );
+      
+      // ❌ SUPPRIMEZ cette ligne qui cause la boucle :
+      // fetchLists();
+      
+      toast.success('Liste mise à jour avec succès');
+    } else {
+      throw new Error(result.error || 'Erreur lors de la mise à jour');
+    }
+  } catch (error) {
+    console.error('❌ Erreur lors de la mise à jour:', error);
+    toast.error(`Erreur: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+  }
+};
 
   if (isLoading) {
     return (

@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Search, X } from 'lucide-react';
+import { Search, X, Plus } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";
 
 export interface VecuTravailData {
@@ -95,48 +95,66 @@ export default function VecuTravail({ data, onChange, isReadOnly = false }: Prop
   const [searchQuery, setSearchQuery] = useState('');
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+  const [showCustomMotifInput, setShowCustomMotifInput] = useState(false);
+  const [customMotif, setCustomMotif] = useState('');
+  const [isAddingCustomMotif, setIsAddingCustomMotif] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const customInputRef = useRef<HTMLInputElement>(null);
   const isFirstRender = useRef(true);
 
-  useEffect(() => {
-    // Initialiser les motifs s'ils sont undefined
-    if (isFirstRender.current && !data.motifVisite.motifs) {
-      isFirstRender.current = false;
-      setTimeout(() => {
-        onChange({
-          ...data,
-          motifVisite: {
-            ...data.motifVisite,
-            motifs: []
-          }
-        });
-      }, 0);
-    }
-    
-    // Charger la liste des motifs
-    const fetchMotifsList = async () => {
-      try {
-        const response = await fetch('/api/lists');
-        const result = await response.json();
-        const motifs = result.data.find(
-          (list: List) => list.listId === 'motifVisite'
-        );
-        if (motifs) {
-          setMotifsList(motifs.items.map((item: ListItem) => item.value));
-        }
-      } catch (error) {
-        console.error('Erreur lors du chargement des motifs:', error);
-      }
-    };
+// Remplacez le useEffect problématique par celui-ci :
 
-    fetchMotifsList();
-  }, [data, onChange]);
+useEffect(() => {
+  // Initialiser les motifs s'ils sont undefined
+  if (isFirstRender.current && !data.motifVisite.motifs) {
+    isFirstRender.current = false;
+    setTimeout(() => {
+      onChange({
+        ...data,
+        motifVisite: {
+          ...data.motifVisite,
+          motifs: []
+        }
+      });
+    }, 0);
+  }
+}, [data.motifVisite.motifs]); // ✅ Dépendance spécifique
+
+// ✅ useEffect séparé pour charger les motifs UNE SEULE FOIS
+useEffect(() => {
+  const fetchMotifsList = async () => {
+    try {
+      const response = await fetch('/api/lists');
+      const result = await response.json();
+      const motifs = result.data.find(
+        (list: List) => list.listId === 'motifVisite'
+      );
+      if (motifs) {
+        setMotifsList(motifs.items.map((item: ListItem) => item.value));
+      }
+    } catch (error) {
+      console.error('Erreur lors du chargement des motifs:', error);
+    }
+  };
+  
+  // ✅ Ne charger qu'une seule fois au montage du composant
+  fetchMotifsList();
+}, []); // ✅ Tableau vide = une seule exécution
+
+  // Focus automatique sur l'input personnalisé
+  useEffect(() => {
+    if (showCustomMotifInput && customInputRef.current) {
+      customInputRef.current.focus();
+    }
+  }, [showCustomMotifInput]);
 
   // Gérer les clics en dehors du dropdown pour le fermer
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setDropdownOpen(false);
+        setShowCustomMotifInput(false);
+        setCustomMotif('');
       }
     };
 
@@ -172,6 +190,53 @@ export default function VecuTravail({ data, onChange, isReadOnly = false }: Prop
         motifs: safeData.motifVisite.motifs.filter(m => m !== motif)
       }
     });
+  };
+
+  const handleAddCustomMotif = async () => {
+    if (!customMotif.trim() || isReadOnly || isAddingCustomMotif) return;
+    
+    setIsAddingCustomMotif(true);
+    
+    try {
+      // Ajouter le motif personnalisé à la liste
+      const response = await fetch('/api/lists/motifVisite/items', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          value: customMotif.trim()
+        }),
+      });
+
+      if (response.ok) {
+        // Mettre à jour la liste locale
+        setMotifsList(prev => [...prev, customMotif.trim()]);
+        
+        // Ajouter le motif aux motifs sélectionnés
+        handleAddMotif(customMotif.trim());
+        
+        // Réinitialiser l'état
+        setCustomMotif('');
+        setShowCustomMotifInput(false);
+      } else {
+        console.error('Erreur lors de l\'ajout du motif personnalisé');
+      }
+    } catch (error) {
+      console.error('Erreur lors de l\'ajout du motif personnalisé:', error);
+    } finally {
+      setIsAddingCustomMotif(false);
+    }
+  };
+
+  const handleCustomMotifKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleAddCustomMotif();
+    } else if (e.key === 'Escape') {
+      setShowCustomMotifInput(false);
+      setCustomMotif('');
+    }
   };
 
   // Filtrer les motifs en fonction de la recherche
@@ -277,6 +342,51 @@ export default function VecuTravail({ data, onChange, isReadOnly = false }: Prop
                     <div className="sticky top-0 bg-amber-50 p-2 border-b border-amber-100 text-amber-800 text-sm font-medium">
                       {filteredMotifs.length} motifs disponibles - Cliquez pour ajouter
                     </div>
+                    
+                    {/* Bouton pour ajouter un motif personnalisé */}
+                    {!showCustomMotifInput && (
+                      <div 
+                        className="flex items-center px-4 py-2 hover:bg-blue-50 cursor-pointer border-b border-gray-100 text-blue-600"
+                        onClick={() => setShowCustomMotifInput(true)}
+                      >
+                        <Plus size={16} className="mr-2" />
+                        <span className="text-sm font-medium">Ajouter un motif personnalisé</span>
+                      </div>
+                    )}
+
+                    {/* Input pour motif personnalisé */}
+                    {showCustomMotifInput && (
+                      <div className="p-3 border-b border-gray-100 bg-blue-50">
+                        <div className="flex items-center gap-2">
+                          <input
+                            ref={customInputRef}
+                            type="text"
+                            value={customMotif}
+                            onChange={(e) => setCustomMotif(e.target.value)}
+                            onKeyDown={handleCustomMotifKeyPress}
+                            placeholder="Entrez un nouveau motif..."
+                            className="flex-grow px-2 py-1 text-sm border border-blue-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            disabled={isAddingCustomMotif}
+                          />
+                          <button
+                            onClick={handleAddCustomMotif}
+                            disabled={!customMotif.trim() || isAddingCustomMotif}
+                            className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                          >
+                            {isAddingCustomMotif ? 'Ajout...' : 'Ajouter'}
+                          </button>
+                          <button
+                            onClick={() => {
+                              setShowCustomMotifInput(false);
+                              setCustomMotif('');
+                            }}
+                            className="px-2 py-1 text-sm text-gray-600 hover:text-gray-800"
+                          >
+                            <X size={16} />
+                          </button>
+                        </div>
+                      </div>
+                    )}
                     
                     {filteredMotifs.length > 0 ? (
                       filteredMotifs.map(motif => {
