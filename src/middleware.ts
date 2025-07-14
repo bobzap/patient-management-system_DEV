@@ -11,6 +11,7 @@ const ROUTE_PERMISSIONS = {
     '/auth/register',
     '/auth/error',
     '/auth/forgot-password',
+    '/auth/reset-password',  // 🔧 AJOUTEZ CETTE LIGNE
     '/auth/invite',
     '/auth/activate',  // 🔧 AJOUT: Page d'activation
     '/api/auth',

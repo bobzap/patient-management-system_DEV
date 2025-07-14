@@ -1,8 +1,6 @@
-// prisma/schema.prisma - Version corrigée des relations
-// schema.prisma
 generator client {
   provider      = "prisma-client-js"
-  binaryTargets = ["native", "linux-musl-openssl-3.0.x", "debian-openssl-3.0.x"]
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
 }
 
 datasource db {
@@ -11,16 +9,12 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-// ============================================
-// AUTHENTIFICATION
-// ============================================
-
 model Account {
-  id                String  @id @default(cuid())
-  userId            String  @map("user_id")
+  id                String   @id @default(cuid())
+  userId            String   @map("user_id")
   type              String
   provider          String
-  providerAccountId String  @map("provider_account_id")
+  providerAccountId String   @map("provider_account_id")
   refresh_token     String?
   access_token      String?
   expires_at        Int?
@@ -30,8 +24,7 @@ model Account {
   session_state     String?
   createdAt         DateTime @default(now()) @map("created_at")
   updatedAt         DateTime @updatedAt @map("updated_at")
-
-  user AuthUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              AuthUser @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
   @@map("accounts")
@@ -46,27 +39,23 @@ model AuthLog {
   success   Boolean
   details   Json?
   createdAt DateTime @default(now()) @map("created_at")
-
-  user AuthUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      AuthUser @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("auth_logs")
 }
 
 model AuthUser {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  password  String
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  accounts Account[]
-  logs     AuthLog[]
-  profile  UserProfile?
-  sessions Session[]
-  
-  // Relations pour les tokens d'invitation (CORRIGÉES)
+  id                  String            @id @default(cuid())
+  email               String            @unique
+  password            String
+  createdAt           DateTime          @default(now()) @map("created_at")
+  updatedAt           DateTime          @updatedAt @map("updated_at")
+  accounts            Account[]
+  logs                AuthLog[]
   createdInvitations  InvitationToken[] @relation("InvitationCreator")
   receivedInvitations InvitationToken[] @relation("InvitationRecipient")
+  sessions            Session[]
+  profile             UserProfile?
 
   @@map("auth_users")
 }
@@ -78,8 +67,7 @@ model Session {
   expires      DateTime
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
-
-  user AuthUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user         AuthUser @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("sessions")
 }
@@ -95,8 +83,7 @@ model UserProfile {
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
   lastLogin     DateTime? @map("last_login")
-
-  user AuthUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user          AuthUser  @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("user_profiles")
 }
@@ -110,10 +97,6 @@ model VerificationToken {
   @@map("verification_tokens")
 }
 
-// ============================================
-// TOKENS D'INVITATION (RELATIONS CORRIGÉES)
-// ============================================
-
 model InvitationToken {
   id        String    @id @default(cuid())
   email     String
@@ -125,10 +108,8 @@ model InvitationToken {
   isUsed    Boolean   @default(false) @map("is_used")
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
-
-  // Relations corrigées (one-to-many)
-  user    AuthUser @relation("InvitationRecipient", fields: [userId], references: [id], onDelete: Cascade)
-  creator AuthUser @relation("InvitationCreator", fields: [createdBy], references: [id], onDelete: Cascade)
+  creator   AuthUser  @relation("InvitationCreator", fields: [createdBy], references: [id], onDelete: Cascade)
+  user      AuthUser  @relation("InvitationRecipient", fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([token])
   @@index([email])
@@ -136,19 +117,6 @@ model InvitationToken {
   @@index([isUsed])
   @@map("invitation_tokens")
 }
-
-enum UserRole {
-  ADMIN
-  INFIRMIER
-  INFIRMIER_CHEF
-  MEDECIN
-
-  @@map("user_role")
-}
-
-// ============================================
-// MODÈLES EXISTANTS (inchangés)
-// ============================================
 
 model CalendarEvent {
   id              Int         @id @default(autoincrement())
@@ -167,7 +135,7 @@ model CalendarEvent {
   createdBy       String?
   recurrence      String?
   parentEventId   Int?
-  entretien       Entretien?  @relation(fields: [entretienId], references: [id], onDelete: SetNull)
+  entretien       Entretien?  @relation(fields: [entretienId], references: [id])
   patient         Patient?    @relation(fields: [patientId], references: [id])
   eventTypes      EventType[] @relation("EventTypeToCalendarEvent")
 
@@ -210,9 +178,9 @@ model FormConfiguration {
   id        Int           @id @default(autoincrement())
   pageId    String        @unique
   name      String
-  sections  FormSection[]
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
+  sections  FormSection[]
 
   @@index([pageId])
 }
@@ -298,7 +266,6 @@ model Patient {
   anciennete        String
   tempsTrajetAller  String
   tempsTrajetRetour String
-  tempsTrajetTotal  String?
   typeTransport     String
   numeroEntretien   Int?
   nomEntretien      String?
@@ -311,6 +278,7 @@ model Patient {
   dateCreation      String?
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
+  tempsTrajetTotal  String?
   calendarEvents    CalendarEvent[]
   entretiens        Entretien[]
 }
@@ -322,4 +290,13 @@ model RisqueProfessionnel {
   estFavori Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+enum UserRole {
+  ADMIN
+  INFIRMIER
+  INFIRMIER_CHEF
+  MEDECIN
+
+  @@map("user_role")
 }

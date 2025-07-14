@@ -46,6 +46,7 @@
     "clsx": "^2.0.0",
     "date-fns": "^3.0.6",
     "dotenv": "^16.5.0",
+    "jsonwebtoken": "^9.0.2",
     "lodash": "^4.17.21",
     "lucide-react": "^0.263.1",
     "next": "^15.3.3",
@@ -55,13 +56,15 @@
     "react-grid-layout": "^1.4.4",
     "react-resizable": "^3.0.5",
     "recharts": "^2.8.0",
+    "resend": "^4.6.0",
     "sonner": "^1.2.4",
     "tailwind-merge": "^2.2.0",
     "tailwindcss-animate": "^1.0.7",
-    "zod": "^3.22.4"
+    "zod": "^3.25.68"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/lodash": "^4.14.202",
     "@types/node": "^20",
     "@types/react": "^18",

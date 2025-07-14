@@ -32,7 +32,7 @@ services:
     networks:
       - traefik
     env_file:
-      - .env.local
+      - .env.docker
     volumes:
       - app-data:/app/data
       - ./logs:/app/logs

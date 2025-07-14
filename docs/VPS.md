@@ -38,10 +38,13 @@ docker compose up -d
 # ÉTAPE 2 : Supabase (base de données + API)
 cd /home/supabase-project
 docker compose up -d
-
+docker compose 
 # ÉTAPE 3 : Application Next.js
 cd /home/patient-management-current
-docker compose up -d
+docker compose -f compose.prod.yaml up -d
+docker compose -f compose.prod.yaml down
+
+docker compose -f compose.prod.yaml build
 
 # 4. Vérification finale
 docker ps                # Tous les services UP
@@ -294,3 +297,8 @@ cd /home/patient-management-current && docker compose up -d
 ---
 
 *Guide créé le $(date) - Infrastructure VitalSync v1.0*
+
+
+
+# Depuis /home/patient-management-current/
+./scripts/create-admin.sh
