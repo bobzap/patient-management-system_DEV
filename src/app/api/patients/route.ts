@@ -52,7 +52,6 @@ export async function POST(req: Request) {
       }
     });
     
-    
     return NextResponse.json({ data: patient }, { status: 201 });
   } catch (error) {
     
@@ -68,6 +67,7 @@ export async function GET() {
     const patients = await prisma.patient.findMany({
       orderBy: { createdAt: 'desc' }
     });
+
 
     const formattedPatients = patients.map((patient: {
   dateNaissance: string | Date;

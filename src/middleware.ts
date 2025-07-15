@@ -15,6 +15,7 @@ const ROUTE_PERMISSIONS = {
     '/auth/invite',
     '/auth/activate',  // 🔧 AJOUT: Page d'activation
     '/api/auth',
+    '/api/debug',  // 🔧 AJOUT: Route de diagnostic
   ],
   
   // Routes protégées par rôle
