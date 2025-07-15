@@ -118,9 +118,9 @@ export const authOptions: NextAuthOptions = {
   },
 
 callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger }) {
       if (process.env.NODE_ENV === 'development') {
-        console.log('🎫 JWT Callback')
+        console.log('🎫 JWT Callback', { trigger })
       }
      
       if (user) {
@@ -129,6 +129,38 @@ callbacks: {
         }
         token.role = user.role
         token.isActive = user.isActive
+        token.requiresMFA = true // MFA obligatoire pour tous
+        token.mfaVerified = false // À vérifier à chaque session
+        token.sessionId = `${token.sub}-${Date.now()}` // ID unique pour cette session
+      }
+
+      // Vérifier le statut MFA actuel de l'utilisateur
+      if (token.sub) {
+        try {
+          const userProfile = await prisma.userProfile.findUnique({
+            where: { userId: token.sub },
+            include: { mfa: true }
+          });
+
+          if (userProfile?.mfa?.isEnabled) {
+            token.mfaEnabled = true;
+            // Vérifier si la MFA a été vérifiée pour cet utilisateur
+            if (global.mfaVerifiedSessions && global.mfaVerifiedSessions.has(token.sub)) {
+              token.mfaVerified = true;
+              // Supprimer de la liste temporaire pour éviter les problèmes de sécurité
+              global.mfaVerifiedSessions.delete(token.sub);
+            } else {
+              token.mfaVerified = false;
+            }
+          } else {
+            token.mfaEnabled = false; // Pas encore configurée
+            token.mfaVerified = false; // Pas configurée
+          }
+        } catch (error) {
+          console.error('Erreur vérification MFA dans JWT:', error);
+          token.mfaEnabled = false; // Par sécurité, forcer la configuration
+          token.mfaVerified = false;
+        }
       }
      
       return token
@@ -141,12 +173,15 @@ callbacks: {
         session.user.id = token.sub!
         session.user.role = token.role as string
         session.user.isActive = token.isActive as boolean
+        session.user.mfaEnabled = token.mfaEnabled as boolean
+        session.user.mfaVerified = token.mfaVerified as boolean
       }
       
       console.log('📋 Session finale:', {
         id: session.user.id,
         email: session.user.email,
-        role: session.user.role
+        role: session.user.role,
+        mfaVerified: session.user.mfaVerified
       })
       
       return session
@@ -154,7 +189,15 @@ callbacks: {
 
     async signIn({ user }) {
       console.log('🚪 SignIn Callback - User actif:', user?.isActive)
-      return user?.isActive === true
+      
+      // Phase 1: Vérification utilisateur actif
+      if (!user?.isActive) {
+        return false
+      }
+
+      // Phase 2: NextAuth attend un boolean, pas une URL
+      // Les redirections MFA seront gérées par le middleware
+      return true
     }
   },
 
@@ -165,18 +208,11 @@ callbacks: {
   },
 
   events: {
-    async signOut({ token }) {
-      if (process.env.NODE_ENV === 'development') {
-        console.log('🚪 SignOut Event')
-      }
-      if (token?.sub) {
-        await prisma.authLog.create({
-          data: {
-            userId: token.sub,
-            action: 'LOGOUT',
-            success: true
-          }
-        })
+    signOut: ({ token }) => {
+      console.log('🚪 SignOut Event')
+      // Nettoyer les sessions MFA vérifiées
+      if (global.mfaVerifiedSessions && token?.sub) {
+        global.mfaVerifiedSessions.delete(token.sub);
       }
     }
   },
@@ -193,6 +229,8 @@ declare module "next-auth" {
       name: string
       role: string
       isActive: boolean
+      requiresMFA: boolean
+      mfaVerified: boolean
     }
   }
 
@@ -206,5 +244,7 @@ declare module "next-auth/jwt" {
   interface JWT {
     role: string
     isActive: boolean
+    requiresMFA: boolean
+    mfaVerified: boolean
   }
 }

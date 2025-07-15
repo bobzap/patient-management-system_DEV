@@ -84,6 +84,7 @@ model UserProfile {
   updatedAt     DateTime  @updatedAt @map("updated_at")
   lastLogin     DateTime? @map("last_login")
   user          AuthUser  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mfa           UserMFA?
 
   @@map("user_profiles")
 }
@@ -290,6 +291,40 @@ model RisqueProfessionnel {
   estFavori Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model UserMFA {
+  id           String     @id @default(cuid())
+  userId       String     @unique @map("user_id")
+  secret       String     // Secret TOTP chiffré
+  isEnabled    Boolean    @default(false) @map("is_enabled")
+  backupCodes  String[]   @map("backup_codes") // Codes de récupération chiffrés
+  createdAt    DateTime   @default(now()) @map("created_at")
+  enabledAt    DateTime?  @map("enabled_at")
+  lastUsedAt   DateTime?  @map("last_used_at")
+  failedAttempts Int      @default(0) @map("failed_attempts")
+  lockedUntil  DateTime?  @map("locked_until")
+  userProfile  UserProfile @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  @@map("user_mfa")
+}
+
+model RateLimit {
+  id         String   @id @default(cuid())
+  identifier String   // IP ou IP:userId
+  type       String   // 'auth', 'mfa', 'setup'
+  count      Int      @default(0)
+  windowStart DateTime @default(now()) @map("window_start")
+  resetTime  DateTime @map("reset_time")
+  isBlocked  Boolean  @default(false) @map("is_blocked")
+  blockUntil DateTime? @map("block_until")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@unique([identifier, type], name: "identifier_type")
+  @@index([resetTime])
+  @@index([isBlocked])
+  @@map("rate_limits")
 }
 
 enum UserRole {

@@ -121,7 +121,7 @@ function isStaticFile(pathname: string): boolean {
 }
 
 export default withAuth(
-  function middleware(req: NextRequest) {
+  async function middleware(req: NextRequest) {
     const token = req.nextauth.token
     const { pathname } = req.nextUrl
     
@@ -156,6 +156,25 @@ if (token && !hasPermission(token.role as string, pathname)) {
       const errorUrl = new URL('/auth/error', req.url)
       errorUrl.searchParams.set('error', 'AccountDeactivated')
       return NextResponse.redirect(errorUrl)
+    }
+
+    // 🔧 NOUVEAU: Gestion des redirections MFA basée sur le token JWT
+    if (token && token.isActive) {
+      // Vérifier si on est sur une page MFA (ne pas rediriger en boucle)
+      const isMfaPage = pathname.startsWith('/auth/mfa-') || pathname === '/auth/mfa-required'
+      
+      if (!isMfaPage) {
+        // Vérifier le statut MFA depuis le token JWT (mis à jour dans auth.ts)
+        if (!token.mfaEnabled) {
+          // Si MFA pas configurée, rediriger vers setup obligatoire
+          const mfaRequiredUrl = new URL('/auth/mfa-required', req.url)
+          return NextResponse.redirect(mfaRequiredUrl)
+        } else if (!token.mfaVerified) {
+          // Si MFA configurée mais pas vérifiée pour cette session
+          const mfaVerifyUrl = new URL('/auth/mfa-verify', req.url)
+          return NextResponse.redirect(mfaVerifyUrl)
+        }
+      }
     }
     
     // 🔧 CORRECTION: Logger seulement les accès importants
