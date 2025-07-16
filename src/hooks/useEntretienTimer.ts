@@ -1,5 +1,6 @@
 // src/hooks/useEntretienTimer.ts
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { safeParseResponse } from '@/utils/json';
 
 interface UseEntretienTimerProps {
   entretienId: number | null;
@@ -21,27 +22,34 @@ export function useEntretienTimer({
   
   // Initialiser isPaused en fonction des paramètres
   const [isPaused, setIsPaused] = useState<boolean>(
-    initialPaused || isReadOnly || status !== 'brouillon'
+    isReadOnly || status !== 'brouillon' || initialPaused
   );
   
   // Toujours démarrer le timer pour un nouvel entretien ou s'il y a des secondes initiales
   const [isStarted, setIsStarted] = useState<boolean>(true); // Toujours démarrer à true pour afficher le timer
 
+  // Ref pour capturer la valeur actuelle des secondes
+  const secondsRef = useRef<number>(initialSeconds);
+
   // Effet pour mettre à jour les états quand les props changent
   useEffect(() => {
-    console.log("useEntretienTimer - Mise à jour des props:", {
-      initialSeconds, initialPaused, isReadOnly, status
-    });
-    
-    setSeconds(initialSeconds);
-    setIsPaused(initialPaused || isReadOnly || status !== 'brouillon');
+    // Ne réinitialiser les secondes que si c'est vraiment un changement d'entretien
+    // ou si on change de nouveau entretien (entretienId null -> nombre)
+    if (initialSeconds !== secondsRef.current) {
+      setSeconds(initialSeconds);
+      secondsRef.current = initialSeconds;
+    }
+    setIsPaused(isReadOnly || status !== 'brouillon' || initialPaused);
   }, [initialSeconds, initialPaused, isReadOnly, status]);
 
+  // Effet pour maintenir la ref synchronisée avec l'état
+  useEffect(() => {
+    secondsRef.current = seconds;
+  }, [seconds]);
+
   // Mettre à jour l'API quand l'état de pause change
-  const updatePauseState = useCallback(async (newPausedState: boolean) => {
-    if (!entretienId) return;
-    
-    console.log(`updatePauseState - Entretien ${entretienId} - Pause: ${newPausedState}`);
+  const updatePauseState = useCallback(async (newPausedState: boolean): Promise<boolean> => {
+    if (!entretienId) return false;
     
     try {
       const response = await fetch(`/api/entretiens/${entretienId}/timer`, {
@@ -50,88 +58,125 @@ export function useEntretienTimer({
         body: JSON.stringify({ enPause: newPausedState })
       });
       
-      if (!response.ok) {
-        console.error('Erreur lors de la mise à jour de l\'état de pause:', await response.text());
-      } else {
-        console.log(`Entretien ${entretienId} - État de pause mis à jour: ${newPausedState}`);
+      const parseResult = await safeParseResponse(response);
+      
+      if (!parseResult.success) {
+        console.error('Erreur lors de la mise à jour de l\'état de pause:', parseResult.error);
+        return false;
       }
+      
+      return parseResult.data?.success === true;
     } catch (error) {
       console.error('Erreur réseau lors de la mise à jour de l\'état de pause:', error);
+      return false;
+    }
+  }, [entretienId]);
+
+  // Sauvegarder le temps écoulé dans la base de données
+  const updateElapsedTime = useCallback(async (currentSeconds: number) => {
+    if (!entretienId) return;
+    
+    try {
+      const response = await fetch(`/api/entretiens/${entretienId}/elapsed-time`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ elapsedSeconds: currentSeconds })
+      });
+      
+      if (!response.ok) {
+        console.error('Erreur HTTP lors de la sauvegarde du temps écoulé:', response.status);
+      }
+    } catch (error) {
+      console.error('Erreur lors de la sauvegarde du temps écoulé:', error);
     }
   }, [entretienId]);
 
   // Pause forcée (utilisée lors de la navigation)
   const forcePause = useCallback(async () => {
-    console.log(`forcePause - Entretien ${entretienId} - Actuel: ${isPaused}, Status: ${status}`);
-    
     if (isPaused || !entretienId || status !== 'brouillon') {
-      console.log("Pas besoin de mettre en pause (déjà en pause ou pas un brouillon)");
       return;
     }
     
-    console.log(`Mise en pause forcée de l'entretien ${entretienId}`);
+    // Sauvegarder le temps écoulé avant la pause
+    await updateElapsedTime(seconds);
+    
     setIsPaused(true);
     await updatePauseState(true);
-  }, [entretienId, isPaused, status, updatePauseState]);
+  }, [entretienId, isPaused, status, seconds, updateElapsedTime, updatePauseState]);
 
   // Toggle l'état de pause
   const togglePause = useCallback(async () => {
-    console.log(`togglePause - Entretien ${entretienId} - État actuel: ${isPaused}`);
-    
     if (isReadOnly || status !== 'brouillon') {
-      console.log("Mode lecture seule ou non brouillon - Pas de changement d'état");
       return;
     }
     
     const newPausedState = !isPaused;
-    console.log(`Changement d'état de pause: ${isPaused ? 'reprise' : 'pause'}`);
+    
+    // Si on met en pause, sauvegarder le temps écoulé d'abord
+    if (newPausedState) {
+      await updateElapsedTime(seconds);
+    }
+    
+    // Optimistically update local state
     setIsPaused(newPausedState);
-    await updatePauseState(newPausedState);
-  }, [isPaused, isReadOnly, status, entretienId, updatePauseState]);
+    
+    // Synchronize with API
+    const success = await updatePauseState(newPausedState);
+    if (!success) {
+      console.error('Échec de la synchronisation, retour à l\'état précédent');
+      setIsPaused(isPaused); // Revert on failure
+    }
+  }, [isPaused, isReadOnly, status, entretienId, seconds, updateElapsedTime, updatePauseState]);
 
   // Effet pour gérer le timer
   useEffect(() => {
-    console.log(`Effet timer - isStarted: ${isStarted}, isPaused: ${isPaused}, isReadOnly: ${isReadOnly}`);
-    
     // Toujours en pause pour les entretiens en lecture seule ou non brouillons
     if (isReadOnly || status !== 'brouillon') {
-      console.log("Mode lecture seule ou non brouillon - Timer en pause");
       setIsPaused(true);
       return;
     }
     
     let intervalId: NodeJS.Timeout | null = null;
+    let saveIntervalId: NodeJS.Timeout | null = null;
     
     if (isStarted && !isPaused) {
-      console.log("Démarrage du timer");
+      // Timer principal (1 seconde)
       intervalId = setInterval(() => {
         setSeconds(prev => prev + 1);
       }, 1000);
-    } else {
-      console.log(`Timer non démarré - isStarted: ${isStarted}, isPaused: ${isPaused}`);
+      
+      // Sauvegarde périodique du temps écoulé (toutes les 10 secondes)
+      saveIntervalId = setInterval(() => {
+        if (entretienId) {
+          updateElapsedTime(secondsRef.current);
+        }
+      }, 10000);
     }
     
     return () => {
       if (intervalId) {
-        console.log("Nettoyage de l'intervalle timer");
         clearInterval(intervalId);
       }
+      if (saveIntervalId) {
+        clearInterval(saveIntervalId);
+      }
     };
-  }, [isStarted, isPaused, isReadOnly, status]);
+  }, [isStarted, isPaused, isReadOnly, status, entretienId, updateElapsedTime]);
 
   // Effect pour forcer la pause à la sortie du composant
   useEffect(() => {
     return () => {
-      console.log(`Démontage du hook timer - Entretien ${entretienId} - isPaused: ${isPaused}`);
-      
       if (entretienId && !isPaused && status === 'brouillon') {
-        console.log(`Mise en pause de l'entretien ${entretienId} au démontage du hook`);
-        updatePauseState(true).catch(error => {
-          console.error("Erreur lors de la mise en pause au démontage:", error);
+        // Sauvegarder le temps écoulé avant la fermeture
+        updateElapsedTime(secondsRef.current).finally(() => {
+          updatePauseState(true).catch(error => {
+            console.error("Erreur lors de la mise en pause au démontage:", error);
+          });
         });
       }
     };
-  }, [entretienId, isPaused, status, updatePauseState]);
+  }, [entretienId, isPaused, status, updateElapsedTime, updatePauseState]);
+
 
   // Formater le temps (HH:MM:SS)
   const formatTime = (totalSeconds: number): string => {

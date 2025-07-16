@@ -16,6 +16,8 @@ import {
   UserCog
 } from 'lucide-react'
 import { Logo } from '@/components/ui/Logo';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { useState } from 'react';
 
 type NavigationTab = 'dashboard' | 'patients' | 'newDossier' | 'admin' | 'userManagement' | 'calendar';
 
@@ -33,6 +35,8 @@ export const Sidebar = ({ activeTab, onTabChange }: SidebarProps) => {
     getRoleDisplayName,
     getRoleColor
   } = useAuth()
+
+  const [showSignOutDialog, setShowSignOutDialog] = useState(false);
 
   // Chargement avec skeleton glassmorphique
   if (isLoading) {
@@ -54,10 +58,13 @@ export const Sidebar = ({ activeTab, onTabChange }: SidebarProps) => {
   }
 
   const handleSignOut = async () => {
-    if (confirm('Êtes-vous sûr de vouloir vous déconnecter ?')) {
-      await signOut({ callbackUrl: '/auth/login' })
-    }
+    setShowSignOutDialog(true);
   }
+
+  const confirmSignOut = async () => {
+    setShowSignOutDialog(false);
+    await signOut({ callbackUrl: '/auth/login' });
+  };
 
   // Configuration des onglets selon les permissions
   const tabs = [
@@ -246,6 +253,19 @@ export const Sidebar = ({ activeTab, onTabChange }: SidebarProps) => {
           </span>
         </div>
       </div>
+      
+      {/* Dialog de confirmation pour la déconnexion */}
+      <ConfirmDialog
+        isOpen={showSignOutDialog}
+        onClose={() => setShowSignOutDialog(false)}
+        onConfirm={confirmSignOut}
+        onCancel={() => setShowSignOutDialog(false)}
+        title="Confirmer la déconnexion"
+        message="Êtes-vous sûr de vouloir vous déconnecter ?"
+        confirmText="Se déconnecter"
+        cancelText="Annuler"
+        variant="warning"
+      />
     </div>
   );
 };

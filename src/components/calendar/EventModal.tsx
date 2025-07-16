@@ -7,6 +7,9 @@ import { fr } from 'date-fns/locale';
 import { X, Calendar, Clock, Check, User, Tag, FileText, Trash2, Plus, Edit } from 'lucide-react';
 import { CalendarEvent } from './Calendar';
 import { Patient } from '@/types';
+import { useNavigationGuard } from '@/hooks/useNavigationGuard';
+import { useUnloadConfirmation } from '@/hooks/useUnloadConfirmation';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 
 // Ajouter cette interface pour les titres prédéfinis
 interface PredefinedTitle {
@@ -75,10 +78,11 @@ export const EventModal: React.FC<EventModalProps> = ({
   const [showPatientSearch, setShowPatientSearch] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-    const isGeneratedEvent = event && typeof event.id === 'string' && event.id.toString().startsWith('entretien-');
+  const isGeneratedEvent = event && typeof event.id === 'string' && event.id.toString().startsWith('entretien-');
   const isReadOnly = isGeneratedEvent;
-const [hasChanges, setHasChanges] = useState(false);
-const [originalData, setOriginalData] = useState<any>(null);
+  const [hasChanges, setHasChanges] = useState(false);
+  const [originalData, setOriginalData] = useState<any>(null);
+  
   // États pour les titres prédéfinis
   const [predefinedTitles, setPredefinedTitles] = useState<PredefinedTitle[]>([
     { id: '1', title: 'Visite annuelle' },
@@ -90,6 +94,43 @@ const [originalData, setOriginalData] = useState<any>(null);
   ]);
   const [selectedTitleId, setSelectedTitleId] = useState<string>('');
   const [isCustomTitle, setIsCustomTitle] = useState(true);
+
+  // Hook pour gérer la confirmation de navigation
+  const {
+    showConfirmDialog,
+    handleNavigationAttempt,
+    handleConfirmNavigation,
+    handleSaveAndNavigate,
+    handleCancelNavigation,
+    dialogProps
+  } = useNavigationGuard({
+    hasUnsavedChanges: hasChanges,
+    onNavigate: onClose,
+    onSave: async () => {
+      const eventToSave = {
+        id: event?.id,
+        title,
+        description,
+        startDate: allDay ? startDate : `${startDate}T${startTime}`,
+        endDate: allDay ? endDate : `${endDate}T${endTime}`,
+        allDay,
+        eventType: selectedEventTypes,
+        status,
+        patientId: patientId || undefined,
+      };
+      await onSave(eventToSave);
+    },
+    title: 'Modifications non sauvegardées',
+    message: 'Vous avez des modifications non sauvegardées. Que souhaitez-vous faire ?',
+    saveText: 'Sauvegarder et fermer'
+  });
+
+  // Hook pour gérer la confirmation de fermeture de fenêtre
+  useUnloadConfirmation({
+    hasUnsavedChanges: hasChanges,
+    message: 'Vous avez des modifications non sauvegardées sur cet événement. Voulez-vous vraiment quitter ?',
+    enabled: isOpen // Seulement actif quand le modal est ouvert
+  });
 
   // Effet pour charger les données de l'événement existant ou initialiser un nouvel événement
   useEffect(() => {
@@ -349,7 +390,7 @@ useEffect(() => {
           <h2 className="text-xl font-semibold text-gray-800">
             {event ? 'Modifier l\'événement' : 'Nouvel événement'}
           </h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+          <button onClick={() => handleNavigationAttempt()} className="text-gray-500 hover:text-gray-700">
             <X size={20} />
           </button>
         </div>
@@ -684,7 +725,7 @@ useEffect(() => {
             <div className="flex space-x-2">
               <button
                 type="button"
-                onClick={onClose}
+                onClick={() => handleNavigationAttempt()}
                 className="px-4 py-2 bg-white border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 Annuler
@@ -737,6 +778,9 @@ useEffect(() => {
             </div>
           </div>
         )}
+
+        {/* Dialog de confirmation pour la navigation */}
+        <ConfirmDialog {...dialogProps} />
       </div>
     </div>
   );

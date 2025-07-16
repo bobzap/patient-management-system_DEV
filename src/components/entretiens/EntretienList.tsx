@@ -114,32 +114,46 @@ const confirmDelete = async () => {
     if (!entretien.tempsDebut) return 0;
     
     const debut = new Date(entretien.tempsDebut);
-    let fin;
+    let fin: Date;
     
-    // Si l'entretien est finalisé ou archivé et a un tempsFin, utiliser tempsFin
+    // Pour entretiens finalisés ou archivés, utiliser tempsFin si disponible
     if ((entretien.status === 'finalise' || entretien.status === 'archive') && entretien.tempsFin) {
       fin = new Date(entretien.tempsFin);
-    } 
-    // Sinon, utiliser la date actuelle
-    else {
+    } else if (entretien.status === 'brouillon' && entretien.tempsFin) {
+      // Pour les brouillons, utiliser tempsFin si disponible (temps réel sauvegardé)
+      fin = new Date(entretien.tempsFin);
+    } else {
+      // Sinon, utiliser la date actuelle
       fin = new Date();
     }
     
-    // Calculer la différence en secondes
+    // Calculer la durée brute en secondes
     let durationSeconds = Math.floor((fin.getTime() - debut.getTime()) / 1000);
     
-    // Soustraire le temps de pause si disponible
-    if (entretien.tempsPause) {
+    // Si tempsFin est sauvegardé pour un brouillon, c'est déjà le temps écoulé réel
+    if (entretien.status === 'brouillon' && entretien.tempsFin) {
+      // tempsFin représente déjà le temps écoulé réel, pas besoin de soustraire les pauses
+      return Math.max(0, durationSeconds);
+    }
+    
+    // Pour les entretiens finalisés ou les brouillons sans tempsFin sauvegardé
+    // Soustraire le temps de pause accumulé précédemment
+    if (entretien.tempsPause && entretien.tempsPause > 0) {
       durationSeconds -= entretien.tempsPause;
     }
     
-    // Si en pause et qu'il y a une dernière pause, soustraire ce temps aussi
-    if (entretien.enPause && entretien.dernierePause) {
+    // Si actuellement en pause ET que c'est un brouillon sans tempsFin sauvegardé, soustraire le temps de pause actuel
+    if (entretien.enPause && entretien.dernierePause && entretien.status === 'brouillon' && !entretien.tempsFin) {
       const dernierePause = new Date(entretien.dernierePause);
-      const pauseDuration = Math.floor((fin.getTime() - dernierePause.getTime()) / 1000);
-      durationSeconds -= pauseDuration;
+      const pauseActuelle = Math.floor((new Date().getTime() - dernierePause.getTime()) / 1000);
+      
+      // Seulement soustraire si la pause actuelle est positive et raisonnable
+      if (pauseActuelle > 0 && pauseActuelle < durationSeconds) {
+        durationSeconds -= pauseActuelle;
+      }
     }
     
+    // S'assurer que la durée n'est jamais négative
     return Math.max(0, durationSeconds);
   };
   

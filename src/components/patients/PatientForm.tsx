@@ -10,6 +10,10 @@ import {
   Check, ChevronRight, Activity, Users, Shield,
   ExternalLink, Loader2
 } from 'lucide-react';
+import { useNavigationGuard } from '@/hooks/useNavigationGuard';
+import { useUnloadConfirmation } from '@/hooks/useUnloadConfirmation';
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 
 interface PatientFormProps {
   patient?: Patient; // Optionnel : présent en mode édition, absent en mode création
@@ -141,6 +145,28 @@ export const PatientForm = ({ patient, onSubmit, onCancel }: PatientFormProps) =
   const [possibleDuplicates, setPossibleDuplicates] = useState<Patient[]>([]);
   const [showDuplicatesWarning, setShowDuplicatesWarning] = useState(false);
 
+  const initialFormData = {
+    nom: '',
+    prenom: '',
+    civilites: '',
+    dateNaissance: '',
+    age: 0,
+    etatCivil: '',
+    poste: '',
+    numeroLigne: '',
+    manager: '',
+    zone: '',
+    horaire: '',
+    contrat: '',
+    tauxActivite: '',
+    departement: '',
+    dateEntree: '',
+    anciennete: '',
+    tempsTrajetAller: '',
+    tempsTrajetRetour: '',
+    typeTransport: ''
+  };
+
   const [formData, setFormData] = useState(() => {
     if (patient) {
       return {
@@ -150,30 +176,45 @@ export const PatientForm = ({ patient, onSubmit, onCancel }: PatientFormProps) =
         dateEntree: patient.dateEntree.split('.').reverse().join('-'),
       };
     }
-    return {
-      nom: '',
-      prenom: '',
-      civilites: '',
-      dateNaissance: '',
-      age: 0,
-      etatCivil: '',
-      poste: '',
-      numeroLigne: '',
-      manager: '',
-      zone: '',
-      horaire: '',
-      contrat: '',
-      tauxActivite: '',
-      departement: '',
-      dateEntree: '',
-      anciennete: '',
-      tempsTrajetAller: '',
-      tempsTrajetRetour: '',
-      typeTransport: ''
-    };
+    return initialFormData;
   });
 
   const [showNumeroLigne, setShowNumeroLigne] = useState(formData.poste === 'Opérateur SB');
+
+  // Hook pour détecter les modifications non sauvegardées
+  const { hasUnsavedChanges } = useUnsavedChanges({
+    initialData: patient ? {
+      ...patient,
+      dateNaissance: patient.dateNaissance.split('.').reverse().join('-'),
+      dateEntree: patient.dateEntree.split('.').reverse().join('-'),
+    } : initialFormData,
+    currentData: formData,
+    ignoreFields: ['age', 'anciennete'] // Champs calculés automatiquement
+  });
+
+  // Hook pour gérer la confirmation de navigation
+  const {
+    showConfirmDialog,
+    handleNavigationAttempt,
+    handleConfirmNavigation,
+    handleSaveAndNavigate,
+    handleCancelNavigation,
+    dialogProps
+  } = useNavigationGuard({
+    hasUnsavedChanges,
+    onNavigate: onCancel,
+    title: 'Modifications non sauvegardées',
+    message: 'Vous avez des modifications non sauvegardées. Que souhaitez-vous faire ?',
+    confirmText: 'Quitter sans sauvegarder',
+    saveText: 'Sauvegarder et quitter'
+  });
+
+  // Hook pour gérer la confirmation de fermeture de fenêtre
+  useUnloadConfirmation({
+    hasUnsavedChanges,
+    message: 'Vous avez des modifications non sauvegardées sur ce patient. Voulez-vous vraiment quitter ?',
+    enabled: true
+  });
 
   useEffect(() => {
     setShowNumeroLigne(formData.poste === 'Opérateur SB');
@@ -311,7 +352,7 @@ export const PatientForm = ({ patient, onSubmit, onCancel }: PatientFormProps) =
 
               {/* Bouton fermer */}
               <button
-                onClick={onCancel}
+                onClick={() => handleNavigationAttempt()}
                 className="group flex items-center space-x-2 text-slate-600 hover:text-red-600 transition-colors duration-300"
                 title="Fermer"
               >
@@ -616,7 +657,7 @@ export const PatientForm = ({ patient, onSubmit, onCancel }: PatientFormProps) =
                   {/* Bouton Annuler/Précédent */}
                   <button
                     type="button"
-                    onClick={currentStep === 0 ? onCancel : () => setCurrentStep(prev => prev - 1)}
+                    onClick={currentStep === 0 ? () => handleNavigationAttempt() : () => setCurrentStep(prev => prev - 1)}
                     className="flex items-center space-x-2 px-6 py-3 bg-white/80 backdrop-blur-sm border border-slate-200 rounded-lg hover:bg-white text-slate-700 hover:text-slate-900 transition-all duration-300 font-medium shadow-sm hover:shadow-md"
                     disabled={isSubmitting}
                   >
@@ -754,6 +795,9 @@ export const PatientForm = ({ patient, onSubmit, onCancel }: PatientFormProps) =
           </div>
         </div>
       </div>
+      
+      {/* Dialog de confirmation pour la navigation */}
+      <ConfirmDialog {...dialogProps} />
     </div>
   );
 };

@@ -11,6 +11,7 @@ import { PatientForm } from '@/components/patients/PatientForm';
 import { Dashboard } from '@/components/dashboard/Dashboard';
 import { UserManagement } from '@/components/admin/UserManagement';
 import { CalendarPage } from '@/components/calendar/CalendarPage';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import AdminPage from '@/app/admin/page';
 import { toast } from 'sonner';
 import { Logo } from '@/components/ui/Logo';
@@ -32,6 +33,15 @@ export default function HomePage() {
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [isPatientsLoading, setIsPatientsLoading] = useState(false);
+  const [confirmNavigation, setConfirmNavigation] = useState<{
+    isOpen: boolean;
+    targetTab: NavigationTab;
+    message: string;
+  }>({
+    isOpen: false,
+    targetTab: 'dashboard',
+    message: ''
+  });
   
   // Refs pour éviter les re-renders infinis
   const patientsLoadedRef = useRef(false);
@@ -91,14 +101,25 @@ export default function HomePage() {
     }
 
     if (selectedPatient) {
-      if (window.confirm('Voulez-vous vraiment quitter la vue détaillée ?')) {
-        setSelectedPatient(null);
-        setActiveTab(newTab);
-      }
+      setConfirmNavigation({
+        isOpen: true,
+        targetTab: newTab,
+        message: 'Voulez-vous vraiment quitter la vue détaillée ?'
+      });
     } else {
       setActiveTab(newTab);
     }
   }, [selectedPatient, canAccessAdmin, canViewPatients]);
+
+  const handleConfirmNavigation = useCallback(() => {
+    setSelectedPatient(null);
+    setActiveTab(confirmNavigation.targetTab);
+    setConfirmNavigation({ isOpen: false, targetTab: 'dashboard', message: '' });
+  }, [confirmNavigation.targetTab]);
+
+  const handleCancelNavigation = useCallback(() => {
+    setConfirmNavigation({ isOpen: false, targetTab: 'dashboard', message: '' });
+  }, []);
   
   const handlePatientSubmit = useCallback(async (patientData: Omit<Patient, 'id'>) => {
     if (!canViewPatients()) {
@@ -260,6 +281,19 @@ export default function HomePage() {
           </>
         )}
       </main>
+      
+      {/* Dialog de confirmation pour la navigation */}
+      <ConfirmDialog
+        isOpen={confirmNavigation.isOpen}
+        onClose={handleCancelNavigation}
+        onConfirm={handleConfirmNavigation}
+        onCancel={handleCancelNavigation}
+        title="Confirmer la navigation"
+        message={confirmNavigation.message}
+        confirmText="Continuer"
+        cancelText="Annuler"
+        variant="warning"
+      />
     </div>
   );
 }

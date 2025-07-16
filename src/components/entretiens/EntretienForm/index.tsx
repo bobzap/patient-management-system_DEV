@@ -20,6 +20,8 @@ import {
 import { Timer } from '@/components/ui/timer';
 import { useEntretienTimer } from '@/hooks/useEntretienTimer';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { validateEntretienData, getDefaultEntretienData, mergeEntretienData } from '@/utils/entretien-data';
+import { safeParseResponse } from '@/utils/json';
 
 // Interfaces
 interface EntretienData {
@@ -139,7 +141,7 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
     seconds, 
     isPaused, 
     togglePause, 
-    forcePause 
+    forcePause
   } = useEntretienTimer({
     entretienId: localEntretienId || entretienId || null,
     isReadOnly,
@@ -225,8 +227,10 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
       };
       
       if (!currentId) {
-        entretienToSave.tempsDebut = now.toISOString();
-        entretienToSave.enPause = false;
+        // Pour un nouvel entretien, calculer le temps de début basé sur le temps écoulé
+        const tempsDebutCalcule = new Date(now.getTime() - (seconds * 1000));
+        entretienToSave.tempsDebut = tempsDebutCalcule.toISOString();
+        entretienToSave.enPause = isPaused;
         entretienToSave.tempsPause = 0;
       }
       
@@ -239,16 +243,27 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
         body: JSON.stringify(entretienToSave)
       });
       
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Erreur HTTP ${response.status}: ${errorText}`);
+      const parseResult = await safeParseResponse(response);
+      
+      if (!parseResult.success) {
+        throw new Error(parseResult.error || 'Erreur de parsing de la réponse');
       }
       
-      const result = await response.json();
+      const result = parseResult.data;
       
       if (!currentId && result.data && result.data.id) {
         const newEntretienId = result.data.id;
         setLocalEntretienId(newEntretienId);
+        
+        // Sauvegarder immédiatement le temps écoulé après création
+        if (seconds > 0) {
+          await fetch(`/api/entretiens/${newEntretienId}/elapsed-time`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ elapsedSeconds: seconds })
+          });
+        }
+        
         toast.success('Entretien créé avec succès');
         return newEntretienId;
       } else {
@@ -260,7 +275,7 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
       toast.error(`Erreur: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
       return null;
     }
-  }, [localEntretienId, entretienId, patient.id, entretienData]);
+  }, [localEntretienId, entretienId, patient.id, entretienData, seconds, isPaused]);
 
   // Gérer le changement de statut
   const handleStatusChange = useCallback(async (newStatus: string) => {
@@ -289,11 +304,13 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
         body: JSON.stringify(entretienToSave)
       });
       
-      if (!response.ok) {
-        throw new Error(`Erreur HTTP ${response.status}`);
+      const parseResult = await safeParseResponse(response);
+      
+      if (!parseResult.success) {
+        throw new Error(parseResult.error || 'Erreur de parsing de la réponse');
       }
       
-      const result = await response.json();
+      const result = parseResult.data;
       
       // Mettre à jour l'état local APRÈS la sauvegarde réussie
       setEntretienData(prev => ({ ...prev, status: newStatus }));
@@ -379,7 +396,10 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
     const currentId = localEntretienId || entretienId;
     
     try {
-      if (!currentId && !isPaused) {
+      // Vérifier s'il y a des modifications ou du temps écoulé
+      const hasChanges = seconds > 0 || Object.keys(entretienData.santeTravail.vecuTravail.motifVisite.motifs).length > 0;
+      
+      if (!currentId && hasChanges) {
         setShowSaveConfirmDialog(true);
         return;
       } else if (currentId && !isPaused && entretienData.status === 'brouillon') {
@@ -393,7 +413,7 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
       console.error("Erreur lors de la fermeture de l'entretien:", error);
       if (onClose) onClose();
     }
-  }, [localEntretienId, entretienId, isPaused, entretienData.status, forcePause, onClose]);
+  }, [localEntretienId, entretienId, isPaused, entretienData.status, forcePause, onClose, seconds, entretienData.santeTravail.vecuTravail.motifVisite.motifs]);
 
   // Navigation suivant/précédent
   const goToNextSection = useCallback(() => {
@@ -510,28 +530,37 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
         try {
           const response = await fetch(`/api/entretiens/${entretienId}`);
           
-          if (!response.ok) {
-            throw new Error(`Erreur HTTP ${response.status}`);
+          // Vérifier si la réponse est une redirection vers une page d'authentification
+          if (response.status === 404 || response.url.includes('/auth/')) {
+            toast.error('Session expirée. Veuillez vous reconnecter.');
+            window.location.href = '/auth/login';
+            return;
           }
           
-          const result = await response.json();
+          const parseResult = await safeParseResponse(response);
+          
+          if (!parseResult.success) {
+            console.error('Erreur de parsing:', parseResult.error);
+            toast.error('Erreur lors du chargement de l\'entretien. Données par défaut utilisées.');
+            return;
+          }
+          
+          const result = parseResult.data;
           
           if (!result.data) {
             throw new Error('Données non trouvées');
           }
           
-          // Parsing sécurisé
-          let donnees = {};
-          if (typeof result.data.donneesEntretien === 'string') {
-            try {
-              donnees = JSON.parse(result.data.donneesEntretien);
-            } catch (parseError) {
-              console.error('Erreur de parsing JSON:', parseError);
-              donnees = {};
-            }
-          } else if (result.data.donneesEntretien && typeof result.data.donneesEntretien === 'object') {
-            donnees = result.data.donneesEntretien;
+          // Validation et parsing sécurisé des données entretien
+          const validationResult = validateEntretienData(result.data.donneesEntretien);
+          
+          if (!validationResult.isValid) {
+            console.error('Erreurs de validation des données entretien:', validationResult.errors);
+            console.error('Données reçues:', result.data.donneesEntretien);
+            toast.error('Erreur dans les données d\'entretien. Données par défaut utilisées.');
           }
+          
+          const donnees = validationResult.data;
           
           // Construction sécurisée des données avec fusion correcte
           const nouvellesDonnees = {
@@ -570,24 +599,35 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
           // Gestion du timer si entretien existant
           if (result.data.tempsDebut) {
             const debut = new Date(result.data.tempsDebut);
-            const now = new Date();
-            let elapsedSeconds = Math.floor((now.getTime() - debut.getTime()) / 1000);
+            let elapsedSeconds = 0;
             
-            if (result.data.tempsPause) {
-              elapsedSeconds -= result.data.tempsPause;
+            // Si tempsFin est sauvegardé, l'utiliser pour le calcul précis
+            if (result.data.tempsFin) {
+              const fin = new Date(result.data.tempsFin);
+              // tempsFin représente déjà le temps écoulé réel (sans pauses)
+              elapsedSeconds = Math.floor((fin.getTime() - debut.getTime()) / 1000);
+            } else {
+              // Calcul traditionnel pour les anciens entretiens
+              const now = new Date();
+              elapsedSeconds = Math.floor((now.getTime() - debut.getTime()) / 1000);
+              
+              if (result.data.tempsPause) {
+                elapsedSeconds -= result.data.tempsPause;
+              }
+              
+              if (result.data.enPause && result.data.dernierePause) {
+                const dernierePause = new Date(result.data.dernierePause);
+                const pauseDuration = Math.floor((now.getTime() - dernierePause.getTime()) / 1000);
+                elapsedSeconds -= pauseDuration;
+              }
             }
             
-            if (result.data.enPause && result.data.dernierePause) {
-              const dernierePause = new Date(result.data.dernierePause);
-              const pauseDuration = Math.floor((now.getTime() - dernierePause.getTime()) / 1000);
-              elapsedSeconds -= pauseDuration;
-            }
-            
+            // Logique améliorée pour déterminer si le timer doit être en pause
             const shouldBePaused = 
               isReadOnly || 
               result.data.status === 'finalise' || 
               result.data.status === 'archive' || 
-              result.data.enPause;
+              (result.data.status === 'brouillon' && result.data.enPause);
             
             setInitialTimerState({
               initialSeconds: Math.max(0, elapsedSeconds),
@@ -886,6 +926,7 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
                     isReadOnly={isReadOnly || entretienData.status !== 'brouillon'}
                     className="relative bg-white/40 backdrop-blur-xl border border-white/50 rounded-xl px-4 py-2 shadow-lg"
                   />
+                  
                   
                   {onClose && (
                     <button

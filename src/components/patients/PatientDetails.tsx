@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { PatientForm } from './PatientForm';
 import { EntretienList } from '../entretiens/EntretienList';
 import { useEffect } from 'react';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { 
   ArrowLeft, Plus, Edit, Trash2, User, Calendar, Clock, 
   Activity, Heart, Scale, FileText, MapPin, Car, 
@@ -174,24 +175,30 @@ export const PatientDetails = ({ patient, onEdit, onDelete }: PatientDetailsProp
     duration: 3000
   };
 
+  // État pour la confirmation de suppression
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
   // Fonction de suppression de patient
   const handleDelete = async () => {
-    if (window.confirm('Êtes-vous sûr de vouloir supprimer ce dossier ?')) {
-      try {
-        const success = await deletePatient(patient.id!);
-        if (success) {
-          toast.success(`Le dossier de ${patient.civilites} ${patient.nom} ${patient.prenom} a été supprimé`, {
-            ...toastStyle
-          });
-          window.location.href = '/';
-          setTimeout(() => {
-            document.querySelector<HTMLElement>('.patients-link')?.click();
-          }, 100);
-        }
-      } catch (error) {
-        toast.error("Erreur lors de la suppression");
+    setShowDeleteDialog(true);
+  };
+
+  const confirmDelete = async () => {
+    try {
+      const success = await deletePatient(patient.id!);
+      if (success) {
+        toast.success(`Le dossier de ${patient.civilites} ${patient.nom} ${patient.prenom} a été supprimé`, {
+          ...toastStyle
+        });
+        window.location.href = '/';
+        setTimeout(() => {
+          document.querySelector<HTMLElement>('.patients-link')?.click();
+        }, 100);
       }
+    } catch (error) {
+      toast.error("Erreur lors de la suppression");
     }
+    setShowDeleteDialog(false);
   };
 
   // Fonction de fermeture d'entretien
@@ -826,6 +833,19 @@ export const PatientDetails = ({ patient, onEdit, onDelete }: PatientDetailsProp
           </div>
         </div>
       </div>
+      
+      {/* Dialog de confirmation pour la suppression */}
+      <ConfirmDialog
+        isOpen={showDeleteDialog}
+        onClose={() => setShowDeleteDialog(false)}
+        onConfirm={confirmDelete}
+        onCancel={() => setShowDeleteDialog(false)}
+        title="Confirmer la suppression"
+        message={`Êtes-vous sûr de vouloir supprimer le dossier de ${patient.civilites} ${patient.nom} ${patient.prenom} ?`}
+        confirmText="Supprimer"
+        cancelText="Annuler"
+        variant="danger"
+      />
     </div>
   );
 };
