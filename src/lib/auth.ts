@@ -147,8 +147,8 @@ callbacks: {
             // Vérifier si la MFA a été vérifiée pour cet utilisateur
             if (global.mfaVerifiedSessions && global.mfaVerifiedSessions.has(token.sub)) {
               token.mfaVerified = true;
-              // Supprimer de la liste temporaire pour éviter les problèmes de sécurité
-              global.mfaVerifiedSessions.delete(token.sub);
+              // ✅ CORRECTION: Ne pas supprimer immédiatement, garder pendant toute la session
+              // La session sera nettoyée automatiquement à l'expiration du token JWT
             } else {
               token.mfaVerified = false;
             }

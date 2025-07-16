@@ -2,6 +2,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import { safeParseResponse, safeJsonParse } from '@/utils/json';
 import { 
   BarChart3, Users, Clock, FileText, CheckCircle,
   AlertCircle, Filter, Download, RefreshCw, X, 
@@ -70,7 +71,21 @@ export const Dashboard = ({ patients, onNavigate }: DashboardProps) => {
           try {
             console.log(`Chargement des entretiens pour le patient ${patient.id}`);
             const response = await fetch(`/api/patients/${patient.id}/entretiens`);
-            const result = await response.json();
+            
+            // Vérifier si c'est une redirection d'authentification
+            if (response.status === 404 || response.url.includes('/auth/')) {
+              console.warn(`Session expirée lors du chargement des entretiens pour patient ${patient.id}`);
+              continue; // Passer au patient suivant
+            }
+            
+            const parseResult = await safeParseResponse(response);
+            
+            if (!parseResult.success) {
+              console.error(`Erreur parsing entretiens patient ${patient.id}:`, parseResult.error);
+              continue; // Passer au patient suivant
+            }
+            
+            const result = parseResult.data;
             
             if (result.success && result.data && result.data.length > 0) {
               const entretiensWithPatient = result.data.map((entretien: any) => ({
@@ -81,15 +96,29 @@ export const Dashboard = ({ patients, onNavigate }: DashboardProps) => {
               for (const entretien of entretiensWithPatient) {
                 try {
                   const detailResponse = await fetch(`/api/entretiens/${entretien.id}`);
-                  const detailResult = await detailResponse.json();
+                  
+                  // Vérifier si c'est une redirection d'authentification
+                  if (detailResponse.status === 404 || detailResponse.url.includes('/auth/')) {
+                    console.warn(`Session expirée lors du chargement de l'entretien ${entretien.id}`);
+                    continue; // Passer à l'entretien suivant
+                  }
+                  
+                  const detailParseResult = await safeParseResponse(detailResponse);
+                  
+                  if (!detailParseResult.success) {
+                    console.error(`Erreur parsing entretien ${entretien.id}:`, detailParseResult.error);
+                    continue; // Passer à l'entretien suivant
+                  }
+                  
+                  const detailResult = detailParseResult.data;
                   
                   if (detailResult.success && detailResult.data) {
                     if (typeof detailResult.data.donneesEntretien === 'string') {
-                      try {
-                        const donneesObject = JSON.parse(detailResult.data.donneesEntretien);
-                        entretien.donneesObject = donneesObject;
-                      } catch (e) {
-                        console.warn(`Erreur de parsing des données pour l'entretien ${entretien.id}:`, e);
+                      const jsonParseResult = safeJsonParse(detailResult.data.donneesEntretien);
+                      if (jsonParseResult.success) {
+                        entretien.donneesObject = jsonParseResult.data;
+                      } else {
+                        console.warn(`Erreur de parsing des données pour l'entretien ${entretien.id}:`, jsonParseResult.error);
                       }
                     } else if (detailResult.data.donneesEntretien) {
                       entretien.donneesObject = detailResult.data.donneesEntretien;

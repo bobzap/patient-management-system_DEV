@@ -7,6 +7,7 @@ import { Patient } from '@/types';
 import { EntretienForm } from '../entretiens/EntretienForm';
 import { usePatients } from '@/hooks/usePatients';
 import { toast } from 'sonner';
+import { safeParseResponse } from '@/utils/json';
 import { PatientForm } from './PatientForm';
 import { EntretienList } from '../entretiens/EntretienList';
 import { useEffect } from 'react';
@@ -131,20 +132,55 @@ export const PatientDetails = ({ patient, onEdit, onDelete }: PatientDetailsProp
       try {
         setIsLoading(true);
         const response = await fetch(`/api/patients/${patient.id}/entretiens`);
-        const result = await response.json();
+        
+        // Vérifier si c'est une redirection d'authentification
+        if (response.status === 404 || response.url.includes('/auth/')) {
+          console.warn(`Session expirée lors du chargement des entretiens pour patient ${patient.id}`);
+          toast.error('Session expirée. Veuillez vous reconnecter.');
+          return;
+        }
+        
+        const parseResult = await safeParseResponse(response);
+        
+        if (!parseResult.success) {
+          console.error(`Erreur parsing entretiens patient ${patient.id}:`, parseResult.error);
+          toast.error('Erreur lors du chargement des entretiens.');
+          return;
+        }
+        
+        const result = parseResult.data;
         
         if (result.success && result.data) {
           console.log('Entretiens chargés:', result.data);
           setEntretiens(result.data);
           
           const entretienDetailsPromises = result.data.map(async (entretien: Entretien) => {
-            const entretienResponse = await fetch(`/api/entretiens/${entretien.id}`);
-            return entretienResponse.json();
+            try {
+              const entretienResponse = await fetch(`/api/entretiens/${entretien.id}`);
+              
+              // Vérifier si c'est une redirection d'authentification
+              if (entretienResponse.status === 404 || entretienResponse.url.includes('/auth/')) {
+                console.warn(`Session expirée lors du chargement de l'entretien ${entretien.id}`);
+                return null;
+              }
+              
+              const entretienParseResult = await safeParseResponse(entretienResponse);
+              
+              if (!entretienParseResult.success) {
+                console.error(`Erreur parsing entretien ${entretien.id}:`, entretienParseResult.error);
+                return null;
+              }
+              
+              return entretienParseResult.data;
+            } catch (error) {
+              console.error(`Erreur fetch entretien ${entretien.id}:`, error);
+              return null;
+            }
           });
           
           const entretienDetails = await Promise.all(entretienDetailsPromises);
           const validEntretienDetails = entretienDetails
-            .filter(details => details.success && details.data)
+            .filter(details => details && details.success && details.data)
             .map(details => details.data);
           
           const latestBiometricData = findLastBiometricData(validEntretienDetails);

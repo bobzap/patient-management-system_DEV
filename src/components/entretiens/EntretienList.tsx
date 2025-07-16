@@ -5,6 +5,7 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { safeParseResponse } from '@/utils/json';
 
 interface EntretienListProps {
   patientId: number;
@@ -33,10 +34,27 @@ export const EntretienList = ({
       try {
         setIsLoading(true);
         const response = await fetch(`/api/patients/${patientId}/entretiens`);
-        const data = await response.json();
+        
+        // Vérifier si c'est une redirection d'authentification
+        if (response.status === 404 || response.url.includes('/auth/')) {
+          console.warn(`Session expirée lors du chargement des entretiens pour patient ${patientId}`);
+          toast.error('Session expirée. Veuillez vous reconnecter.');
+          return;
+        }
+        
+        const parseResult = await safeParseResponse(response);
+        
+        if (!parseResult.success) {
+          console.error(`Erreur parsing entretiens patient ${patientId}:`, parseResult.error);
+          toast.error('Erreur lors du chargement des entretiens.');
+          return;
+        }
+        
+        const data = parseResult.data;
         setEntretiens(data.data || []);
       } catch (error) {
         console.error('Erreur lors du chargement des entretiens:', error);
+        toast.error('Erreur lors du chargement des entretiens.');
       } finally {
         setIsLoading(false);
       }

@@ -4,6 +4,7 @@ import { Patient } from '@/types';
 import { calculerAge, calculerAnciennete } from '@/utils/calculations';
 import { useLists } from '@/hooks/useLists';
 import { toast } from 'sonner';
+import { safeParseResponse } from '@/utils/json';
 import { 
   User, Briefcase, Calendar, Clock, MapPin, Car, 
   ArrowLeft, ArrowRight, Save, X, AlertTriangle,
@@ -274,7 +275,21 @@ export const PatientForm = ({ patient, onSubmit, onCancel }: PatientFormProps) =
     
     try {
       const response = await fetch(`/api/patients/check-duplicates?nom=${encodeURIComponent(nom)}`);
-      const result = await response.json();
+      
+      // Vérifier si c'est une redirection d'authentification
+      if (response.status === 404 || response.url.includes('/auth/')) {
+        console.warn('Session expirée lors de la vérification de doublons');
+        return;
+      }
+      
+      const parseResult = await safeParseResponse(response);
+      
+      if (!parseResult.success) {
+        console.error('Erreur parsing vérification doublons:', parseResult.error);
+        return;
+      }
+      
+      const result = parseResult.data;
       
       if (result.data && result.data.length > 0) {
         const filteredDuplicates = patient 

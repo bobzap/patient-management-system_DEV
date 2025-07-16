@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Patient } from '@/types';
+import { safeParseResponse, safeJsonParse } from '@/utils/json';
 import { 
   Filter, X, Search, Plus, Users, Calendar, 
   Briefcase, User, ArrowRight, AlertCircle,
@@ -79,8 +80,33 @@ export const PatientList = ({
     for (const patient of patients) {
       try {
         const response = await fetch(`/api/patients/${patient.id}/entretiens`);
-        const result = await response.json();
         
+        // Vérifier si c'est une redirection d'authentification
+        if (response.status === 404 || response.url.includes('/auth/')) {
+          console.warn(`Session expirée lors du chargement des entretiens pour patient ${patient.id}`);
+          // Ajouter le patient sans entretiens
+          enrichedPatients.push({
+            ...patient,
+            lastEntretien: null,
+            motifs: []
+          });
+          continue;
+        }
+        
+        const parseResult = await safeParseResponse(response);
+        
+        if (!parseResult.success) {
+          console.error(`Erreur parsing entretiens patient ${patient.id}:`, parseResult.error);
+          // Ajouter le patient sans entretiens
+          enrichedPatients.push({
+            ...patient,
+            lastEntretien: null,
+            motifs: []
+          });
+          continue;
+        }
+        
+        const result = parseResult.data;
         let lastEntretien = null;
         let motifs: string[] = [];
         
@@ -90,12 +116,32 @@ export const PatientList = ({
           // Extraire les motifs du dernier entretien
           try {
             const entretienDetailResponse = await fetch(`/api/entretiens/${lastEntretien.id}`);
-            const entretienDetail = await entretienDetailResponse.json();
+            
+            // Vérifier si c'est une redirection d'authentification
+            if (entretienDetailResponse.status === 404 || entretienDetailResponse.url.includes('/auth/')) {
+              console.warn(`Session expirée lors du chargement de l'entretien ${lastEntretien.id}`);
+              continue; // Passer au patient suivant
+            }
+            
+            const parseResult = await safeParseResponse(entretienDetailResponse);
+            
+            if (!parseResult.success) {
+              console.error(`Erreur parsing entretien ${lastEntretien.id}:`, parseResult.error);
+              continue; // Passer au patient suivant
+            }
+            
+            const entretienDetail = parseResult.data;
             
             if (entretienDetail.success && entretienDetail.data?.donneesEntretien) {
               let donneesEntretien;
               if (typeof entretienDetail.data.donneesEntretien === 'string') {
-                donneesEntretien = JSON.parse(entretienDetail.data.donneesEntretien);
+                const jsonParseResult = safeJsonParse(entretienDetail.data.donneesEntretien);
+                if (jsonParseResult.success) {
+                  donneesEntretien = jsonParseResult.data;
+                } else {
+                  console.error(`Erreur parsing JSON pour entretien ${lastEntretien.id}:`, jsonParseResult.error);
+                  continue;
+                }
               } else {
                 donneesEntretien = entretienDetail.data.donneesEntretien;
               }
