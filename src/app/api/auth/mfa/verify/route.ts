@@ -92,15 +92,12 @@ export async function POST(request: NextRequest) {
       // Marquer la MFA comme vérifiée pour cette session
       const { markMFAVerified } = await import('@/lib/mfa-session-store');
       
-      // Créer un ID de session unique basé sur l'utilisateur et le timestamp
-      const sessionId = `${session.user.id}-${Date.now()}`;
+      // Utiliser un sessionId basé sur l'utilisateur et un timestamp consistant
+      // pour permettre la vérification dans auth.ts
+      const sessionId = `${session.user.id}-session`;
       
       // Marquer cette session comme vérifiée
       markMFAVerified(sessionId, session.user.id);
-      
-      // Stocker le sessionId dans une base temporaire pour le callback JWT
-      global.mfaVerifiedSessions = global.mfaVerifiedSessions || new Set();
-      global.mfaVerifiedSessions.add(session.user.id);
 
       // Log de la vérification réussie
       await prisma.authLog.create({

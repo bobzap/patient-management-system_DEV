@@ -133,6 +133,14 @@ export const PatientDetails = ({ patient, onEdit, onDelete }: PatientDetailsProp
         setIsLoading(true);
         const response = await fetch(`/api/patients/${patient.id}/entretiens`);
         
+        // Vérifier si c'est une redirection HTML (307) au lieu de JSON
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('text/html')) {
+          console.log('🔄 Redirection détectée - Vérification MFA requise');
+          window.location.href = '/auth/mfa-verify';
+          return;
+        }
+        
         // Vérifier si c'est une redirection d'authentification
         if (response.status === 404 || response.url.includes('/auth/')) {
           console.warn(`Session expirée lors du chargement des entretiens pour patient ${patient.id}`);
@@ -144,6 +152,14 @@ export const PatientDetails = ({ patient, onEdit, onDelete }: PatientDetailsProp
         
         if (!parseResult.success) {
           console.error(`Erreur parsing entretiens patient ${patient.id}:`, parseResult.error);
+          
+          // Vérifier si c'est une erreur de parsing JSON (redirection HTML)
+          if (parseResult.error.includes('JSON.parse')) {
+            console.log('🔄 Erreur de parsing JSON - Redirection vers MFA');
+            window.location.href = '/auth/mfa-verify';
+            return;
+          }
+          
           toast.error('Erreur lors du chargement des entretiens.');
           return;
         }

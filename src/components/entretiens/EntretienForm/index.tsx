@@ -15,7 +15,7 @@ import type { ModeVieData } from '../sections/SanteAuTravail/ModeVie';
 import { IMAA } from '../sections/IMAA';
 import { 
   ZoomIn, ZoomOut, ChevronDown, ChevronUp, Clock, Edit3, 
-  PanelLeftClose, PanelLeftOpen, Save, ArrowLeft, Check
+  PanelLeftClose, PanelLeftOpen, Save, ArrowLeft, Check, Trash2, X
 } from 'lucide-react';
 import { Timer } from '@/components/ui/timer';
 import { useEntretienTimer } from '@/hooks/useEntretienTimer';
@@ -107,6 +107,7 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
   const [localEntretienId, setLocalEntretienId] = useState<number | null>(entretienId || null);
   const [globalZoom, setGlobalZoom] = useState(100);
   const [showSaveConfirmDialog, setShowSaveConfirmDialog] = useState(false);
+  const [showCancelConfirmDialog, setShowCancelConfirmDialog] = useState(false);
   const [activeSection, setActiveSection] = useState<string>('sante');
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['sante']));
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -135,7 +136,63 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
     initialSeconds: 0,
     initialPaused: entretienId ? true : false
   });
+
+  // État pour tracker les modifications
+  const [lastSavedData, setLastSavedData] = useState<string>('');
+  const [hasModifications, setHasModifications] = useState(false);
+  const [isAutoCreating, setIsAutoCreating] = useState(false);
+
+  // Mettre à jour les données sauvées après sauvegarde réussie
+  const updateLastSavedData = useCallback(() => {
+    const currentDataString = JSON.stringify({
+      santeTravail: entretienData.santeTravail,
+      examenClinique: entretienData.examenClinique,
+      imaa: entretienData.imaa,
+      conclusion: entretienData.conclusion
+    });
+    setLastSavedData(currentDataString);
+    setHasModifications(false);
+  }, [entretienData]);
   
+  // Fonction de sauvegarde automatique (définie avant le hook timer)
+  const autoSaveEntretien = useCallback(async () => {
+    try {
+      const currentId = localEntretienId || entretienId;
+      if (!currentId) return; // Ne pas sauvegarder automatiquement si pas d'ID
+      
+      const donneesASerialiser = {
+        santeTravail: entretienData.santeTravail,
+        examenClinique: entretienData.examenClinique,
+        imaa: entretienData.imaa,
+        conclusion: entretienData.conclusion
+      };
+      
+      const entretienToSave: EntretienToSave = {
+        patientId: patient.id || 0,
+        numeroEntretien: entretienData.numeroEntretien,
+        status: entretienData.status,
+        donneesEntretien: JSON.stringify(donneesASerialiser)
+      };
+      
+      const response = await fetch(`/api/entretiens/${currentId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(entretienToSave)
+      });
+      
+      const parseResult = await safeParseResponse(response);
+      
+      if (!parseResult.success) {
+        throw new Error(parseResult.error || 'Erreur de parsing de la réponse');
+      }
+      
+      // Sauvegarde automatique réussie - mettre à jour état
+      updateLastSavedData();
+    } catch (error) {
+      // Sauvegarde automatique échouée - continuera au prochain cycle
+    }
+  }, [localEntretienId, entretienId, patient.id, entretienData, updateLastSavedData]);
+
   // Hook timer
   const { 
     seconds, 
@@ -147,7 +204,8 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
     isReadOnly,
     status: entretienData.status,
     initialSeconds: initialTimerState.initialSeconds,
-    initialPaused: initialTimerState.initialPaused
+    initialPaused: initialTimerState.initialPaused,
+    onAutoSave: autoSaveEntretien
   });
 
   // Générer le titre dynamique
@@ -265,9 +323,11 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
         }
         
         toast.success('Entretien créé avec succès');
+        updateLastSavedData(); // Marquer comme sauvé
         return newEntretienId;
       } else {
         toast.success('Entretien mis à jour avec succès');
+        updateLastSavedData(); // Marquer comme sauvé
         return currentId;
       }
     } catch (error) {
@@ -275,7 +335,7 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
       toast.error(`Erreur: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
       return null;
     }
-  }, [localEntretienId, entretienId, patient.id, entretienData, seconds, isPaused]);
+  }, [localEntretienId, entretienId, patient.id, entretienData, seconds, isPaused, updateLastSavedData]);
 
   // Gérer le changement de statut
   const handleStatusChange = useCallback(async (newStatus: string) => {
@@ -392,6 +452,118 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
     }
   }, [expandedSections]);
 
+  // Effet pour détecter les modifications des données
+  useEffect(() => {
+    const currentDataString = JSON.stringify({
+      santeTravail: entretienData.santeTravail,
+      examenClinique: entretienData.examenClinique,
+      imaa: entretienData.imaa,
+      conclusion: entretienData.conclusion
+    });
+
+    const initialDataString = JSON.stringify({
+      santeTravail: { vecuTravail: initialVecuTravailData, modeVie: initialModeVieData },
+      examenClinique: {},
+      imaa: {},
+      conclusion: defaultConclusionData
+    });
+
+    // Si on a des données sauvées précédemment, comparer
+    if (lastSavedData && currentDataString !== lastSavedData) {
+      setHasModifications(true);
+    } else if (!lastSavedData && currentDataString !== initialDataString) {
+      // Comparer avec les données initiales si pas de sauvegarde précédente
+      setHasModifications(true);
+      
+      // Auto-créer l'entretien si première modification et pas d'ID
+      if (!(localEntretienId || entretienId) && !isReadOnly && !isAutoCreating) {
+        setIsAutoCreating(true);
+        // Délai pour éviter de créer lors du chargement initial
+        setTimeout(() => {
+          saveEntretien().then((newId) => {
+            if (newId) {
+              console.log('✅ Entretien auto-créé lors de la première modification');
+              setIsAutoCreating(false);
+            } else {
+              setIsAutoCreating(false);
+            }
+          });
+        }, 1000);
+      }
+    } else {
+      setHasModifications(false);
+    }
+  }, [entretienData.santeTravail, entretienData.examenClinique, entretienData.imaa, entretienData.conclusion, lastSavedData, localEntretienId, entretienId, isReadOnly, saveEntretien, isAutoCreating]);
+
+  // Utiliser hasModifications au lieu de la logique précédente
+  const hasUnsavedChanges = hasModifications && entretienData.status === 'brouillon';
+
+  // Système hybride : Retour intelligent avec logique contextuelle
+  const handleReturnSmart = useCallback(async () => {
+    const currentId = localEntretienId || entretienId;
+    
+    // Cas 1: Entretien vide ou pas de modifications → Retour direct
+    if (!currentId || !hasUnsavedChanges) {
+      try {
+        if (currentId && !isPaused && entretienData.status === 'brouillon') {
+          await forcePause();
+        }
+        
+        if (onClose) {
+          onClose();
+        }
+      } catch (error) {
+        console.error("Erreur lors du retour:", error);
+        if (onClose) onClose();
+      }
+      return;
+    }
+    
+    // Cas 2: Modifications non sauvées → Afficher popup avec options
+    setShowSaveConfirmDialog(true);
+  }, [localEntretienId, entretienId, hasUnsavedChanges, isPaused, entretienData.status, forcePause, onClose]);
+
+  // Nouveau : Annuler création d'entretien (supprime l'entretien)
+  const handleCancelCreation = useCallback(async () => {
+    const currentId = localEntretienId || entretienId;
+    
+    // Si pas d'ID d'entretien, pas besoin de confirmation - retour direct
+    if (!currentId) {
+      if (onClose) onClose();
+      return;
+    }
+    
+    // Si entretien existe, demander confirmation de suppression
+    setShowCancelConfirmDialog(true);
+  }, [localEntretienId, entretienId, onClose]);
+
+  // Confirmer la suppression de l'entretien
+  const confirmDeleteEntretien = useCallback(async () => {
+    const currentId = localEntretienId || entretienId;
+    
+    if (!currentId) return;
+    
+    try {
+      const response = await fetch(`/api/entretiens/${currentId}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      if (response.ok) {
+        toast.success('Entretien supprimé avec succès');
+        if (onClose) onClose();
+      } else {
+        throw new Error('Erreur lors de la suppression');
+      }
+    } catch (error) {
+      console.error('Erreur lors de la suppression:', error);
+      toast.error('Erreur lors de la suppression de l\'entretien');
+    } finally {
+      setShowCancelConfirmDialog(false);
+    }
+  }, [localEntretienId, entretienId, onClose]);
+
+  // Ancienne fonction maintenue pour compatibilité (formulaires avec changements non sauvegardés)
   const handleCloseEntretien = useCallback(async () => {
     const currentId = localEntretienId || entretienId;
     
@@ -651,6 +823,15 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
       const fetchNextEntretienNumber = async () => {
         try {
           const response = await fetch(`/api/patients/${patient.id}/entretiens`);
+          
+          // Vérifier si c'est une redirection HTML (307) au lieu de JSON
+          const contentType = response.headers.get('content-type');
+          if (contentType && contentType.includes('text/html')) {
+            console.log('🔄 Redirection détectée - Vérification MFA requise');
+            window.location.href = '/auth/mfa-verify';
+            return;
+          }
+          
           const result = await response.json();
           
           let nextNumber = 1;
@@ -665,6 +846,13 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
           }));
         } catch (error) {
           console.warn('Erreur lors de la récupération du numéro d\'entretien:', error);
+          
+          // Vérifier si c'est une erreur de parsing JSON (redirection HTML)
+          if (error instanceof SyntaxError && error.message.includes('JSON.parse')) {
+            console.log('🔄 Erreur de parsing JSON - Redirection vers MFA');
+            window.location.href = '/auth/mfa-verify';
+            return;
+          }
         }
       };
       
@@ -929,13 +1117,30 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
                   
                   
                   {onClose && (
-                    <button
-                      onClick={handleCloseEntretien}
-                      className="px-4 py-2 text-sm font-medium bg-white/40 backdrop-blur-xl border border-white/50 rounded-xl hover:bg-white/50 transition-all duration-300 text-slate-700 flex items-center gap-2 shadow-lg hover:shadow-xl hover:-translate-y-0.5"
-                    >
-                      <ArrowLeft size={16} />
-                      Retour
-                    </button>
+                    <div className="flex items-center gap-2">
+                      {/* Bouton Retour Intelligent - Logique hybride */}
+                      <button
+                        onClick={handleReturnSmart}
+                        className="px-4 py-2 text-sm font-medium bg-white/40 backdrop-blur-xl border border-white/50 rounded-xl hover:bg-white/50 transition-all duration-300 text-slate-700 flex items-center gap-2 shadow-lg hover:shadow-xl hover:-translate-y-0.5"
+                        title={hasUnsavedChanges ? "Options de sauvegarde avant de quitter" : "Retour - pas de modifications à sauvegarder"}
+                      >
+                        <ArrowLeft size={16} />
+                        Retour
+                        {hasUnsavedChanges && <span className="ml-1 w-2 h-2 bg-orange-500 rounded-full animate-pulse" title="Modifications non sauvées"></span>}
+                      </button>
+
+                      {/* Bouton Annuler Création - Supprime l'entretien */}
+                      {(localEntretienId || entretienId) && !isReadOnly && (
+                        <button
+                          onClick={handleCancelCreation}
+                          className="px-4 py-2 text-sm font-medium bg-red-500/20 backdrop-blur-xl border border-red-300/50 rounded-xl hover:bg-red-500/30 transition-all duration-300 text-red-700 flex items-center gap-2 shadow-lg hover:shadow-xl hover:-translate-y-0.5"
+                          title="Supprimer définitivement cet entretien"
+                        >
+                          <Trash2 size={16} />
+                          Annuler création
+                        </button>
+                      )}
+                    </div>
                   )}
                   
                   {!isReadOnly && (
@@ -1191,7 +1396,7 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
         </div>
       </div>
 
-      {/* Dialog de confirmation */}
+      {/* Dialog de confirmation pour sauvegarde */}
       <ConfirmDialog
         isOpen={showSaveConfirmDialog}
         onClose={() => setShowSaveConfirmDialog(false)}
@@ -1205,12 +1410,25 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
           setShowSaveConfirmDialog(false);
           if (onClose) onClose();
         }}
-        title="Sauvegarder l'entretien"
-        message="Voulez-vous sauvegarder cet entretien avant de quitter ?"
-        confirmText="Sauvegarder"
-        cancelText="Annuler" 
-        thirdOptionText="Quitter sans sauvegarder"
+        title="Que souhaitez-vous faire ?"
+        message="Vous avez des modifications non sauvegardées. Choisissez une action :"
+        confirmText="💾 Sauvegarder et quitter"
+        cancelText="❌ Annuler (rester dans l'entretien)" 
+        thirdOptionText="⚠️ Quitter sans sauvegarder"
         variant="info"
+      />
+
+      {/* Dialog de confirmation pour suppression */}
+      <ConfirmDialog
+        isOpen={showCancelConfirmDialog}
+        onClose={() => setShowCancelConfirmDialog(false)}
+        onConfirm={confirmDeleteEntretien}
+        onCancel={() => setShowCancelConfirmDialog(false)}
+        title="Supprimer l'entretien"
+        message="Êtes-vous sûr de vouloir supprimer définitivement cet entretien ? Cette action ne peut pas être annulée."
+        confirmText="Oui, supprimer"
+        cancelText="Non, garder"
+        variant="danger"
       />
 
       {/* Dropdown de statut */}

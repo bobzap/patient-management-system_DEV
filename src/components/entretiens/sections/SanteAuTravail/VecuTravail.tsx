@@ -125,6 +125,15 @@ useEffect(() => {
   const fetchMotifsList = async () => {
     try {
       const response = await fetch('/api/lists');
+      
+      // Vérifier si c'est une redirection HTML (307) au lieu de JSON
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('text/html')) {
+        console.log('🔄 Redirection détectée - Vérification MFA requise');
+        window.location.href = '/auth/mfa-verify';
+        return;
+      }
+      
       const result = await response.json();
       const motifs = result.data.find(
         (list: List) => list.listId === 'motifVisite'
@@ -134,6 +143,13 @@ useEffect(() => {
       }
     } catch (error) {
       console.error('Erreur lors du chargement des motifs:', error);
+      
+      // Vérifier si c'est une erreur de parsing JSON (redirection HTML)
+      if (error instanceof SyntaxError && error.message.includes('JSON.parse')) {
+        console.log('🔄 Erreur de parsing JSON - Redirection vers MFA');
+        window.location.href = '/auth/mfa-verify';
+        return;
+      }
     }
   };
   

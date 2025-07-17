@@ -214,7 +214,7 @@ model UserMFA {
 - **Performance**: Pas d'impact significant grâce au middleware
 
 ### Timer Entretiens
-- **Persistance critique**: Sauvegarde auto toutes les 10 secondes
+- **Persistance critique**: Sauvegarde auto temps (10s) + données (30s)
 - **Gestion erreurs**: Graceful degradation si API indisponible
 - **États cohérents**: Synchronisation pause/reprise avec BDD
 
@@ -230,3 +230,48 @@ ENCRYPTION_KEY       # AES-256 (généré via npm run encryption:setup)
 NEXTAUTH_SECRET      # JWT signing
 MFA_ISSUER          # Nom TOTP (ex: "Vital Sync")
 ```
+
+## 🔄 Processus de Validation Automatique
+
+**PROCÉDURE OBLIGATOIRE** à exécuter lors de la validation d'une phase/tâche/plan :
+
+### 1. **Phase de Nettoyage**
+- Supprimer tout code de test/debug temporaire
+- Éliminer les duplications de code
+- Nettoyer les imports/exports inutiles
+- Vérifier l'ordre des déclarations (éviter erreurs lexicales)
+
+### 2. **Phase d'Optimisation**
+- Vérifier les performances des nouvelles fonctionnalités
+- Optimiser les requêtes API si nécessaire
+- Valider les patterns React (hooks, callbacks, effects)
+- Contrôler la gestion mémoire
+
+### 3. **Phase de Validation**
+- Tester toutes les fonctionnalités implémentées
+- Vérifier la compatibilité avec l'existant
+- Valider la sécurité (chiffrement, authentification)
+- Contrôler le respect des bonnes pratiques
+
+### 4. **Phase de Documentation**
+- Mettre à jour `tasks/sessions.md` avec détails complets
+- Actualiser `tasks/todo.md` avec statuts finaux
+- Documenter les optimisations effectuées
+- Noter les tests réalisés et résultats
+
+### 5. **Phase de Stabilisation**
+- Vérifier la stabilité du serveur
+- Résoudre les conflits de ports/configuration
+- Tester en conditions réelles
+- Valider l'expérience utilisateur
+
+### 📋 Checklist de Validation
+
+**Avant de marquer une tâche comme terminée** :
+- [ ] Code nettoyé et optimisé
+- [ ] Fonctionnalités testées et opérationnelles
+- [ ] Documentation mise à jour
+- [ ] Aucune régression détectée
+- [ ] Serveur stable et fonctionnel
+
+**Cette procédure garantit un code de qualité production à chaque livraison.**

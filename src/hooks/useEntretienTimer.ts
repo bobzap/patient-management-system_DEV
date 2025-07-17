@@ -1,6 +1,7 @@
 // src/hooks/useEntretienTimer.ts
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { safeParseResponse } from '@/utils/json';
+import { toast } from 'sonner';
 
 interface UseEntretienTimerProps {
   entretienId: number | null;
@@ -8,6 +9,7 @@ interface UseEntretienTimerProps {
   status: string;
   initialSeconds?: number;
   initialPaused?: boolean;
+  onAutoSave?: () => Promise<void>;
 }
 
 export function useEntretienTimer({
@@ -15,7 +17,8 @@ export function useEntretienTimer({
   isReadOnly,
   status,
   initialSeconds = 0,
-  initialPaused = false
+  initialPaused = false,
+  onAutoSave
 }: UseEntretienTimerProps) {
   // Initialiser seconds avec initialSeconds
   const [seconds, setSeconds] = useState<number>(initialSeconds);
@@ -49,7 +52,11 @@ export function useEntretienTimer({
 
   // Mettre à jour l'API quand l'état de pause change
   const updatePauseState = useCallback(async (newPausedState: boolean): Promise<boolean> => {
-    if (!entretienId) return false;
+    // Vérifier que entretienId est valide
+    if (!entretienId || isNaN(Number(entretienId))) {
+      console.warn('updatePauseState: entretienId invalide ou manquant:', entretienId);
+      return false;
+    }
     
     try {
       const response = await fetch(`/api/entretiens/${entretienId}/timer`, {
@@ -57,6 +64,12 @@ export function useEntretienTimer({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ enPause: newPausedState })
       });
+      
+      // Gestion spécifique des erreurs 404
+      if (response.status === 404) {
+        console.warn('updatePauseState: Entretien non trouvé (404) pour ID:', entretienId);
+        return false;
+      }
       
       const parseResult = await safeParseResponse(response);
       
@@ -74,7 +87,11 @@ export function useEntretienTimer({
 
   // Sauvegarder le temps écoulé dans la base de données
   const updateElapsedTime = useCallback(async (currentSeconds: number) => {
-    if (!entretienId) return;
+    // Vérifier que entretienId est valide
+    if (!entretienId || isNaN(Number(entretienId))) {
+      console.warn('updateElapsedTime: entretienId invalide ou manquant:', entretienId);
+      return;
+    }
     
     try {
       const response = await fetch(`/api/entretiens/${entretienId}/elapsed-time`, {
@@ -82,6 +99,12 @@ export function useEntretienTimer({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ elapsedSeconds: currentSeconds })
       });
+      
+      // Gestion spécifique des erreurs 404
+      if (response.status === 404) {
+        console.warn('updateElapsedTime: Entretien non trouvé (404) pour ID:', entretienId);
+        return;
+      }
       
       if (!response.ok) {
         console.error('Erreur HTTP lors de la sauvegarde du temps écoulé:', response.status);
@@ -106,7 +129,7 @@ export function useEntretienTimer({
 
   // Toggle l'état de pause
   const togglePause = useCallback(async () => {
-    if (isReadOnly || status !== 'brouillon') {
+    if (isReadOnly || status !== 'brouillon' || !entretienId) {
       return;
     }
     
@@ -128,6 +151,52 @@ export function useEntretienTimer({
     }
   }, [isPaused, isReadOnly, status, entretienId, seconds, updateElapsedTime, updatePauseState]);
 
+  // Ref pour stocker le callback onAutoSave
+  const onAutoSaveRef = useRef(onAutoSave);
+  
+  // Mettre à jour la ref quand onAutoSave change
+  useEffect(() => {
+    onAutoSaveRef.current = onAutoSave;
+  }, [onAutoSave]);
+
+  // Fonction de sauvegarde automatique des données
+  const performAutoSave = useCallback(async () => {
+    if (!onAutoSaveRef.current) return;
+    
+    try {
+      await onAutoSaveRef.current();
+      
+      // Afficher une notification discrète de sauvegarde automatique
+      toast('Sauvegarde automatique', {
+        duration: 2500,
+        icon: '💾',
+        description: 'Données sauvegardées automatiquement',
+        position: 'bottom-right',
+        dismissible: true,
+        closeButton: true,
+        style: {
+          background: 'rgba(34, 197, 94, 0.75)', // Plus transparent
+          backdropFilter: 'blur(24px)',
+          border: '1px solid rgba(34, 197, 94, 0.3)',
+          color: '#ffffff',
+          fontSize: '13px',
+          opacity: 0.95,
+          boxShadow: '0 8px 32px rgba(34, 197, 94, 0.15)',
+          borderRadius: '12px'
+        },
+        className: 'autosave-toast toast-vital-sync'
+      });
+    } catch (error) {
+      // Sauvegarde automatique échouée - continuera au prochain cycle
+      toast.error('Erreur de sauvegarde automatique', {
+        duration: 3000,
+        icon: '⚠️',
+        description: 'La sauvegarde automatique a échoué. Veuillez sauvegarder manuellement.',
+        position: 'bottom-right'
+      });
+    }
+  }, [entretienId]);
+
   // Effet pour gérer le timer
   useEffect(() => {
     // Toujours en pause pour les entretiens en lecture seule ou non brouillons
@@ -138,6 +207,7 @@ export function useEntretienTimer({
     
     let intervalId: NodeJS.Timeout | null = null;
     let saveIntervalId: NodeJS.Timeout | null = null;
+    let autoSaveIntervalId: NodeJS.Timeout | null = null;
     
     if (isStarted && !isPaused) {
       // Timer principal (1 seconde)
@@ -151,6 +221,11 @@ export function useEntretienTimer({
           updateElapsedTime(secondsRef.current);
         }
       }, 10000);
+
+      // Sauvegarde automatique des données d'entretien (toutes les 30 secondes)
+      autoSaveIntervalId = setInterval(() => {
+        performAutoSave();
+      }, 30000);
     }
     
     return () => {
@@ -160,8 +235,11 @@ export function useEntretienTimer({
       if (saveIntervalId) {
         clearInterval(saveIntervalId);
       }
+      if (autoSaveIntervalId) {
+        clearInterval(autoSaveIntervalId);
+      }
     };
-  }, [isStarted, isPaused, isReadOnly, status, entretienId, updateElapsedTime]);
+  }, [isStarted, isPaused, isReadOnly, status, entretienId, updateElapsedTime, performAutoSave]);
 
   // Effect pour forcer la pause à la sortie du composant
   useEffect(() => {

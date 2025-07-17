@@ -42,6 +42,13 @@ export function MFAVerificationForm({
     await verifyMFA(totpCode, false);
   };
 
+  const handleTOTPKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && totpCode.length === 6) {
+      e.preventDefault();
+      handleTOTPVerification();
+    }
+  };
+
   const handleBackupVerification = async () => {
     if (!backupCode || backupCode.length !== 8) {
       setError('Veuillez saisir un code de récupération valide');
@@ -49,6 +56,13 @@ export function MFAVerificationForm({
     }
 
     await verifyMFA(backupCode.toUpperCase(), true);
+  };
+
+  const handleBackupKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && backupCode.length === 8) {
+      e.preventDefault();
+      handleBackupVerification();
+    }
   };
 
   const verifyMFA = async (code: string, isBackupCode: boolean) => {
@@ -72,8 +86,13 @@ export function MFAVerificationForm({
           setRemainingBackupCodes(data.remainingBackupCodes);
         }
         
-        // Forcer le refresh de la session NextAuth
-        window.location.href = '/';
+        // Appeler le callback de succès au lieu de rediriger directement
+        if (onVerificationSuccess) {
+          onVerificationSuccess();
+        } else {
+          // Fallback si pas de callback (ne devrait pas arriver)
+          window.location.href = '/';
+        }
       } else {
         setError(data.error || 'Code incorrect');
         
@@ -161,9 +180,11 @@ export function MFAVerificationForm({
                     setTotpCode(value);
                   }
                 }}
+                onKeyPress={handleTOTPKeyPress}
                 placeholder="000000"
                 className="text-center text-lg tracking-widest border-2 border-gray-300 focus:border-blue-500 bg-white text-gray-900"
                 maxLength={6}
+                autoFocus
               />
               <p className="text-xs text-gray-700 font-medium">
                 Ouvrez votre application d'authentification et saisissez le code à 6 chiffres
@@ -191,6 +212,7 @@ export function MFAVerificationForm({
                     setBackupCode(value);
                   }
                 }}
+                onKeyPress={handleBackupKeyPress}
                 placeholder="XXXXXXXX"
                 className="text-center text-lg tracking-widest font-mono border-2 border-gray-300 focus:border-blue-500 bg-white text-gray-900"
                 maxLength={8}

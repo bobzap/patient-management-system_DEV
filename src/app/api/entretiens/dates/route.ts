@@ -2,6 +2,44 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { addHours } from 'date-fns';
+import { decryptString } from '@/lib/encryption';
+
+/**
+ * Déchiffre un champ patient si nécessaire
+ */
+function decryptPatientField(field: string): string {
+  if (!field) return '';
+  
+  // Si c'est une chaîne qui commence par {"encrypted", c'est chiffré
+  if (typeof field === 'string' && field.startsWith('{"encrypted"')) {
+    try {
+      const encrypted = JSON.parse(field);
+      if (encrypted.encrypted && encrypted.iv) {
+        return decryptString(encrypted);
+      }
+    } catch (error) {
+      console.error('Erreur lors du déchiffrement:', error);
+      return '[Erreur déchiffrement]';
+    }
+  }
+  
+  // Sinon, retourner la valeur telle quelle
+  return field;
+}
+
+/**
+ * Déchiffre les données d'un patient
+ */
+function decryptPatientData(patient: any): any {
+  if (!patient) return null;
+  
+  return {
+    ...patient,
+    nom: decryptPatientField(patient.nom),
+    prenom: decryptPatientField(patient.prenom),
+    departement: decryptPatientField(patient.departement)
+  };
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -33,6 +71,9 @@ export async function GET(request: NextRequest) {
           continue;
         }
         
+        // Déchiffrer les données patient
+        const patientDechiffre = decryptPatientData(entretien.patient);
+        
         // Convertir les données JSON en objet
         const donnees = JSON.parse(entretien.donneesEntretien);
         
@@ -46,7 +87,7 @@ export async function GET(request: NextRequest) {
           
           calendarEvents.push({
             id: `entretien-${entretien.id}-manager`,
-            title: `Entretien Manager - ${entretien.patient.prenom} ${entretien.patient.nom}`,
+            title: `Entretien Manager - ${patientDechiffre.prenom} ${patientDechiffre.nom}`,
             description: donnees.conclusion.actions.manager.commentaire || "Entretien avec le manager",
             startDate: new Date(dateRappel + 'T09:00:00'), // Ajouter heure par défaut 9h00
             endDate: new Date(dateRappel + 'T10:00:00'),   // Durée d'une heure par défaut
@@ -54,7 +95,7 @@ export async function GET(request: NextRequest) {
             eventType: "Entretien Manager",
             status: "Planifié",
             patientId: entretien.patientId,
-            patient: entretien.patient,
+            patient: patientDechiffre,
             entretienId: entretien.id,
             source: 'entretien'
           });
@@ -70,7 +111,7 @@ export async function GET(request: NextRequest) {
           
           calendarEvents.push({
             id: `entretien-${entretien.id}-prochain`,
-            title: `Prochain Entretien - ${entretien.patient.prenom} ${entretien.patient.nom}`,
+            title: `Prochain Entretien - ${patientDechiffre.prenom} ${patientDechiffre.nom}`,
             description: "Entretien de suivi",
             startDate: new Date(dateRappel + 'T10:00:00'),
             endDate: new Date(dateRappel + 'T11:00:00'),
@@ -78,7 +119,7 @@ export async function GET(request: NextRequest) {
             eventType: "Entretien Infirmier",
             status: "Planifié",
             patientId: entretien.patientId,
-            patient: entretien.patient,
+            patient: patientDechiffre,
             entretienId: entretien.id,
             source: 'entretien'
           });
@@ -94,7 +135,7 @@ export async function GET(request: NextRequest) {
           
           calendarEvents.push({
             id: `entretien-${entretien.id}-visite`,
-            title: `Visite Médicale - ${entretien.patient.prenom} ${entretien.patient.nom}`,
+            title: `Visite Médicale - ${patientDechiffre.prenom} ${patientDechiffre.nom}`,
             description: donnees.conclusion.actions.visiteMedicale.commentaire || "Visite médicale planifiée",
             startDate: new Date(dateRappel + 'T11:00:00'),
             endDate: new Date(dateRappel + 'T12:00:00'),
@@ -102,7 +143,7 @@ export async function GET(request: NextRequest) {
             eventType: "Visite Médicale",
             status: "Planifié",
             patientId: entretien.patientId,
-            patient: entretien.patient,
+            patient: patientDechiffre,
             entretienId: entretien.id,
             source: 'entretien'
           });

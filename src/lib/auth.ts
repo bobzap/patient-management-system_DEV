@@ -100,7 +100,7 @@ export const authOptions: NextAuthOptions = {
       isActive: user.profile.isActive
     }
   } catch (error) {
-    console.error('❌ Erreur dans authorize:', error.message) // ← GARDEZ mais sans détails
+    console.error('❌ Erreur dans authorize:', error instanceof Error ? error.message : 'Erreur inconnue')
     return null
   }
 }
@@ -144,13 +144,16 @@ callbacks: {
 
           if (userProfile?.mfa?.isEnabled) {
             token.mfaEnabled = true;
-            // Vérifier si la MFA a été vérifiée pour cet utilisateur
-            if (global.mfaVerifiedSessions && global.mfaVerifiedSessions.has(token.sub)) {
+            // Vérifier si la MFA a été vérifiée pour cette session
+            const { isMFAVerified } = await import('@/lib/mfa-session-store');
+            const sessionId = `${token.sub}-session`;
+            
+            if (isMFAVerified(sessionId, token.sub)) {
               token.mfaVerified = true;
-              // ✅ CORRECTION: Ne pas supprimer immédiatement, garder pendant toute la session
-              // La session sera nettoyée automatiquement à l'expiration du token JWT
+              console.log('🔐 MFA vérifié trouvé dans store pour:', token.sub);
             } else {
               token.mfaVerified = false;
+              console.log('🔐 MFA non vérifié dans store pour:', token.sub);
             }
           } else {
             token.mfaEnabled = false; // Pas encore configurée
@@ -208,11 +211,12 @@ callbacks: {
   },
 
   events: {
-    signOut: ({ token }) => {
+    signOut: async ({ token }) => {
       console.log('🚪 SignOut Event')
       // Nettoyer les sessions MFA vérifiées
-      if (global.mfaVerifiedSessions && token?.sub) {
-        global.mfaVerifiedSessions.delete(token.sub);
+      if (token?.sub) {
+        const { clearUserMFAVerifications } = await import('@/lib/mfa-session-store');
+        clearUserMFAVerifications(token.sub);
       }
     }
   },
@@ -230,6 +234,7 @@ declare module "next-auth" {
       role: string
       isActive: boolean
       requiresMFA: boolean
+      mfaEnabled: boolean
       mfaVerified: boolean
     }
   }
@@ -245,6 +250,7 @@ declare module "next-auth/jwt" {
     role: string
     isActive: boolean
     requiresMFA: boolean
+    mfaEnabled: boolean
     mfaVerified: boolean
   }
 }

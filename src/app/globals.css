@@ -567,3 +567,45 @@ body {
   z-index: 9999 !important;
   position: relative;
 }
+
+/* ===== STYLES NOTIFICATIONS AUTOSAVE ===== */
+
+/* Styles pour les notifications autosave */
+.autosave-toast {
+  backdrop-filter: blur(24px) !important;
+  -webkit-backdrop-filter: blur(24px) !important;
+}
+
+.autosave-toast [data-close-button] {
+  background: rgba(255, 255, 255, 0.4) !important;
+  border: 1px solid rgba(255, 255, 255, 0.6) !important;
+  border-radius: 6px !important;
+  color: #ffffff !important;
+  width: 22px !important;
+  height: 22px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 16px !important;
+  font-weight: bold !important;
+  transition: all 0.2s ease !important;
+  opacity: 1 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important;
+}
+
+.autosave-toast [data-close-button]:hover {
+  background: rgba(255, 255, 255, 0.6) !important;
+  transform: scale(1.1) !important;
+  opacity: 1 !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* S'assurer que l'icône X est visible */
+.autosave-toast [data-close-button]::before {
+  content: "×" !important;
+  font-size: 18px !important;
+  line-height: 1 !important;
+  color: #ffffff !important;
+  font-weight: bold !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5) !important;
+}

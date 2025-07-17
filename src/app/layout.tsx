@@ -60,7 +60,7 @@ export default function RootLayout({
         </AuthProvider>
        
         <Toaster
-          position="top-right"
+          position="bottom-right"
           richColors
           closeButton
           duration={4000}
@@ -69,11 +69,70 @@ export default function RootLayout({
           gap={8}
           toastOptions={{
             style: {
-              background: 'white',
-              border: '1px solid #e5e7eb',
+              background: 'rgba(255, 255, 255, 0.95)',
+              backdropFilter: 'blur(20px)',
+              border: '1px solid rgba(203, 213, 225, 0.3)',
+              borderRadius: '12px',
               color: '#374151',
+              padding: '16px',
+              boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.06), 0 4px 16px 0 rgba(31, 38, 135, 0.04)',
+              fontSize: '14px',
+              fontWeight: '500',
             },
-            className: 'toast-custom'
+            className: 'toast-vital-sync',
+            closeButton: {
+              style: {
+                color: '#64748b',
+                background: 'rgba(255, 255, 255, 0.8)',
+                border: '1px solid rgba(203, 213, 225, 0.3)',
+                borderRadius: '8px',
+                width: '24px',
+                height: '24px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '16px',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+              }
+            },
+            success: {
+              style: {
+                background: 'rgba(34, 197, 94, 0.95)',
+                backdropFilter: 'blur(20px)',
+                border: '1px solid rgba(34, 197, 94, 0.3)',
+                color: '#ffffff',
+                boxShadow: '0 8px 32px 0 rgba(34, 197, 94, 0.2), 0 4px 16px 0 rgba(34, 197, 94, 0.1)',
+              }
+            },
+            error: {
+              style: {
+                background: 'rgba(239, 68, 68, 0.95)',
+                backdropFilter: 'blur(20px)',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
+                color: '#ffffff',
+                boxShadow: '0 8px 32px 0 rgba(239, 68, 68, 0.2), 0 4px 16px 0 rgba(239, 68, 68, 0.1)',
+              }
+            },
+            warning: {
+              style: {
+                background: 'rgba(245, 158, 11, 0.95)',
+                backdropFilter: 'blur(20px)',
+                border: '1px solid rgba(245, 158, 11, 0.3)',
+                color: '#ffffff',
+                boxShadow: '0 8px 32px 0 rgba(245, 158, 11, 0.2), 0 4px 16px 0 rgba(245, 158, 11, 0.1)',
+              }
+            },
+            // Style spécial pour les notifications de sauvegarde automatique
+            info: {
+              style: {
+                background: 'rgba(59, 130, 246, 0.95)',
+                backdropFilter: 'blur(20px)',
+                border: '1px solid rgba(59, 130, 246, 0.3)',
+                color: '#ffffff',
+                boxShadow: '0 8px 32px 0 rgba(59, 130, 246, 0.2), 0 4px 16px 0 rgba(59, 130, 246, 0.1)',
+              }
+            }
           }}
         />
       </body>

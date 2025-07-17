@@ -106,6 +106,9 @@ Supabase fonctionne même avec cette erreur. Les services principaux (DB, Auth, 
 npm run dev -- -p 3001
 ```
 
+
+npx kill-port 3001
+
 ## 📊 Commandes utiles
 
 ```bash

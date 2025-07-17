@@ -55,9 +55,12 @@ function LoginContent() {
     }
   }, [urlError])
 
-  // Vérifier si déjà connecté
+  // Vérifier si déjà connecté avec délai pour éviter les problèmes de timing
   useEffect(() => {
     const checkSession = async () => {
+      // Délai pour permettre l'hydratation complète
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       const session = await getSession()
       if (session) {
         console.log('🔐 Session existante détectée, redirection...')
@@ -66,6 +69,27 @@ function LoginContent() {
     }
     checkSession()
   }, [callbackUrl])
+
+  // Effet pour améliorer la détection des gestionnaires de mots de passe
+  useEffect(() => {
+    // Délai pour permettre aux gestionnaires de mots de passe de détecter les champs
+    const timer = setTimeout(() => {
+      const emailInput = document.getElementById('email');
+      const passwordInput = document.getElementById('password');
+      
+      if (emailInput && passwordInput) {
+        // Forcer une mise à jour des attributs pour la détection
+        emailInput.setAttribute('autocomplete', 'username email');
+        passwordInput.setAttribute('autocomplete', 'current-password');
+        
+        // Déclencher des événements pour notifier les gestionnaires
+        emailInput.dispatchEvent(new Event('input', { bubbles: true }));
+        passwordInput.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    }, 500); // Délai pour l'hydratation
+
+    return () => clearTimeout(timer);
+  }, [])
 
   const validateForm = () => {
     if (!email || !password) {
@@ -193,6 +217,7 @@ function LoginContent() {
                   </div>
                   <input
                     id="email"
+                    name="email"
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
@@ -201,7 +226,8 @@ function LoginContent() {
                              placeholder-slate-400 text-slate-800 transition-all duration-300"
                     placeholder="votre@email.com"
                     required
-                    autoComplete="email"
+                    autoComplete="username email"
+                    data-testid="email-input"
                   />
                 </div>
               </div>
@@ -214,6 +240,7 @@ function LoginContent() {
                 <div className="relative">
                   <input
                     id="password"
+                    name="password"
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
@@ -223,6 +250,7 @@ function LoginContent() {
                     placeholder="••••••••"
                     required
                     autoComplete="current-password"
+                    data-testid="password-input"
                   />
                   <button
                     type="button"

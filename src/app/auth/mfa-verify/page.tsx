@@ -29,26 +29,15 @@ export default function MFAVerifyPage() {
   }, [session, status, router]);
 
   const handleVerificationSuccess = async () => {
-    // Mettre à jour le token pour marquer la 2FA comme vérifiée
-    try {
-      const response = await fetch('/api/auth/mfa/session-update', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
-      });
-
-      if (response.ok) {
-        // Rediriger vers la page d'accueil
-        window.location.href = '/';
-      } else {
-        console.error('Erreur mise à jour session');
-        // Fallback : actualiser la page
-        window.location.reload();
-      }
-    } catch (error) {
-      console.error('Erreur:', error);
-      // Fallback : rediriger directement
-      window.location.href = '/';
-    }
+    // La session MFA est déjà marquée comme vérifiée dans /api/auth/mfa/verify
+    // Attendre un petit délai pour que le JWT soit synchronisé
+    console.log('✅ MFA vérifié - synchronisation JWT...');
+    
+    // Forcer la synchronisation de la session avec délai optimisé
+    await new Promise(resolve => setTimeout(resolve, 300));
+    
+    // Rediriger vers la page de chargement avec paramètre pour affichage spécial
+    window.location.href = '/auth/loading?from=mfa';
   };
 
   const handleCancel = () => {

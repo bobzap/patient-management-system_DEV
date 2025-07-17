@@ -15,7 +15,19 @@
       "Bash(npx dotenv -e .env.development.local -- prisma db push:*)",
       "Bash(dotenv -e .env.local -- npx prisma migrate dev:*)",
       "Bash(set DATABASE_URL=postgresql://postgres:postgres@localhost:54322/postgres)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(set PORT=3000)",
+      "Bash(git config:*)",
+      "Bash(git reset:*)",
+      "Bash(git add:*)",
+      "Bash(grep:*)",
+      "Bash(set PORT=3001)",
+      "Bash(tasklist:*)",
+      "Bash(taskkill:*)",
+      "Bash(ctrl+c)",
+      "Bash(wmic process where:*)",
+      "Bash(npx kill-port:*)",
+      "Bash(powershell:*)"
     ],
     "deny": []
   }

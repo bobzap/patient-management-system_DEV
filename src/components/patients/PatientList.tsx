@@ -81,6 +81,14 @@ export const PatientList = ({
       try {
         const response = await fetch(`/api/patients/${patient.id}/entretiens`);
         
+        // Vérifier si c'est une redirection HTML (307) au lieu de JSON
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('text/html')) {
+          console.log('🔄 Redirection détectée - Vérification MFA requise');
+          window.location.href = '/auth/mfa-verify';
+          return;
+        }
+        
         // Vérifier si c'est une redirection d'authentification
         if (response.status === 404 || response.url.includes('/auth/')) {
           console.warn(`Session expirée lors du chargement des entretiens pour patient ${patient.id}`);
@@ -97,6 +105,14 @@ export const PatientList = ({
         
         if (!parseResult.success) {
           console.error(`Erreur parsing entretiens patient ${patient.id}:`, parseResult.error);
+          
+          // Vérifier si c'est une erreur de parsing JSON (redirection HTML)
+          if (parseResult.error.includes('JSON.parse')) {
+            console.log('🔄 Erreur de parsing JSON - Redirection vers MFA');
+            window.location.href = '/auth/mfa-verify';
+            return;
+          }
+          
           // Ajouter le patient sans entretiens
           enrichedPatients.push({
             ...patient,
@@ -117,6 +133,14 @@ export const PatientList = ({
           try {
             const entretienDetailResponse = await fetch(`/api/entretiens/${lastEntretien.id}`);
             
+            // Vérifier si c'est une redirection HTML (307) au lieu de JSON
+            const contentType = entretienDetailResponse.headers.get('content-type');
+            if (contentType && contentType.includes('text/html')) {
+              console.log('🔄 Redirection détectée - Vérification MFA requise');
+              window.location.href = '/auth/mfa-verify';
+              return;
+            }
+            
             // Vérifier si c'est une redirection d'authentification
             if (entretienDetailResponse.status === 404 || entretienDetailResponse.url.includes('/auth/')) {
               console.warn(`Session expirée lors du chargement de l'entretien ${lastEntretien.id}`);
@@ -127,6 +151,14 @@ export const PatientList = ({
             
             if (!parseResult.success) {
               console.error(`Erreur parsing entretien ${lastEntretien.id}:`, parseResult.error);
+              
+              // Vérifier si c'est une erreur de parsing JSON (redirection HTML)
+              if (parseResult.error.includes('JSON.parse')) {
+                console.log('🔄 Erreur de parsing JSON - Redirection vers MFA');
+                window.location.href = '/auth/mfa-verify';
+                return;
+              }
+              
               continue; // Passer au patient suivant
             }
             

@@ -57,12 +57,30 @@ export default function HomePage() {
     try {
       console.log('🔄 Chargement des patients...');
       const response = await fetch('/api/patients');
+      
+      // Vérifier si c'est une redirection HTML (307) au lieu de JSON
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('text/html')) {
+        console.log('🔄 Redirection détectée - Vérification MFA requise');
+        // Rediriger vers la page de vérification MFA
+        window.location.href = '/auth/mfa-verify';
+        return;
+      }
+      
       const result = await response.json();
       setPatients(result.data || []);
       patientsLoadedRef.current = true;
       console.log('✅ Patients chargés:', result.data?.length || 0);
     } catch (error) {
       console.error('❌ Erreur lors du chargement des patients:', error);
+      
+      // Vérifier si c'est une erreur de parsing JSON (redirection HTML)
+      if (error instanceof SyntaxError && error.message.includes('JSON.parse')) {
+        console.log('🔄 Erreur de parsing JSON - Redirection vers MFA');
+        window.location.href = '/auth/mfa-verify';
+        return;
+      }
+      
       toast.error('Impossible de charger les patients');
     } finally {
       setIsPatientsLoading(false);
@@ -137,6 +155,14 @@ export default function HomePage() {
         body: JSON.stringify(patientData),
       });
 
+      // Vérifier si c'est une redirection HTML (307) au lieu de JSON
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('text/html')) {
+        console.log('🔄 Redirection détectée - Vérification MFA requise');
+        window.location.href = '/auth/mfa-verify';
+        return;
+      }
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Erreur lors de la création');
@@ -153,6 +179,14 @@ export default function HomePage() {
       
     } catch (error) {
       console.error('❌ Erreur création patient:', error);
+      
+      // Vérifier si c'est une erreur de parsing JSON (redirection HTML)
+      if (error instanceof SyntaxError && error.message.includes('JSON.parse')) {
+        console.log('🔄 Erreur de parsing JSON - Redirection vers MFA');
+        window.location.href = '/auth/mfa-verify';
+        return;
+      }
+      
       toast.error(error instanceof Error ? error.message : 'Erreur lors de la création du dossier');
     }
   }, [canViewPatients]);
@@ -178,17 +212,8 @@ export default function HomePage() {
     }
   }, []);
 
-  // Affichage pendant le chargement
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center h-screen bg-gray-100">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent mx-auto mb-4"></div>
-          <p className="text-gray-600">Vérification de l'authentification...</p>
-        </div>
-      </div>
-    );
-  }
+  // Suppression du chargement redondant - la page /auth/loading s'en charge
+  // if (isLoading) { ... } - Supprimé pour éviter le double chargement
 
   // Si pas authentifié, ne rien afficher (middleware gère la redirection)
   if (!isAuthenticated) {

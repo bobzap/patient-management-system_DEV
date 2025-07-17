@@ -14,6 +14,7 @@ const ROUTE_PERMISSIONS = {
     '/auth/reset-password',  // 🔧 AJOUTEZ CETTE LIGNE
     '/auth/invite',
     '/auth/activate',  // 🔧 AJOUT: Page d'activation
+    '/auth/loading',   // 🔧 AJOUT: Page de chargement post-2FA
     '/api/auth',
     '/api/debug',  // 🔧 AJOUT: Route de diagnostic
   ],
@@ -102,7 +103,7 @@ function checkSessionTimeout(token: any): boolean {
   
   const now = Math.floor(Date.now() / 1000)
   const sessionAge = now - token.iat
-  const maxAge = 4 * 60 * 60 // 4 heures en secondes
+  const maxAge = 8 * 60 * 60 // 8 heures en secondes (aligné avec MFA)
   
   return sessionAge < maxAge
 }
@@ -133,7 +134,7 @@ export default withAuth(
    // Vérifier le timeout de session
 if (token && !checkSessionTimeout(token)) {
   if (process.env.NODE_ENV === 'development') {
-    console.log(`⏰ Session expirée`)
+    console.log(`⏰ Session expirée pour ${token.email}`)
   }
   const loginUrl = new URL('/auth/login', req.url)
   loginUrl.searchParams.set('error', 'SessionExpired')
@@ -160,19 +161,24 @@ if (token && !hasPermission(token.role as string, pathname)) {
 
     // 🔧 NOUVEAU: Gestion des redirections MFA basée sur le token JWT
     if (token && token.isActive) {
-      // Vérifier si on est sur une page MFA (ne pas rediriger en boucle)
+      // Vérifier si on est sur une page MFA ou de chargement (ne pas rediriger en boucle)
       const isMfaPage = pathname.startsWith('/auth/mfa-') || pathname === '/auth/mfa-required'
+      const isLoadingPage = pathname === '/auth/loading'
       
-      if (!isMfaPage) {
+      if (!isMfaPage && !isLoadingPage) {
         // Vérifier le statut MFA depuis le token JWT (mis à jour dans auth.ts)
         if (!token.mfaEnabled) {
+          console.log(`🔐 MFA non configurée pour ${token.email} sur ${pathname} - redirection setup`);
           // Si MFA pas configurée, rediriger vers setup obligatoire
           const mfaRequiredUrl = new URL('/auth/mfa-required', req.url)
           return NextResponse.redirect(mfaRequiredUrl)
         } else if (!token.mfaVerified) {
+          console.log(`🔐 MFA non vérifiée pour ${token.email} sur ${pathname} - redirection verify`);
           // Si MFA configurée mais pas vérifiée pour cette session
           const mfaVerifyUrl = new URL('/auth/mfa-verify', req.url)
           return NextResponse.redirect(mfaVerifyUrl)
+        } else {
+          console.log(`🔐 MFA OK pour ${token.email} sur ${pathname}`);
         }
       }
     }
