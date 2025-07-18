@@ -173,7 +173,7 @@ export const initialLists: ListCategory[] = [
   
   {
     listId: 'etatsCivils',
-    name: 'États civils',
+    name: 'État civil',
     items: ['Célibataire', 'Marié(e)', 'Divorcé(e)', 'Veuf/Veuve', 'Pacsé(e)']
   },
 

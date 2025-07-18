@@ -275,7 +275,7 @@ export const Actions = ({ data = defaultData, onChange, isReadOnly = false }: Ac
         </ActionSection>
 
         {/* Action 5: Médecin */}
-        <ActionSection title="5. Échange Médecin">
+        <ActionSection title="5. Échange Médecin du travail">
           <div className="flex items-center space-x-2">
             <Checkbox
               id="echange-medecin"

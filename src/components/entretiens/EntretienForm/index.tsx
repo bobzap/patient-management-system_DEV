@@ -1051,6 +1051,8 @@ export const EntretienForm = ({ patient, entretienId, isReadOnly = false, onClos
                               <span>{patient.poste}</span>
                               <span>•</span>
                               <span>{patient.departement}</span>
+                              <span>•</span>
+                              <span>{patient.zone}</span>
                             </div>
                           </div>
                         </div>

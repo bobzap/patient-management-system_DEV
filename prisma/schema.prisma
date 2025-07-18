@@ -282,6 +282,48 @@ model Patient {
   tempsTrajetTotal  String?
   calendarEvents    CalendarEvent[]
   entretiens        Entretien[]
+  consentementDonnees PatientConsent?
+}
+
+model PatientConsent {
+  id                String          @id @default(cuid())
+  patientId         Int             @unique
+  status            ConsentStatus   @default(PENDING)
+  dateConsent       DateTime        @default(now())
+  dateModification  DateTime        @updatedAt
+  versionLpd        String          @default("1.0")
+  ipAddress         String?
+  userAgent         String?
+  commentaire       String?
+  createdBy         String?
+  modifiedBy        String?
+  patient           Patient         @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  historique        ConsentHistory[]
+
+  @@map("patient_consents")
+}
+
+model ConsentHistory {
+  id                String          @id @default(cuid())
+  consentId         String
+  ancienStatus      ConsentStatus
+  nouveauStatus     ConsentStatus
+  dateModification  DateTime        @default(now())
+  raisonModification String?
+  modifiePar        String?
+  ipAddress         String?
+  userAgent         String?
+  consent           PatientConsent  @relation(fields: [consentId], references: [id], onDelete: Cascade)
+
+  @@map("consent_history")
+}
+
+enum ConsentStatus {
+  ACCEPTED    // Accepté
+  REFUSED     // Refusé
+  PENDING     // En attente
+
+  @@map("consent_status")
 }
 
 model RisqueProfessionnel {

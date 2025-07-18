@@ -13,11 +13,12 @@ import { EntretienList } from '../entretiens/EntretienList';
 import { useEffect } from 'react';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { 
-  ArrowLeft, Plus, Edit, Trash2, User, Calendar, Clock, 
+  ArrowLeft, Plus, Edit, Trash2, User, Calendar, Cake, LandPlot, Goal, Clock, 
   Activity, Heart, Scale, FileText, MapPin, Car, 
-  Briefcase, Shield, Users, ArrowRight, ExternalLink,
+  Briefcase, ShieldCheck, Users, ArrowRight, ExternalLink,
   TrendingUp, AlertCircle
 } from 'lucide-react';
+import { ConsentWidget } from '@/components/consent/ConsentWidget';
 
 interface PatientDetailsProps {
   patient: Patient;
@@ -360,27 +361,38 @@ export const PatientDetails = ({ patient, onEdit, onDelete }: PatientDetailsProp
                 </div>
               </div>
 
-              {/* Informations principales */}
+              {/* Informations principales MapPin*/}
               <div className="flex-1">
                 <h1 className="text-3xl font-light text-slate-900 tracking-tight mb-2">
-                  {`${patient.civilites} ${patient.nom} ${patient.prenom}`}
+                  {`${patient.civilites} ${patient.nom} ${patient.prenom} `}
                 </h1>
                 
                 <div className="flex items-center space-x-6 mb-6">
                   <div className="flex items-center space-x-2">
-                    <Calendar className="h-4 w-4 text-slate-500" />
+                    <Cake className="h-4 w-4 text-slate-500" />
                     <span className="text-slate-600">{patient.age} ans</span>
                   </div>
+
                   <div className="flex items-center space-x-2">
                     <Briefcase className="h-4 w-4 text-slate-500" />
+                    <span className="text-slate-600">{patient.poste}</span>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <MapPin className="h-4 w-4 text-slate-500" />
                     <span className="px-3 py-1 bg-blue-500/20 backdrop-blur-sm text-blue-700 rounded-xl text-sm font-medium border border-blue-200/50">
                       {patient.departement}
                     </span>
                   </div>
+
                   <div className="flex items-center space-x-2">
-                    <MapPin className="h-4 w-4 text-slate-500" />
-                    <span className="text-slate-600">{patient.poste}</span>
+                    <Goal className="h-4 w-4 text-slate-500" />
+                    <span className="px-3 py-1 bg-blue-500/20 backdrop-blur-sm text-blue-700 rounded-xl text-sm font-medium border border-blue-200/50">
+                      {patient.zone}
+                    </span>
                   </div>
+
+                  
                 </div>
 
                 {/* Métriques rapides */}
@@ -571,6 +583,27 @@ export const PatientDetails = ({ patient, onEdit, onDelete }: PatientDetailsProp
 
             {/* Colonne latérale */}
             <div className="lg:col-span-1 space-y-8">
+              
+              {/* Consentement LPD */}
+              <div className="relative group">
+                <div className="absolute inset-0 bg-gradient-to-br from-rose-500/10 to-pink-600/10 rounded-3xl blur-xl opacity-70 group-hover:opacity-100 transition-opacity"></div>
+                <div className="relative bg-white/30 backdrop-blur-2xl border border-white/40 rounded-3xl overflow-hidden shadow-xl">
+                  <div className="bg-gradient-to-r from-rose-500/20 to-pink-600/20 backdrop-blur-sm p-6 border-b border-white/20">
+                    <div className="flex items-center space-x-3">
+                      <div className="p-2 bg-rose-500/20 backdrop-blur-sm rounded-xl">
+                        <ShieldCheck className="h-5 w-5 text-rose-600" />
+                      </div>
+                      <h3 className="text-xl font-light text-slate-900">Consentement</h3>
+                    </div>
+                  </div>
+                  <div className="p-6">
+                    <ConsentWidget
+                      patientId={patient.id!}
+                      patientName={`${patient.civilites} ${patient.nom} ${patient.prenom}`}
+                    />
+                  </div>
+                </div>
+              </div>
               
               {/* Dernier entretien */}
               <div className="relative group">
@@ -841,7 +874,7 @@ export const PatientDetails = ({ patient, onEdit, onDelete }: PatientDetailsProp
                     className="group flex items-center space-x-2 px-4 py-2 bg-white/20 backdrop-blur-sm border border-white/30 rounded-2xl hover:bg-white/30 hover:border-green-500/40 transition-all duration-300 hover:scale-105"
                   >
                     <div className="relative">
-                      <Shield className="h-4 w-4 text-green-600 group-hover:text-green-500 transition-colors" />
+                      <ShieldCheck className="h-4 w-4 text-green-600 group-hover:text-green-500 transition-colors" />
                       <div className="absolute inset-0 bg-green-400/20 rounded-full blur-sm group-hover:bg-green-400/40 transition-all duration-300"></div>
                     </div>
                     <span className="text-xs font-medium text-slate-700 group-hover:text-slate-800 transition-colors">

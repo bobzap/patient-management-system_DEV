@@ -13,61 +13,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Chiffrement AES-256-CBC** pour données sensibles
 - **Tailwind CSS** + Radix UI, design glassmorphisme
 
-## 🏗️ Workflow de Développement Obligatoire
-
-### 📋 Gestion des Tâches et Sessions
-
-**OBLIGATOIRE pour chaque instance Claude** :
-
-1. **Début de Session** :
-   - Lire `tasks/sessions.md` pour historique et contexte projet
-   - Lire `tasks/todo.md` (peut être vide si tout terminé)
-   - Utiliser **TodoWrite** pour créer nouveau plan basé sur demande utilisateur
-   - Marquer tâches `in_progress` avant de commencer
-
-2. **Pendant l'Exécution** :
-   - Mettre à jour todos en temps réel avec TodoWrite
-   - Marquer `completed` immédiatement après chaque tâche finie
-   - Supprimer tâches terminées de `todo.md` (garder seulement en cours/pending)
-
-3. **Fin de Session** :
-   - Vider `tasks/todo.md` si toutes tâches terminées
-   - Ajouter entrée complète dans `tasks/sessions.md` avec date et réalisations
-   - Noter points d'attention pour prochaines sessions
-
-### 📂 Structure des Fichiers de Suivi
-
-```
-tasks/
-├── todo.md          # Plan actuel + historique tâches
-├── sessions.md      # Journal sessions avec dates/réalisations
-└── architecture.md  # Notes évolution architecture
-```
-
-### 🔄 Workflow Session Standard
-
-1. **Analyse** → Contexte via `tasks/` + identification fichiers pertinents
-2. **Plan** → TodoWrite avec actions détaillées basées sur demande utilisateur
-3. **Validation** → Si complexe, utiliser exit_plan_mode pour révision
-4. **Exécution** → Étape par étape avec mise à jour todos temps réel
-5. **Documentation** → Modifications claires + fichiers modifiés
-6. **Traçabilité** → Mise à jour `sessions.md` avec résumé succinct + date
-7. **Continuité** → Points d'attention pour prochaine instance
-
-### 📝 Format Session Standard
-
-**tasks/sessions.md** :
-```markdown
-## YYYY-MM-DD - [Titre Session]
-**Durée**: Xh **Status**: ✅/⏳/❌
-**Objectif**: Description succincte
-**Réalisations**:
-- Point 1 avec référence fichier:ligne
-- Point 2
-**Fichiers modifiés**: `file:line`
-**Points d'attention**: Notes pour suite
-```
-
 ## 🚀 Commandes Essentielles
 
 ```bash
@@ -274,4 +219,3 @@ MFA_ISSUER          # Nom TOTP (ex: "Vital Sync")
 - [ ] Aucune régression détectée
 - [ ] Serveur stable et fonctionnel
 
-**Cette procédure garantit un code de qualité production à chaque livraison.**

@@ -8,9 +8,10 @@ import { safeParseResponse } from '@/utils/json';
 import { 
   User, Briefcase, Calendar, Clock, MapPin, Car, 
   ArrowLeft, ArrowRight, Save, X, AlertTriangle,
-  Check, ChevronRight, Activity, Users, Shield,
+  Check, ChevronRight, Activity, Users, ShieldCheck,
   ExternalLink, Loader2
 } from 'lucide-react';
+import { ConsentSelector } from '@/components/consent/ConsentSelector';
 import { useNavigationGuard } from '@/hooks/useNavigationGuard';
 import { useUnloadConfirmation } from '@/hooks/useUnloadConfirmation';
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
@@ -79,6 +80,11 @@ const STEPS: StepProps[] = [
     title: "Informations professionnelles",
     icon: <Briefcase className="w-5 h-5" />,
     color: "emerald"
+  },
+  {
+    title: "Consentement LPD",
+    icon: <ShieldCheck className="w-5 h-5" />,
+    color: "rose"
   }
 ];
 
@@ -145,6 +151,7 @@ export const PatientForm = ({ patient, onSubmit, onCancel }: PatientFormProps) =
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [possibleDuplicates, setPossibleDuplicates] = useState<Patient[]>([]);
   const [showDuplicatesWarning, setShowDuplicatesWarning] = useState(false);
+  const [consentData, setConsentData] = useState<any>(null);
 
   const initialFormData = {
     nom: '',
@@ -384,11 +391,15 @@ export const PatientForm = ({ patient, onSubmit, onCancel }: PatientFormProps) =
           <div className="relative bg-white/30 backdrop-blur-2xl border border-white/40 rounded-2xl p-6 shadow-xl">
             <div className="relative flex items-end justify-between">
               {/* Ligne de connexion centrée */}
-              <div className="absolute top-6 left-1/2 transform -translate-x-1/2 w-1/3 h-1 bg-white/30 backdrop-blur-sm rounded-full overflow-hidden">
+              <div className="absolute top-6 left-1/2 transform -translate-x-1/2 w-2/3 h-1 bg-white/30 backdrop-blur-sm rounded-full overflow-hidden">
                 <div className={`h-full transition-all duration-700 ease-out ${
-                  currentStep > 0 
-                    ? 'bg-gradient-to-r from-blue-500 to-emerald-500 w-full' 
-                    : 'bg-white/50 w-0'
+                  currentStep === 0 
+                    ? 'bg-white/50 w-0'
+                    : currentStep === 1
+                    ? 'bg-gradient-to-r from-blue-500 via-blue-500 to-emerald-500 w-1/2'
+                    : currentStep === 2
+                    ? 'bg-gradient-to-r from-blue-500 via-emerald-500 to-rose-500 w-full'
+                    : 'bg-gradient-to-r from-blue-500 via-emerald-500 to-rose-500 w-full'
                 }`} />
               </div>
               
@@ -402,7 +413,9 @@ export const PatientForm = ({ patient, onSubmit, onCancel }: PatientFormProps) =
                       currentStep >= index 
                         ? step.color === 'blue'
                           ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white scale-110' 
-                          : 'bg-gradient-to-br from-emerald-600 to-teal-600 text-white scale-110'
+                          : step.color === 'emerald'
+                          ? 'bg-gradient-to-br from-emerald-600 to-teal-600 text-white scale-110'
+                          : 'bg-gradient-to-br from-rose-600 to-pink-600 text-white scale-110'
                         : 'bg-white/40 backdrop-blur-sm border border-white/50 text-slate-500 hover:bg-white/50'
                     }`}
                   >
@@ -418,7 +431,9 @@ export const PatientForm = ({ patient, onSubmit, onCancel }: PatientFormProps) =
                     currentStep >= index 
                       ? step.color === 'blue'
                         ? 'text-blue-700'
-                        : 'text-emerald-700'
+                        : step.color === 'emerald'
+                        ? 'text-emerald-700'
+                        : 'text-rose-700'
                       : 'text-slate-500'
                   }`}>
                     {step.title}
@@ -664,6 +679,43 @@ export const PatientForm = ({ patient, onSubmit, onCancel }: PatientFormProps) =
                     )}
                   </div>
                 </div>
+
+                {/* Étape 3 : Consentement LPD */}
+                <div className={currentStep === 2 ? 'block' : 'hidden'}>
+                  <div className="mb-6">
+                    <div className="flex items-center space-x-3 mb-8">
+                      <div className="p-2 bg-rose-500/20 backdrop-blur-sm rounded-xl">
+                        <ShieldCheck className="h-5 w-5 text-rose-600" />
+                      </div>
+                      <h3 className="text-xl font-semibold text-slate-900">Consentement pour le traitement des données</h3>
+                    </div>
+                  </div>
+
+                  <div className="space-y-6">
+                    {/* Sélecteur de consentement avec information LPD intégrée */}
+                    <div className="bg-white/80 backdrop-blur-sm rounded-lg p-6">
+                      <ConsentSelector
+                        onConsentChange={(status, commentaire) => {
+                          setConsentData({ status, commentaire });
+                        }}
+                      />
+                    </div>
+
+                    {/* Rappel important */}
+                    <div className="bg-amber-50/80 backdrop-blur-sm border border-amber-200/50 rounded-lg p-4">
+                      <div className="flex items-start space-x-3">
+                        <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <h4 className="font-medium text-amber-900 mb-1">Information importante</h4>
+                          <p className="text-sm text-amber-800">
+                            Le consentement peut être modifié ultérieurement depuis le dossier patient. 
+                            En cas de doute, vous pouvez sélectionner "En attente" et clarifier avec le patient.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               {/* Footer avec boutons d'action */}
@@ -766,7 +818,7 @@ export const PatientForm = ({ patient, onSubmit, onCancel }: PatientFormProps) =
                     className="group flex items-center space-x-2 px-4 py-2 bg-white/20 backdrop-blur-sm border border-white/30 rounded-2xl hover:bg-white/30 hover:border-green-500/40 transition-all duration-300 hover:scale-105"
                   >
                     <div className="relative">
-                      <Shield className="h-4 w-4 text-green-600 group-hover:text-green-500 transition-colors" />
+                      <ShieldCheck className="h-4 w-4 text-green-600 group-hover:text-green-500 transition-colors" />
                       <div className="absolute inset-0 bg-green-400/20 rounded-full blur-sm group-hover:bg-green-400/40 transition-all duration-300"></div>
                     </div>
                     <span className="text-xs font-medium text-slate-700 group-hover:text-slate-800 transition-colors">

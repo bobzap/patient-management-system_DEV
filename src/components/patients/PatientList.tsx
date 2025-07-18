@@ -338,7 +338,7 @@ export const PatientList = ({
                   className="group flex items-center space-x-3 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-2xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 hover:scale-105"
                 >
                   <Plus className="h-5 w-5" />
-                  <span className="font-medium">Nouveau Dossier</span>
+                  <span className="font-medium">Nouveau Dossier (nouvel employé) </span>
                 </button>
               </div>
             </div>
@@ -621,7 +621,7 @@ export const PatientList = ({
                                 title={
                                   patient.motifs && patient.motifs.length > 0 
                                     ? "Voir les motifs" 
-                                    : "Pas de motifs mentionnés"
+                                    : "Pas de motif mentionné"
                                 }
                               >
                                 <Info className={`h-3 w-3 ${
@@ -645,7 +645,7 @@ export const PatientList = ({
                           onClick={() => onSelectPatient(patient)}
                           className="group flex items-center space-x-2 px-4 py-2 bg-white/40 backdrop-blur-sm border border-white/50 rounded-xl hover:bg-white/50 transition-all duration-300 text-slate-700 hover:text-slate-900 ml-auto"
                         >
-                          <span className="text-sm font-medium">Consulter</span>
+                          <span className="text-sm font-medium">Ouvrir le dossier</span>
                           <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
                         </button>
                       </td>
@@ -865,7 +865,7 @@ export const PatientList = ({
                     <div className="w-12 h-12 bg-slate-100 border border-slate-200 rounded-xl flex items-center justify-center mx-auto mb-3">
                       <Info className="h-6 w-6 text-slate-400" />
                     </div>
-                    <h4 className="text-slate-700 font-medium text-sm mb-1">Pas de motifs mentionnés</h4>
+                    <h4 className="text-slate-700 font-medium text-sm mb-1">Pas de motif mentionné</h4>
                     <p className="text-slate-500 text-xs">
                       Aucun motif n'a été renseigné pour cet entretien.
                     </p>

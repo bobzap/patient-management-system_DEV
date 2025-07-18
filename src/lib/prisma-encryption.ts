@@ -35,6 +35,18 @@ const ENCRYPTED_FIELDS = {
     'title', 'description',
     // Métadonnées potentiellement sensibles (MOYEN)
     'metadata'
+  ],
+  PatientConsent: [
+    // Commentaires pouvant contenir des informations sensibles (ÉLEVÉ)
+    'commentaire',
+    // Informations de traçabilité (MOYEN)
+    'ipAddress', 'userAgent'
+  ],
+  ConsentHistory: [
+    // Raisons de modification pouvant être sensibles (ÉLEVÉ)
+    'raisonModification',
+    // Informations de traçabilité (MOYEN)
+    'ipAddress', 'userAgent'
   ]
 };
 

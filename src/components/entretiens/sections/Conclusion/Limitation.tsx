@@ -52,7 +52,7 @@ export const Limitation = ({ data = defaultData, onChange, isReadOnly = false }:
         {/* Section principale */}
         <div className="space-y-4 p-4 bg-pink-50/30 rounded-lg border border-pink-200/60 backdrop-blur-sm">
           <div className="space-y-2">
-            <Label className={labelClasses}>La personne nécessite-t-elle une limitation ?</Label>
+            <Label className={labelClasses}>La personne a-t-elle des limitations de travail ?</Label>
             <RadioGroup
               value={data.hasLimitation ? "oui" : "non"}
               onValueChange={(value) => handleChange({ hasLimitation: value === "oui" })}

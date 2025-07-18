@@ -82,7 +82,7 @@ export const Sidebar = ({ activeTab, onTabChange }: SidebarProps) => {
     },
     {
       id: 'newDossier' as NavigationTab,
-      label: 'Nouveau employé',
+      label: 'Nouvel employé',
       icon: <Plus className="w-5 h-5" />,
       show: canViewPatients()
     },
