@@ -64,12 +64,13 @@ export async function POST(
 
     const nextOrder = (lastItem?.order || 0) + 1;
 
-    // Créer le nouvel item
+    // Créer le nouvel item avec flag personnalisé
     const newItem = await prisma.listItem.create({
       data: {
         value: value.trim(),
         order: nextOrder,
-        categoryId: category.id
+        categoryId: category.id,
+        isCustom: true
       }
     });
 

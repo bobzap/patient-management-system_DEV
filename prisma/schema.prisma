@@ -235,13 +235,14 @@ model ListCategory {
 }
 
 model ListItem {
-  id         Int          @id @default(autoincrement())
-  value      String
-  order      Int
-  categoryId Int
-  createdAt  DateTime     @default(now())
-  updatedAt  DateTime     @updatedAt
-  category   ListCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  id          Int          @id @default(autoincrement())
+  value       String
+  order       Int
+  categoryId  Int
+  isCustom    Boolean      @default(false)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  category    ListCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
 
   @@unique([categoryId, value])
   @@index([categoryId, order])

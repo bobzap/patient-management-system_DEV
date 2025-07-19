@@ -49,6 +49,117 @@ body {
   font-style: normal;
 }
 
+/* Styles pour les placeholders des SelectValue UNIQUEMENT */
+[data-radix-select-trigger] span[data-radix-select-value][data-placeholder] {
+  color: #9ca3af !important;
+  font-weight: 300 !important;
+  opacity: 0.7 !important;
+}
+
+/* ULTRA-SPÉCIFIQUE: Valeurs sélectionnées avec priorité maximale */
+button[data-radix-select-trigger] span[data-radix-select-value]:not([data-placeholder]),
+button[data-radix-select-trigger] span[data-radix-select-value][data-state="closed"]:not([data-placeholder]),
+button[data-radix-select-trigger] span[data-radix-select-value]:not([data-placeholder]):not(:empty),
+button[data-radix-select-trigger] > span:not([data-placeholder]):not(:empty),
+[data-radix-select-trigger][data-state="closed"] span[data-radix-select-value]:not([data-placeholder]) {
+  color: #1f2937 !important;
+  font-weight: 600 !important;
+  opacity: 1 !important;
+  text-shadow: none !important;
+  filter: none !important;
+}
+
+/* Forcer sur les divs également */
+div[data-radix-select-trigger] span[data-radix-select-value]:not([data-placeholder]),
+div[data-radix-select-trigger] > span:not([data-placeholder]) {
+  color: #1f2937 !important;
+  font-weight: 600 !important;
+  opacity: 1 !important;
+}
+
+/* Spécificité maximale avec attributs multiples */
+*[data-radix-select-trigger][role="combobox"] span[data-radix-select-value]:not([data-placeholder]) {
+  color: #1f2937 !important;
+  font-weight: 600 !important;
+  opacity: 1 !important;
+}
+
+/* Forcer l'héritage pour tous les enfants */
+[data-radix-select-trigger] span[data-radix-select-value]:not([data-placeholder]) * {
+  color: inherit !important;
+  font-weight: inherit !important;
+  opacity: inherit !important;
+}
+
+/* Amélioration du contraste au survol des SelectItem */
+[data-radix-select-content] [data-radix-select-item] {
+  transition: all 0.2s ease-in-out;
+  cursor: pointer;
+}
+
+/* État normal des items */
+[data-radix-select-content] [data-radix-select-item] {
+  background-color: transparent;
+  color: #374151;
+}
+
+/* ULTRA-SPÉCIFIQUE: Forcer le survol des items avec priorité maximale */
+div[data-radix-select-content] div[data-radix-select-item]:hover,
+div[data-radix-select-content] div[data-radix-select-item][data-highlighted],
+div[data-radix-select-content] div[data-radix-select-item]:focus,
+div[data-radix-select-content] div[data-radix-select-item][data-state="highlighted"] {
+  background-color: #2563eb !important;
+  color: #ffffff !important;
+  transform: translateX(4px) !important;
+  box-shadow: 0 6px 12px rgba(37, 99, 235, 0.4) !important;
+  font-weight: 600 !important;
+  border-radius: 6px !important;
+  margin: 1px 2px !important;
+  z-index: 999999 !important;
+}
+
+/* Forcer avec le sélecteur le plus spécifique possible */
+.radix-select-content [data-radix-select-item]:hover,
+[data-radix-select-content] [role="option"]:hover {
+  background-color: #2563eb !important;
+  color: #ffffff !important;
+  transform: translateX(4px) !important;
+  box-shadow: 0 6px 12px rgba(37, 99, 235, 0.4) !important;
+  font-weight: 600 !important;
+}
+
+/* Ultra-priorité avec pseudo-éléments */
+[data-radix-select-content] [data-radix-select-item]::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: transparent;
+  transition: background-color 0.15s ease;
+  border-radius: 4px;
+  z-index: -1;
+}
+
+[data-radix-select-content] [data-radix-select-item]:hover::before {
+  background-color: #2563eb !important;
+  box-shadow: 0 4px 8px rgba(37, 99, 235, 0.3) !important;
+}
+
+/* Item sélectionné (avec indicateur) */
+[data-radix-select-content] [data-radix-select-item][data-state="checked"] {
+  background-color: #1e40af !important;
+  color: #ffffff !important;
+  font-weight: 500;
+}
+
+/* Item sélectionné au survol */
+[data-radix-select-content] [data-radix-select-item][data-state="checked"]:hover {
+  background-color: #1d4ed8 !important;
+  color: #ffffff !important;
+}
+
 @layer base {
   :root {
     /* Variables CSS pour le thème clair */

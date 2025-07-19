@@ -16,6 +16,7 @@ import { useNavigationGuard } from '@/hooks/useNavigationGuard';
 import { useUnloadConfirmation } from '@/hooks/useUnloadConfirmation';
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { EnhancedSelect } from '@/components/ui/enhanced-select';
 
 interface PatientFormProps {
   patient?: Patient; // Optionnel : présent en mode édition, absent en mode création
@@ -32,13 +33,15 @@ interface StepProps {
 interface InputFieldProps {
   label: string;
   name: string;
-  type?: 'text' | 'date' | 'select';
+  type?: 'text' | 'date' | 'select' | 'enhanced-select';
   value: string | number;
   onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void;
+  onEnhancedChange?: (value: string) => void;
   required?: boolean;
   readOnly?: boolean;
   options?: string[];
   placeholder?: string;
+  listType?: string;
 }
 
 // Composant astérisque isolé
@@ -94,10 +97,12 @@ const InputField: React.FC<InputFieldProps> = ({
   type = "text", 
   value, 
   onChange, 
+  onEnhancedChange,
   required = false, 
   readOnly = false,
   options = [],
-  placeholder = ""
+  placeholder = "",
+  listType = ""
 }) => {
   const baseClasses = "w-full rounded-lg border text-slate-900 transition-all duration-300 font-normal";
   const activeClasses = readOnly 
@@ -110,7 +115,17 @@ const InputField: React.FC<InputFieldProps> = ({
         {label}
         {required && <RequiredAsterisk />}
       </label>
-      {type === "select" ? (
+      {type === "enhanced-select" ? (
+        <EnhancedSelect
+          listType={listType}
+          value={value.toString()}
+          onValueChange={onEnhancedChange}
+          placeholder={placeholder || "Sélectionner..."}
+          searchable={true}
+          customizable={true}
+          className={`${baseClasses} ${activeClasses} h-11 shadow-sm hover:shadow-md`}
+        />
+      ) : type === "select" ? (
         <select
           name={name}
           value={value}
@@ -269,6 +284,35 @@ export const PatientForm = ({ patient, onSubmit, onCancel }: PatientFormProps) =
       }
       
       // Calculer l'ancienneté si la date d'entrée change
+      if (name === 'dateEntree') {
+        newData.anciennete = calculerAnciennete(value);
+      }
+      
+      return newData;
+    });
+  };
+
+  // Fonction pour les EnhancedSelect
+  const handleEnhancedChange = (name: string) => (value: string) => {
+    setFormData(prev => {
+      const newData = { ...prev, [name]: value };
+
+      // Appliquer les mêmes logiques métier que handleChange
+      if (name === 'nom' && value.length >= 2) {
+        checkForDuplicates(value);
+      }
+      
+      if (name === 'poste') {
+        setShowNumeroLigne(value === 'Opérateur SB');
+        if (value !== 'Opérateur SB') {
+          newData.numeroLigne = '';
+        }
+      }
+      
+      if (name === 'dateNaissance') {
+        newData.age = calculerAge(value);
+      }
+      
       if (name === 'dateEntree') {
         newData.anciennete = calculerAnciennete(value);
       }
@@ -467,18 +511,22 @@ export const PatientForm = ({ patient, onSubmit, onCancel }: PatientFormProps) =
                     <InputField
                       label="Civilité"
                       name="civilites"
-                      type="select"
+                      type="enhanced-select"
                       value={formData.civilites}
                       onChange={handleChange}
-                      options={lists['civilites'] || []}
+                      onEnhancedChange={handleEnhancedChange('civilites')}
+                      listType="civilites"
+                      placeholder="Rechercher une civilité..."
                     />
                     <InputField
                       label="État civil"
                       name="etatCivil"
-                      type="select"
+                      type="enhanced-select"
                       value={formData.etatCivil}
                       onChange={handleChange}
-                      options={lists['etatsCivils'] || []}
+                      onEnhancedChange={handleEnhancedChange('etatCivil')}
+                      listType="etatsCivils"
+                      placeholder="Rechercher un état civil..."
                     />
                     
                     <div className="space-y-2">
@@ -565,10 +613,12 @@ export const PatientForm = ({ patient, onSubmit, onCancel }: PatientFormProps) =
                     <InputField
                       label="Poste"
                       name="poste"
-                      type="select"
+                      type="enhanced-select"
                       value={formData.poste}
                       onChange={handleChange}
-                      options={lists['postes'] || []}
+                      onEnhancedChange={handleEnhancedChange('poste')}
+                      listType="postes"
+                      placeholder="Rechercher un poste..."
                     />
 
                     {showNumeroLigne && (
@@ -584,55 +634,67 @@ export const PatientForm = ({ patient, onSubmit, onCancel }: PatientFormProps) =
                     <InputField
                       label="Manager"
                       name="manager"
-                      type="select"
+                      type="enhanced-select"
                       value={formData.manager}
                       onChange={handleChange}
-                      options={lists['managers'] || []}
+                      onEnhancedChange={handleEnhancedChange('manager')}
+                      listType="managers"
+                      placeholder="Rechercher un manager..."
                     />
 
                     <InputField
                       label="Zone"
                       name="zone"
-                      type="select"
+                      type="enhanced-select"
                       value={formData.zone}
                       onChange={handleChange}
-                      options={lists['zones'] || []}
+                      onEnhancedChange={handleEnhancedChange('zone')}
+                      listType="zones"
+                      placeholder="Rechercher une zone..."
                     />
                     
                     <InputField
                       label="Département"
                       name="departement"
-                      type="select"
+                      type="enhanced-select"
                       value={formData.departement}
                       onChange={handleChange}
-                      options={lists['dpt'] || []}
+                      onEnhancedChange={handleEnhancedChange('departement')}
+                      listType="dpt"
+                      placeholder="Rechercher un département..."
                     />
                     
                     <InputField
                       label="Type de contrat"
                       name="contrat"
-                      type="select"
+                      type="enhanced-select"
                       value={formData.contrat}
                       onChange={handleChange}
-                      options={lists['contrats'] || []}
+                      onEnhancedChange={handleEnhancedChange('contrat')}
+                      listType="contrats"
+                      placeholder="Rechercher un type de contrat..."
                     />
                     
                     <InputField
                       label="Taux d'activité"
                       name="tauxActivite"
-                      type="select"
+                      type="enhanced-select"
                       value={formData.tauxActivite}
                       onChange={handleChange}
-                      options={lists['tauxOccupation'] || []}
+                      onEnhancedChange={handleEnhancedChange('tauxActivite')}
+                      listType="tauxOccupation"
+                      placeholder="Rechercher un taux d'activité..."
                     />
                     
                     <InputField
                       label="Horaire"
                       name="horaire"
-                      type="select"
+                      type="enhanced-select"
                       value={formData.horaire}
                       onChange={handleChange}
-                      options={lists['horaires'] || []}
+                      onEnhancedChange={handleEnhancedChange('horaire')}
+                      listType="horaires"
+                      placeholder="Rechercher un horaire..."
                     />
 
                     <InputField
@@ -646,10 +708,12 @@ export const PatientForm = ({ patient, onSubmit, onCancel }: PatientFormProps) =
                     <InputField
                       label="Type de transport"
                       name="typeTransport"
-                      type="select"
+                      type="enhanced-select"
                       value={formData.typeTransport}
                       onChange={handleChange}
-                      options={lists['transport'] || []}
+                      onEnhancedChange={handleEnhancedChange('typeTransport')}
+                      listType="transport"
+                      placeholder="Rechercher un type de transport..."
                     />
                     
                     <div className="grid grid-cols-2 gap-4">

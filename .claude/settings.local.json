@@ -28,7 +28,8 @@
       "Bash(wmic process where:*)",
       "Bash(npx kill-port:*)",
       "Bash(powershell:*)",
-      "Bash(touch:*)"
+      "Bash(touch:*)",
+      "Bash(find:*)"
     ],
     "deny": []
   }

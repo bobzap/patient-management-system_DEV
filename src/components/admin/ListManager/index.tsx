@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { ListEditor } from './ListEditor';
 import { toast } from 'sonner';
 
@@ -8,6 +8,7 @@ interface ListItem {
   id: number;
   value: string;
   order: number;
+  isCustom?: boolean;
 }
 
 interface ListCategory {
@@ -22,6 +23,42 @@ export const ListManager = () => {
   const [selectedList, setSelectedList] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Fonction de tri intelligent : chiffres (desc) + caractères spéciaux puis alphabétique
+  const smartSort = useCallback((items: string[]): string[] => {
+    return items.sort((a, b) => {
+      // Extraire les parties numériques
+      const aNumMatch = a.match(/^(\d+)/)
+      const bNumMatch = b.match(/^(\d+)/)
+      
+      // Si les deux commencent par des chiffres
+      if (aNumMatch && bNumMatch) {
+        const aNum = parseInt(aNumMatch[1], 10)
+        const bNum = parseInt(bNumMatch[1], 10)
+        
+        if (aNum !== bNum) {
+          return bNum - aNum // Du plus grand au plus petit
+        }
+        return a.localeCompare(b, 'fr', { sensitivity: 'base' })
+      }
+      
+      // Si seulement A commence par un chiffre
+      if (aNumMatch && !bNumMatch) return -1
+      if (!aNumMatch && bNumMatch) return 1
+      
+      // Caractères spéciaux avant lettres (optimisé)
+      const aFirstChar = a.charCodeAt(0)
+      const bFirstChar = b.charCodeAt(0)
+      
+      const aIsSpecial = aFirstChar < 48 || (aFirstChar > 57 && aFirstChar < 65) || (aFirstChar > 90 && aFirstChar < 97) || aFirstChar > 122
+      const bIsSpecial = bFirstChar < 48 || (bFirstChar > 57 && bFirstChar < 65) || (bFirstChar > 90 && bFirstChar < 97) || bFirstChar > 122
+      
+      if (aIsSpecial && !bIsSpecial) return -1
+      if (!aIsSpecial && bIsSpecial) return 1
+      
+      return a.localeCompare(b, 'fr', { sensitivity: 'base' })
+    })
+  }, [])
 
   // Fonction de chargement des listes
   const fetchLists = async () => {
@@ -157,7 +194,7 @@ const handleUpdate = async (listId: string, newItems: string[]) => {
             list={{
               id: currentList.listId,
               name: currentList.name,
-              items: currentList.items.map(item => item.value)
+              items: smartSort(currentList.items.map(item => item.value))
             }}
             onUpdate={(items) => handleUpdate(currentList.listId, items)}
           />

@@ -31,6 +31,7 @@ import {
   SelectValue,
 } from "@/components/ui/Select";
 import { Label } from "@/components/ui/label";
+import { EnhancedSelect } from "@/components/ui/enhanced-select";
 
 interface PreventionProps {
   data: PreventionData;
@@ -198,50 +199,20 @@ export const Prevention = ({ data, onChange, isReadOnly = false }: PreventionPro
         <div className="space-y-4 p-4 bg-pink-50/30 rounded-lg border border-pink-200/60 backdrop-blur-sm">
           <div className="space-y-2">
             <Label className={labelClasses}>Troubles liés au travail</Label>
-            <Select 
-              onValueChange={handleAddTrouble}
+            <EnhancedSelect
+              listType="troublesTravail"
+              multiple={true}
+              values={safeData.troublesLiesTravail}
+              onValuesChange={(values) => handleChange({
+                troublesLiesTravail: values
+              })}
+              placeholder="Sélectionner des troubles..."
+              searchable={true}
+              customizable={true}
               disabled={isReadOnly}
-            >
-              <SelectTrigger className={selectTriggerClasses}>
-                <SelectValue placeholder="Sélectionner un trouble..." />
-              </SelectTrigger>
-              <SelectContent className="bg-white border-2 border-pink-400/60">
-                {troublesList.map((trouble) => (
-                  <SelectItem 
-                    key={trouble} 
-                    value={trouble}
-                    className="hover:bg-pink-50 focus:bg-pink-100"
-                  >
-                    {trouble}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            {/* Affichage des troubles sélectionnés */}
-            <div className="flex flex-wrap gap-2 mt-3">
-              {safeData.troublesLiesTravail.map((trouble) => (
-                <Badge
-                  key={trouble}
-                  variant="secondary"
-                  className="px-3 py-1 flex items-center gap-2 bg-pink-100 text-pink-800 border border-pink-300 hover:bg-pink-200 transition-colors"
-                >
-                  {trouble}
-                  {!isReadOnly && (
-                    <button
-                      onClick={() => handleRemoveTrouble(trouble)}
-                      className="ml-1 hover:text-pink-600 transition-colors"
-                      title="Supprimer ce trouble"
-                    >
-                      <X size={14} />
-                    </button>
-                  )}
-                </Badge>
-              ))}
-              {safeData.troublesLiesTravail.length === 0 && (
-                <div className="text-pink-600 text-sm italic">Aucun trouble sélectionné</div>
-              )}
-            </div>
+              className={selectTriggerClasses}
+              badgeActions={true}
+            />
           </div>
         </div>
 

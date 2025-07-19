@@ -41,12 +41,17 @@ export async function PUT(
         where: { categoryId: category.id }
       });
 
-      // Créer les nouveaux items
+      // Créer les nouveaux items avec tri alphabétique
+      const sortedItems = items.sort((a: string, b: string) => 
+        a.localeCompare(b, 'fr', { sensitivity: 'base' })
+      );
+      
       await tx.listItem.createMany({
-        data: items.map((value: string, index: number) => ({
+        data: sortedItems.map((value: string, index: number) => ({
           value,
           order: index,
-          categoryId: category.id
+          categoryId: category.id,
+          isCustom: false
         }))
       });
 
@@ -55,7 +60,10 @@ export async function PUT(
         where: { listId },
         include: {
           items: {
-            orderBy: { order: 'asc' }
+            orderBy: [
+              { order: 'asc' },
+              { value: 'asc' }
+            ]
           }
         }
       });
@@ -111,7 +119,10 @@ export async function GET(
       where: { listId },
       include: {
         items: {
-          orderBy: { order: 'asc' }
+          orderBy: [
+            { order: 'asc' },
+            { value: 'asc' }
+          ]
         }
       }
     });

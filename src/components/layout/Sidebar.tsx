@@ -7,7 +7,9 @@ import { useAuth } from '@/hooks/useAuth'
 import { 
   Users, 
   Plus, 
-  Calendar, 
+  UserPlus,
+  Calendar,
+  FolderInput,
   Settings, 
   LogOut, 
   User,
@@ -77,13 +79,13 @@ export const Sidebar = ({ activeTab, onTabChange }: SidebarProps) => {
     {
       id: 'patients' as NavigationTab,
       label: 'Dossiers employés',
-      icon: <Users className="w-5 h-5" />,
+      icon: <FolderInput className="w-5 h-5" />,
       show: canViewPatients()
     },
     {
       id: 'newDossier' as NavigationTab,
       label: 'Nouvel employé',
-      icon: <Plus className="w-5 h-5" />,
+      icon: <UserPlus className="w-5 h-5" />,
       show: canViewPatients()
     },
     {

@@ -10,33 +10,32 @@ export async function GET() {
   try {
     console.log('🔍 Début de la récupération des listes');
     
-    // Vérifions d'abord les catégories sans les items
-    const categoriesCount = await prisma.listCategory.count();
-    console.log(`📊 Nombre total de catégories: ${categoriesCount}`);
-
     const categories = await prisma.listCategory.findMany({
       include: {
         items: {
-          orderBy: {
-            order: 'asc'
-          }
+          orderBy: [
+            { order: 'asc' },
+            { value: 'asc' }
+          ]
         }
       }
     });
     
-    console.log('📋 Détails des catégories:');
-categories.forEach((cat: { name: string; listId: string; items: any[] }) => {
-  console.log(`- ${cat.name} (${cat.listId}): ${cat.items.length} items`);
-});
+    // Tri alphabétique automatique des items dans chaque catégorie
+    const sortedCategories = categories.map(category => ({
+      ...category,
+      items: category.items.sort((a, b) => a.value.localeCompare(b.value, 'fr', { sensitivity: 'base' }))
+    }));
     
-    if (categories.length === 0) {
-      console.warn('⚠️ Aucune catégorie trouvée dans la base de données');
-    }
+    console.log('📋 Détails des catégories:');
+    sortedCategories.forEach((cat: { name: string; listId: string; items: any[] }) => {
+      console.log(`- ${cat.name} (${cat.listId}): ${cat.items.length} items`);
+    });
     
     return NextResponse.json({ 
       success: true,
-      data: categories,
-      count: categories.length
+      data: sortedCategories,
+      count: sortedCategories.length
     });
   } catch (error) {
     console.error('❌ Erreur lors de la récupération des listes:', error);

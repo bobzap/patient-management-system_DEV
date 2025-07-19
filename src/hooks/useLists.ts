@@ -4,6 +4,7 @@ interface ListItem {
   id: number;
   value: string;
   order: number;
+  isCustom?: boolean;
 }
 
 interface ListCategory {
@@ -67,7 +68,42 @@ export function useLists() {
           globalRawListsCache = result.data;
           
           const formattedLists = result.data.reduce((acc: FormattedLists, category: ListCategory) => {
-            acc[category.listId] = category.items.map(item => item.value);
+            // Tri intelligent : chiffres (desc) + caractères spéciaux puis alphabétique
+            const sortedItems = category.items
+              .map(item => item.value)
+              .sort((a, b) => {
+                // Extraire les parties numériques
+                const aNumMatch = a.match(/^(\d+)/)
+                const bNumMatch = b.match(/^(\d+)/)
+                
+                // Si les deux commencent par des chiffres
+                if (aNumMatch && bNumMatch) {
+                  const aNum = parseInt(aNumMatch[1], 10)
+                  const bNum = parseInt(bNumMatch[1], 10)
+                  
+                  if (aNum !== bNum) {
+                    return bNum - aNum // Du plus grand au plus petit
+                  }
+                  return a.localeCompare(b, 'fr', { sensitivity: 'base' })
+                }
+                
+                // Si seulement A commence par un chiffre
+                if (aNumMatch && !bNumMatch) return -1
+                if (!aNumMatch && bNumMatch) return 1
+                
+                // Caractères spéciaux avant lettres
+                const aFirstChar = a.charCodeAt(0)
+                const bFirstChar = b.charCodeAt(0)
+                
+                const aIsSpecial = aFirstChar < 48 || (aFirstChar > 57 && aFirstChar < 65) || (aFirstChar > 90 && aFirstChar < 97) || aFirstChar > 122
+                const bIsSpecial = bFirstChar < 48 || (bFirstChar > 57 && bFirstChar < 65) || (bFirstChar > 90 && bFirstChar < 97) || bFirstChar > 122
+                
+                if (aIsSpecial && !bIsSpecial) return -1
+                if (!aIsSpecial && bIsSpecial) return 1
+                
+                return a.localeCompare(b, 'fr', { sensitivity: 'base' })
+              });
+            acc[category.listId] = sortedItems;
             return acc;
           }, {});
           
@@ -95,11 +131,23 @@ export function useLists() {
   }, []);
 
   const getListItems = (listId: string): string[] => {
-    return lists[listId] || [];
+    const items = lists[listId] || [];
+    // Les items sont déjà triés lors du formatage, pas besoin de re-trier
+    return items;
   };
 
   const validateValue = (listId: string, value: string): boolean => {
     return lists[listId]?.includes(value) || false;
+  };
+
+  // Fonction pour vider le cache et forcer un rechargement
+  const refreshLists = () => {
+    globalListsCache = null;
+    globalRawListsCache = null;
+    setLists({});
+    setRawLists([]);
+    setIsLoading(true);
+    // Le useEffect se déclenchera automatiquement
   };
 
   return {
@@ -108,6 +156,7 @@ export function useLists() {
     isLoading,
     error,
     getListItems,
-    validateValue
+    validateValue,
+    refreshLists
   };
 }

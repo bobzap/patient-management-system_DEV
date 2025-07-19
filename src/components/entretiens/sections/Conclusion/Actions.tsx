@@ -14,6 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/Select";
+import { EnhancedSelect } from "@/components/ui/enhanced-select";
 
 interface ActionsProps {
   data?: ActionData;
@@ -113,20 +114,16 @@ export const Actions = ({ data = defaultData, onChange, isReadOnly = false }: Ac
       <div className="space-y-4">
         {/* Action 1: Orientations */}
         <ActionSection title="1. Orientations">
-          <Select
+          <EnhancedSelect
+            listType="orientation"
             value={data.orientation.selected[0] || ''}
             onValueChange={(value) => updateOrientation({ selected: [value] })}
+            placeholder="Choisir une orientation..."
+            searchable={true}
+            customizable={true}
             disabled={isReadOnly}
-          >
-            <SelectTrigger className={selectTriggerClasses}>
-              <SelectValue placeholder="Choisir une orientation..." />
-            </SelectTrigger>
-            <SelectContent>
-              {lists.orientation.map((item) => (
-                <SelectItem key={item} value={item}>{item}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            className={selectTriggerClasses}
+          />
           <Textarea
             value={data.orientation.commentaire}
             onChange={(e) => updateOrientation({ commentaire: e.target.value })}
@@ -188,7 +185,8 @@ export const Actions = ({ data = defaultData, onChange, isReadOnly = false }: Ac
           </div>
           {data.manager.entretienNecessaire && (
             <div className="space-y-3 mt-2">
-              <Select
+              <EnhancedSelect
+                listType="managers"
                 value={data.manager.managerSelectionne}
                 onValueChange={(value) => handleChange({
                   manager: {
@@ -196,17 +194,12 @@ export const Actions = ({ data = defaultData, onChange, isReadOnly = false }: Ac
                     managerSelectionne: value
                   }
                 })}
+                placeholder="Sélectionner un manager..."
+                searchable={true}
+                customizable={true}
                 disabled={isReadOnly}
-              >
-                <SelectTrigger className={selectTriggerClasses}>
-                  <SelectValue placeholder="Sélectionner un manager..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {lists.managers.map((manager) => (
-                    <SelectItem key={manager} value={manager}>{manager}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                className={selectTriggerClasses}
+              />
               <Textarea
                 value={data.manager.commentaire}
                 onChange={(e) => handleChange({
